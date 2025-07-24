@@ -3,15 +3,17 @@ package config
 import (
 	"log"
 	"os"
+	//"strings"
 	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
+	//"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	Env         string `yaml:"env"`
-	StoragePath string `yaml:"storage_path"`
-	HTTPServer  `yaml:"http_server"`
+	Env                     string `yaml:"env"`
+	StorageConnectionString string `yaml:"storage_connection_string"`
+	HTTPServer              `yaml:"http_server"`
 }
 
 type HTTPServer struct {
