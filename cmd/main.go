@@ -1,7 +1,6 @@
 package main
 
 import (
-
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 )
 
