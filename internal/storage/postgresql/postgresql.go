@@ -105,7 +105,7 @@ func (s *Storage) ReadSubscriptionEntryByUserID(ctx context.Context, entry subs.
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	var res []*subs.SubscriptionEntry
+	var result []*subs.SubscriptionEntry
 	for rows.Next() {
 		var item subs.SubscriptionEntry
 		err := rows.Scan(&item.ServiceName, &item.Price, &item.UserID, &item.StartDate, &item.EndDate)
@@ -113,7 +113,7 @@ func (s *Storage) ReadSubscriptionEntryByUserID(ctx context.Context, entry subs.
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 	}
-	return res, nil
+	return result, nil
 }
 
 func (s *Storage) UpdateSubscriptionEntryByUserID(ctx context.Context, entry subs.SubscriptionEntry) (int64, error) {
@@ -146,13 +146,14 @@ func (s *Storage) UpdateSubscriptionEntryDateByUserID(ctx context.Context, entry
 
 func (s *Storage) ListSubscriptionEntrys(ctx context.Context) ([]*subs.SubscriptionEntry, error) {
 	const op = "storage.postgresql.ListSubscriptionEntrys"
+
 	rows, err := s.db.Query(ctx, `
 		SELECT service_name, price, user_id, start_date, end_date
 		FROM subscriptions`)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	var res []*subs.SubscriptionEntry
+	var result []*subs.SubscriptionEntry
 	for rows.Next() {
 		var item subs.SubscriptionEntry
 		err := rows.Scan(&item.ServiceName, &item.Price, &item.UserID, &item.StartDate, &item.EndDate)
@@ -160,6 +161,6 @@ func (s *Storage) ListSubscriptionEntrys(ctx context.Context) ([]*subs.Subscript
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 	}
-	return res, nil
+	return result, nil
 
 }
