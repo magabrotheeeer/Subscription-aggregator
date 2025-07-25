@@ -31,7 +31,13 @@ func New(log *slog.Logger, creater Creater) http.HandlerFunc {
 		if err != nil {
 			log.Error("failed to decode request body", slog.Attr{Key: "err", Value: slog.StringValue(err.Error())})
 
-			//render.JSON(w, r, )
+			render.JSON(w, r, map[string]string{
+				"error":   "Invalid request body",
+				"details": err.Error(),
+			})
+			return
 		}
+		log.Info("request body decoded", slog.Any("request", req))
+
 	}
 }
