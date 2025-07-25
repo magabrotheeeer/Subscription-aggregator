@@ -13,7 +13,7 @@ import (
 
 type Creater interface {
 	CreateSubscriptionEntry(ctx context.Context, serviceName string, price int,
-	 userID string, startDate time.Time, endDate time.Time) (int, error)
+		userID string, startDate time.Time, endDate time.Time) (int, error)
 }
 
 func New(log *slog.Logger, creater Creater) http.HandlerFunc {
@@ -32,7 +32,6 @@ func New(log *slog.Logger, creater Creater) http.HandlerFunc {
 			log.Error("failed to decode request body", slog.Attr{Key: "err", Value: slog.StringValue(err.Error())})
 
 			//render.JSON(w, r, )
-			// TO-DO
 		}
 	}
 }

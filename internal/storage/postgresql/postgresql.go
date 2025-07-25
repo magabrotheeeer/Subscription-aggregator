@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
+	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
 )
 
 type Storage struct {
@@ -42,7 +42,7 @@ func New(storageConnectionString string) (*Storage, error) {
 	return &Storage{db: conn}, nil
 }
 
-func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subscription.SubscriptionEntry) (int, error) {
+func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subs.SubscriptionEntry) (int, error) {
 
 	const op = "storage.postgresql.CreateSubscriptionEntry"
 	var result int
@@ -67,7 +67,7 @@ func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subscriptio
 
 }
 
-func (s *Storage) RemoveSubscriptionEntryByUserID(ctx context.Context, entry subscription.SubscriptionEntry) (int64, error) {
+func (s *Storage) RemoveSubscriptionEntryByUserID(ctx context.Context, entry subs.SubscriptionEntry) (int64, error) {
 
 	const op = "storage.postgresql.DeleteSubscriptionEntryByUserID"
 
@@ -81,7 +81,7 @@ func (s *Storage) RemoveSubscriptionEntryByUserID(ctx context.Context, entry sub
 	return result, nil
 }
 
-func (s *Storage) RemoveSubscriptionEntryByServiceName(ctx context.Context, entry subscription.SubscriptionEntry) (int64, error) {
+func (s *Storage) RemoveSubscriptionEntryByServiceName(ctx context.Context, entry subs.SubscriptionEntry) (int64, error) {
 
 	const op = "storage.postgresql.DeleteSubscriptionEntryByServiceName"
 
@@ -95,36 +95,71 @@ func (s *Storage) RemoveSubscriptionEntryByServiceName(ctx context.Context, entr
 	return result, nil
 }
 
-/*func (s *Storage) ReadSubscriptionEntryByUserID(ctx context.Context, userID string) ([]struct, error) {
-	
+func (s *Storage) ReadSubscriptionEntryByUserID(ctx context.Context, entry subs.SubscriptionEntry) ([]*subs.SubscriptionEntry, error) {
+
 	const op = "storage.postgresql.ReadSubscriptionEntryByUserID"
 
 	rows, err := s.db.Query(ctx, `
-		SELECT FROM subscriptions WHERE user_id = $1`, userID)
+		SELECT service_name, price, user_id, start_date, end_date 
+		FROM subscriptions WHERE user_id = $1`, entry.UserID)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	subscriptions := []struct{
-		ServiceName string
-		Price int
-		UserID string
-		StartDate time.Time
-		EndDate time.Time
-	}{}
-
+	var res []*subs.SubscriptionEntry
 	for rows.Next() {
-		var item struct{
-			ServiceName string
-			Price int
-			UserID string
-			StartDate time.Time
-			EndDate time.Time
-		}
+		var item subs.SubscriptionEntry
 		err := rows.Scan(&item.ServiceName, &item.Price, &item.UserID, &item.StartDate, &item.EndDate)
 		if err != nil {
-			return 
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 	}
-}*/
+	return res, nil
+}
 
-// TO-DO
+func (s *Storage) UpdateSubscriptionEntryByUserID(ctx context.Context, entry subs.SubscriptionEntry) (int64, error) {
+	const op = "storage.postgresql.UpdateSubscriptionEntryByUserID"
+
+	commandTag, err := s.db.Exec(ctx, `
+		UPDATE subscriptions SET price = $1 WHERE user_id = $2 AND service_name = $3`,
+		entry.Price, entry.UserID, entry.ServiceName)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+	result := commandTag.RowsAffected()
+	return result, nil
+}
+
+func (s *Storage) UpdateSubscriptionEntryDateByUserID(ctx context.Context, entry subs.SubscriptionEntry) (int64, error) {
+	const op = "storage.postgresql.UpdateSubscriptionEntryDateByUserID"
+
+	commandTag, err := s.db.Exec(ctx, `
+		UPDATE subscriptions
+		SET start_date = $1, end_date = $2
+		WHERE user_id = $3 AND service_name = $4`,
+		entry.StartDate, entry.EndDate, entry.UserID, entry.ServiceName)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+	result := commandTag.RowsAffected()
+	return result, nil
+}
+
+func (s *Storage) ListSubscriptionEntrys(ctx context.Context) ([]*subs.SubscriptionEntry, error) {
+	const op = "storage.postgresql.ListSubscriptionEntrys"
+	rows, err := s.db.Query(ctx, `
+		SELECT service_name, price, user_id, start_date, end_date
+		FROM subscriptions`)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	var res []*subs.SubscriptionEntry
+	for rows.Next() {
+		var item subs.SubscriptionEntry
+		err := rows.Scan(&item.ServiceName, &item.Price, &item.UserID, &item.StartDate, &item.EndDate)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+	}
+	return res, nil
+
+}

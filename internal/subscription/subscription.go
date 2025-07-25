@@ -3,10 +3,9 @@ package subscription
 import "time"
 
 type SubscriptionEntry struct {
-	ID          int
-	ServiceName string
-	Price       int
-	UserID      string
-	StartDate   time.Time
-	EndDate     time.Time
+	ServiceName string    `json:"service_name"`
+	Price       int       `json:"price"`
+	UserID      string    `json:"user_id"`
+	StartDate   time.Time `json:"start_date"`
+	EndDate     *time.Time `json:"end_date,omitempty"`
 }
