@@ -1,12 +1,14 @@
 package create
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
 )
 
 type Creater interface {
@@ -23,7 +25,7 @@ func New(log *slog.Logger, creater Creater) http.HandlerFunc {
 			slog.String("requires_id", middleware.GetReqID(r.Context())),
 		)
 
-		var req Request
+		var req subscription.SubscriptionEntry
 
 		err := render.DecodeJSON(r.Body, &req)
 		if err != nil {

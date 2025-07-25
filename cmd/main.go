@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/postgresql"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
 )
 
 func main() {
@@ -28,6 +29,7 @@ func main() {
 	}
 	_ = storage
 	_ = ctx
+	_ = subscription.SubscriptionEntry{}
 
 	/*id, err := storage.CreateSubscriptionEntry(ctx, "YANDEX", 500, "60601fee-2bf1-4721-ae6f-7636e79a0cba", time.Date(2024, 1, 0, 0, 0, 0, 0, time.UTC), time.Date(2024, 2, 0, 0, 0, 0, 0, time.UTC))
 	if err != nil {

@@ -3,9 +3,9 @@ package postgresql
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
 )
 
 type Storage struct {
@@ -42,8 +42,7 @@ func New(storageConnectionString string) (*Storage, error) {
 	return &Storage{db: conn}, nil
 }
 
-func (s *Storage) CreateSubscriptionEntry(ctx context.Context, serviceName string, price int,
-	 userID string, startDate time.Time, endDate time.Time) (int, error) {
+func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subscription.SubscriptionEntry) (int, error) {
 
 	const op = "storage.postgresql.CreateSubscriptionEntry"
 	var result int
@@ -56,11 +55,11 @@ func (s *Storage) CreateSubscriptionEntry(ctx context.Context, serviceName strin
 			end_date
 		) VALUES ($1, $2, $3, $4, $5)
 		RETURNING id`,
-		serviceName,
-		price,
-		userID,
-		startDate,
-		endDate).Scan(&result)
+		entry.ServiceName,
+		entry.Price,
+		entry.UserID,
+		entry.StartDate,
+		entry.EndDate).Scan(&result)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
@@ -68,12 +67,12 @@ func (s *Storage) CreateSubscriptionEntry(ctx context.Context, serviceName strin
 
 }
 
-func (s *Storage) RemoveSubscriptionEntryByUserID(ctx context.Context, userID string) (int64, error) {
+func (s *Storage) RemoveSubscriptionEntryByUserID(ctx context.Context, entry subscription.SubscriptionEntry) (int64, error) {
 
 	const op = "storage.postgresql.DeleteSubscriptionEntryByUserID"
 
 	commandTag, err := s.db.Exec(ctx, `
-		DELETE FROM subscriptions WHERE user_id = $1`, userID)
+		DELETE FROM subscriptions WHERE user_id = $1`, entry.UserID)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
@@ -82,12 +81,12 @@ func (s *Storage) RemoveSubscriptionEntryByUserID(ctx context.Context, userID st
 	return result, nil
 }
 
-func (s *Storage) RemoveSubscriptionEntryByServiceName(ctx context.Context, serviceName, userID string) (int64, error) {
+func (s *Storage) RemoveSubscriptionEntryByServiceName(ctx context.Context, entry subscription.SubscriptionEntry) (int64, error) {
 
 	const op = "storage.postgresql.DeleteSubscriptionEntryByServiceName"
 
 	commandTag, err := s.db.Exec(ctx, `
-		DELETE FROM subscriptions WHERE service_name = $1 and user_id = $2`, serviceName, userID)
+		DELETE FROM subscriptions WHERE service_name = $1 and user_id = $2`, entry.ServiceName, entry.UserID)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
