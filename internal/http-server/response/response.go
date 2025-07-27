@@ -37,6 +37,14 @@ func ValidationError(errs validator.ValidationErrors) Response {
 		switch err.ActualTag() {
 		case "required":
 			errsMsgs = append(errsMsgs, fmt.Sprintf("field %s is a required field", err.Field()))
+		case "alphanum":
+			errsMsgs = append(errsMsgs, fmt.Sprintf("field %s can contain only numbers and letters", err.Field()))
+		case "numeric":
+			errsMsgs = append(errsMsgs, fmt.Sprintf("field %s can contain only numbers", err.Field()))
+		case "uuid":
+			errsMsgs = append(errsMsgs, fmt.Sprintf("field %s can contain only uuid", err.Field()))
+		case "datetime=01-2006":
+			errsMsgs = append(errsMsgs, fmt.Sprintf("field %s can contain only date in format 01-2006", err.Field()))
 		default:
 			errsMsgs = append(errsMsgs, fmt.Sprintf("field %s is not a valid", err.Field()))
 		}
