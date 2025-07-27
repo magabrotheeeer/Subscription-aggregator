@@ -42,7 +42,7 @@ func New(storageConnectionString string) (*Storage, error) {
 	return &Storage{db: conn}, nil
 }
 
-func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subs.SubscriptionEntry) (int, error) {
+func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subs.CreateSubscriptionEntry) (int, error) {
 
 	const op = "storage.postgresql.CreateSubscriptionEntry"
 	var result int
