@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
@@ -25,9 +26,10 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 			slog.String("requires_id", middleware.GetReqID(r.Context())),
 		)
 
+		var dummyReq subs.DummySubscriptionEntry
 		var req subs.SubscriptionEntry
 
-		err := render.DecodeJSON(r.Body, &req)
+		err := render.DecodeJSON(r.Body, &dummyReq)
 		if err != nil {
 			log.Error("failed to decode request body", slog.Attr{
 				Key:   "err",
@@ -37,6 +39,36 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 
 			return
 		}
+		startDate, err := time.Parse("01-2006", dummyReq.StartDate)
+		if err != nil {
+			log.Error("failed to decode request body - field startdate", slog.Attr{
+				Key:   "err",
+				Value: slog.StringValue(err.Error())})
+
+			render.JSON(w, r, response.Error("failed to decode request, field startdate"))
+
+			return
+
+		}
+		if dummyReq.EndDate != "" {
+			endDate, err := time.Parse("01-2006", dummyReq.EndDate)
+			if err != nil {
+				log.Error("failed to decode request body - field enddate", slog.Attr{
+					Key:   "err",
+					Value: slog.StringValue(err.Error())})
+
+				render.JSON(w, r, response.Error("failed to decode request, field enddate"))
+
+				return
+
+			}
+			req.EndDate = &endDate
+		}
+		req.StartDate = startDate
+		req.UserID = dummyReq.UserID
+		req.Price = dummyReq.Price
+		req.ServiceName = dummyReq.ServiceName
+
 		log.Info("request body decoded", slog.Any("request", req))
 
 		if err := validator.New().Struct(req); err != nil {
