@@ -67,20 +67,20 @@ func New(ctx context.Context, log *slog.Logger, update Updater) http.HandlerFunc
 		}else {
 			startDate, err2 := time.Parse("01-2006", dummyReq.StartDate)
 			if err2 != nil {
-				log.Error("failed to decode request body - field startdate", slog.Attr{
+				log.Error("failed to convert, field: startdate", slog.Attr{
 					Key:   "err",
 					Value: slog.StringValue(err2.Error())})
 
-				render.JSON(w, r, response.Error("failed to decode request, field startdate"))
+				render.JSON(w, r, response.Error("failed to convert, field: startdate"))
 				return
 			}
 			endDate, err2 := time.Parse("01-2006", dummyReq.EndDate)
 			if err2 != nil {
-				log.Error("failed to decode request body - field startdate", slog.Attr{
+				log.Error("failed to convert, field: enddate", slog.Attr{
 					Key:   "err",
 					Value: slog.StringValue(err2.Error())})
 
-				render.JSON(w, r, response.Error("failed to decode request, field startdate"))
+				render.JSON(w, r, response.Error("failed to convert, field: enddate"))
 				return
 			}
 			req.StartDate = startDate
