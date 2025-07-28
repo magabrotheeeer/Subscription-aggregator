@@ -22,7 +22,7 @@ type List interface {
 // @Produce json
 // @Success 200 {object} map[string]interface{} "list_count: число, entries: массив подписок"
 // @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
-// @Router /api/v1/subscriptions [get]
+// @Router /subscriptions [get]
 func New(ctx context.Context, log *slog.Logger, list List) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.list.New"

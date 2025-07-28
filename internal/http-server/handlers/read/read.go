@@ -25,7 +25,7 @@ type Reader interface {
 // @Success 200 {object} map[string]interface{} "read_count: число, entries: массив подписок"
 // @Failure 400 {object} map[string]interface{} "Ошибка валидации данных"
 // @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
-// @Router /api/v1/subscriptions/filter [post]
+// @Router /subscriptions/filter [post]
 func New(ctx context.Context, log *slog.Logger, reader Reader) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.reade.New"

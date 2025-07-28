@@ -26,7 +26,7 @@ type CounterSum interface {
 // @Success 200 {object} map[string]interface{} "sum_of_subscriptions: число"
 // @Failure 400 {object} map[string]interface{} "Ошибка валидации или парсинга"
 // @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
-// @Router /api/v1/subscriptions/sum [post]
+// @Router /subscriptions/sum [post]
 func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.countersum.New"

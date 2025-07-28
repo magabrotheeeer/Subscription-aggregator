@@ -27,7 +27,7 @@ type Updater interface {
 // @Success 200 {object} map[string]interface{} "updated_count: число обновленных записей"
 // @Failure 400 {object} map[string]interface{} "Ошибка валидации данных или конвертации дат"
 // @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
-// @Router /api/v1/subscriptions [put]
+// @Router /subscriptions [put]
 func New(ctx context.Context, log *slog.Logger, update Updater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.update.New"

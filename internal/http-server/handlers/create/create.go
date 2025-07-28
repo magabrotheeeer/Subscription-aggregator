@@ -24,7 +24,7 @@ type Creater interface {
 // @Param data body subs.DummyCreaterSubscriptionEntry true "Новая подписка"
 // @Success 201 {object} response.Response
 // @Failure 400 {object} response.Response
-// @Router /api/v1/subscriptions [post]
+// @Router /subscriptions [post]
 func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.create.New"
