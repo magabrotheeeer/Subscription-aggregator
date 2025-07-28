@@ -5,12 +5,17 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"net/http"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/postgresql"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/create"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/list"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/read"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/remove"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/update"
 )
 
 func main() {
@@ -27,26 +32,33 @@ func main() {
 		logger.Error("failed to init storage", slog.Attr{Key: "err", Value: slog.StringValue(err.Error())})
 		os.Exit(1)
 	}
-	_ = storage
-	_ = ctx
-	_ = subscription.SubscriptionEntry{}
 
-	/*id, err := storage.CreateSubscriptionEntry(ctx, "YANDEX", 500, "60601fee-2bf1-4721-ae6f-7636e79a0cba", time.Date(2024, 1, 0, 0, 0, 0, 0, time.UTC), time.Date(2024, 2, 0, 0, 0, 0, 0, time.UTC))
-	if err != nil {
-		logger.Error("failed to create new entry", slog.Attr{Key: "err", Value: slog.StringValue(err.Error())})
-		os.Exit(1)
-	}
-	logger.Info("created new entry with ID", slog.String("id", strconv.Itoa(id)))
-	rows, err := storage.RemoveSubscriptionEntryByUserID(ctx, "60601fee-2bf1-4721-ae6f-7636e79a0cba")
-	if err != nil {
-		logger.Error("failed to delete entrys by ID", slog.Attr{Key: "err", Value: slog.StringValue(err.Error())})
-		os.Exit(1)
-	}
-	logger.Info("deleted entrys by ID", slog.String("rows", strconv.Itoa(int(rows))))*/
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.URLFormat)
+
+	router.Post("/subs-aggregator/create/", create.New(ctx, logger, storage))
+	router.Get("/subs-aggregator/read/", read.New(ctx, logger, storage))
+	router.Put("/subs-aggregator/update/", update.New(ctx, logger, storage))
+	router.Delete("/subs-aggregator/remove/", remove.New(ctx, logger, storage))
+	router.Get("/subs-aggregator/list/", list.New(ctx, logger, storage))
+
+	logger.Info("starting the server", slog.String("address", config.Address))
+
+	srv := &http.Server{
+		Addr:         config.Address,
+		Handler:      router,
+		ReadTimeout:  config.HTTPServer.Timeout,
+		WriteTimeout: config.HTTPServer.Timeout,
+		IdleTimeout:  config.HTTPServer.IdleTimeout,
+	}
+
+	if err = srv.ListenAndServe(); err != nil {
+		logger.Error("failed to start the server", slog.Attr{Key: "err", Value: slog.StringValue(err.Error())})
+		os.Exit(1)
+	}
+	logger.Error("server stopped")
 
 }
