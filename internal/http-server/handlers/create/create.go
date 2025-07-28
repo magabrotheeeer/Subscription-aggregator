@@ -27,7 +27,6 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 		)
 
 		var dummyReq subs.DummyCreaterSubscriptionEntry
-		var req subs.CreaterSubscriptionEntry
 
 		err := render.DecodeJSON(r.Body, &dummyReq)
 		if err != nil {
@@ -39,25 +38,42 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 
 			return
 		}
+		log.Info("request body decoded", slog.Any("request", dummyReq))
+
+		if err := validator.New().Struct(dummyReq); err != nil {
+			validateErr := err.(validator.ValidationErrors)
+			log.Error("Invalid request", slog.Attr{
+				Key:   "err",
+				Value: slog.StringValue(err.Error()),
+			})
+
+			render.JSON(w, r, response.Error("Invalid request"))
+			render.JSON(w, r, response.ValidationError(validateErr))
+			return
+		}
+		log.Info("all fields are validated")
+
 		startDate, err := time.Parse("01-2006", dummyReq.StartDate)
 		if err != nil {
-			log.Error("failed to decode request body - field startdate", slog.Attr{
+			log.Error("failed to convert, field: startdate", slog.Attr{
 				Key:   "err",
 				Value: slog.StringValue(err.Error())})
 
-			render.JSON(w, r, response.Error("failed to decode request, field startdate"))
+			render.JSON(w, r, response.Error("failed to convert, field: startdate"))
 
 			return
 		}
 
+		var req subs.CreaterSubscriptionEntry
+
 		if dummyReq.EndDate != "" {
 			endDate, err := time.Parse("01-2006", dummyReq.EndDate)
 			if err != nil {
-				log.Error("failed to decode request body - field enddate", slog.Attr{
+				log.Error("failed to convert, field: enddate", slog.Attr{
 					Key:   "err",
 					Value: slog.StringValue(err.Error())})
 
-				render.JSON(w, r, response.Error("failed to decode request, field enddate"))
+				render.JSON(w, r, response.Error("failed to convert, field: enddate"))
 
 				return
 			}
@@ -71,20 +87,6 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 		req.Price = dummyReq.Price
 		req.ServiceName = dummyReq.ServiceName
 
-		log.Info("request body decoded", slog.Any("request", req))
-
-		if err := validator.New().Struct(req); err != nil {
-			validateErr := err.(validator.ValidationErrors)
-			log.Error("Invalid request", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error()),
-			})
-
-			render.JSON(w, r, response.Error("Invalid request"))
-			render.JSON(w, r, response.ValidationError(validateErr))
-			return
-		}
-		log.Info("all fields are validated")
 		counter, err := creater.CreateSubscriptionEntry(ctx, req)
 		if err != nil {
 			log.Error("failed to create new entry", slog.Attr{
@@ -94,9 +96,9 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 			render.JSON(w, r, response.Error("failed to save"))
 			return
 		}
-		log.Info("created new entry", "count", counter)
+		log.Info("created new entry", "entrys in table:", counter)
 		render.JSON(w, r, response.StatusOKWithData(map[string]interface{}{
-			"created_count": counter,
+			"entrys_count": counter,
 		}))
 
 	}
