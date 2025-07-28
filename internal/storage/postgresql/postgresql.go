@@ -42,7 +42,7 @@ func New(storageConnectionString string) (*Storage, error) {
 	return &Storage{db: conn}, nil
 }
 
-func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subs.CreateSubscriptionEntry) (int, error) {
+func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subs.CreaterSubscriptionEntry) (int, error) {
 
 	const op = "storage.postgresql.CreateSubscriptionEntry"
 	var result int
@@ -67,7 +67,7 @@ func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subs.Create
 
 }
 
-func (s *Storage) RemoveSubscriptionEntryByUserID(ctx context.Context, entry subs.SubscriptionEntry) (int64, error) {
+func (s *Storage) RemoveSubscriptionEntryByUserID(ctx context.Context, entry subs.FilterRemoveSubscriptionEntry) (int64, error) {
 
 	const op = "storage.postgresql.DeleteSubscriptionEntryByUserID"
 
@@ -81,7 +81,7 @@ func (s *Storage) RemoveSubscriptionEntryByUserID(ctx context.Context, entry sub
 	return result, nil
 }
 
-func (s *Storage) RemoveSubscriptionEntryByServiceName(ctx context.Context, entry subs.SubscriptionEntry) (int64, error) {
+func (s *Storage) RemoveSubscriptionEntryByServiceName(ctx context.Context, entry subs.FilterRemoveSubscriptionEntry) (int64, error) {
 
 	const op = "storage.postgresql.DeleteSubscriptionEntryByServiceName"
 
@@ -95,7 +95,7 @@ func (s *Storage) RemoveSubscriptionEntryByServiceName(ctx context.Context, entr
 	return result, nil
 }
 
-func (s *Storage) ReadSubscriptionEntryByUserID(ctx context.Context, entry subs.SubscriptionEntry) ([]*subs.SubscriptionEntry, error) {
+func (s *Storage) ReadSubscriptionEntryByUserID(ctx context.Context, entry subs.FilterReadSubscriptionEntry) ([]*subs.FilterReadSubscriptionEntry, error) {
 
 	const op = "storage.postgresql.ReadSubscriptionEntryByUserID"
 
@@ -105,19 +105,20 @@ func (s *Storage) ReadSubscriptionEntryByUserID(ctx context.Context, entry subs.
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	var result []*subs.SubscriptionEntry
+	var result []*subs.FilterReadSubscriptionEntry
 	for rows.Next() {
-		var item subs.SubscriptionEntry
+		var item subs.FilterReadSubscriptionEntry
 		err := rows.Scan(&item.ServiceName, &item.Price, &item.UserID, &item.StartDate, &item.EndDate)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
+		result = append(result, &item)
 	}
 	return result, nil
 }
 
-func (s *Storage) UpdateSubscriptionEntryByUserID(ctx context.Context, entry subs.SubscriptionEntry) (int64, error) {
-	const op = "storage.postgresql.UpdateSubscriptionEntryByUserID"
+func (s *Storage) UpdateSubscriptionEntryPriceByServiceName(ctx context.Context, entry subs.FilterUpdateSubscriptionEntry) (int64, error) {
+	const op = "storage.postgresql.UpdateSubscriptionEntryByServiceNamePrice"
 
 	commandTag, err := s.db.Exec(ctx, `
 		UPDATE subscriptions SET price = $1 WHERE user_id = $2 AND service_name = $3`,
@@ -129,8 +130,8 @@ func (s *Storage) UpdateSubscriptionEntryByUserID(ctx context.Context, entry sub
 	return result, nil
 }
 
-func (s *Storage) UpdateSubscriptionEntryDateByUserID(ctx context.Context, entry subs.SubscriptionEntry) (int64, error) {
-	const op = "storage.postgresql.UpdateSubscriptionEntryDateByUserID"
+func (s *Storage) UpdateSubscriptionEntryDateByServiceName(ctx context.Context, entry subs.FilterUpdateSubscriptionEntry) (int64, error) {
+	const op = "storage.postgresql.UpdateSubscriptionEntryByService"
 
 	commandTag, err := s.db.Exec(ctx, `
 		UPDATE subscriptions
@@ -144,7 +145,7 @@ func (s *Storage) UpdateSubscriptionEntryDateByUserID(ctx context.Context, entry
 	return result, nil
 }
 
-func (s *Storage) ListSubscriptionEntrys(ctx context.Context) ([]*subs.SubscriptionEntry, error) {
+func (s *Storage) ListSubscriptionEntrys(ctx context.Context) ([]*subs.ListSubscriptionEntrys, error) {
 	const op = "storage.postgresql.ListSubscriptionEntrys"
 
 	rows, err := s.db.Query(ctx, `
@@ -153,13 +154,14 @@ func (s *Storage) ListSubscriptionEntrys(ctx context.Context) ([]*subs.Subscript
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	var result []*subs.SubscriptionEntry
+	var result []*subs.ListSubscriptionEntrys
 	for rows.Next() {
-		var item subs.SubscriptionEntry
+		var item subs.ListSubscriptionEntrys
 		err := rows.Scan(&item.ServiceName, &item.Price, &item.UserID, &item.StartDate, &item.EndDate)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
+		result = append(result, &item)
 	}
 	return result, nil
 
