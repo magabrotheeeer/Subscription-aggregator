@@ -1,0 +1,96 @@
+package countsum
+
+import (
+	"context"
+	"log/slog"
+	"net/http"
+	"time"
+
+	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/render"
+	"github.com/go-playground/validator"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
+	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
+)
+
+type CounterSum interface {
+	CountSumSubscriptionEntrys(ctx context.Context, entry subs.CounterSumSubscriptionEntrys) (float64, error)
+}
+
+func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		const op = "handlers.countersum.New"
+
+		log.With(
+			"op", op,
+			"requires_id", middleware.GetReqID(r.Context()),
+		)
+
+		var dummyReq subs.DummyCounterSumSubscriptionEntrys
+		err := render.DecodeJSON(r.Body, &dummyReq)
+		if err != nil {
+			log.Error("failed to decode request body", slog.Attr{
+				Key:   "err",
+				Value: slog.StringValue(err.Error())})
+
+			render.JSON(w, r, response.Error("failed to decode request"))
+
+			return
+		}
+		log.Info("request body decoded", slog.Any("request", dummyReq))
+
+		if err := validator.New().Struct(dummyReq); err != nil {
+			validateErr := err.(validator.ValidationErrors)
+			log.Error("Invalid request", slog.Attr{
+				Key:   "err",
+				Value: slog.StringValue(err.Error()),
+			})
+
+			render.JSON(w, r, response.Error("Invalid request"))
+			render.JSON(w, r, response.ValidationError(validateErr))
+			return
+		}
+		log.Info("all fields are validated")
+
+		startDate, err := time.Parse("01-2006", dummyReq.StartDate)
+		if err != nil {
+			log.Error("failed to convert, field: startdate", slog.Attr{
+				Key:   "err",
+				Value: slog.StringValue(err.Error())})
+
+			render.JSON(w, r, response.Error("failed to convert, field: startdate"))
+
+			return
+		}
+		endDate, err := time.Parse("01-2006", dummyReq.EndDate)
+		if err != nil {
+			log.Error("failed to convert, field: enddate", slog.Attr{
+				Key:   "err",
+				Value: slog.StringValue(err.Error())})
+
+			render.JSON(w, r, response.Error("failed to convert, field: enddate"))
+
+			return
+		}
+		var req subs.CounterSumSubscriptionEntrys
+		req.Price = dummyReq.Price
+		req.ServiceName = dummyReq.ServiceName
+		req.UserID = dummyReq.UserID
+		req.StartDate = startDate
+		req.EndDate = endDate
+
+		res, err := counterSum.CountSumSubscriptionEntrys(ctx, req)
+		if err != nil {
+			log.Error("failed to sum", slog.Attr{
+				Key:   "err",
+				Value: slog.StringValue(err.Error()),
+			})
+			render.JSON(w, r, response.Error("failed to sum"))
+			return
+		}
+		log.Info("sum of subscriptions", "sum", res)
+		render.JSON(w, r, response.StatusOKWithData(map[string]interface{}{
+			"sum_of_subscriptions": res,
+		}))
+	}
+}
