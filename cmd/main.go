@@ -4,18 +4,19 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/postgresql"
+	countsum "github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/count_sum"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/create"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/list"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/read"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/remove"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/update"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/postgresql"
 )
 
 func main() {
@@ -44,6 +45,7 @@ func main() {
 	router.Put("/subs-aggregator/update/", update.New(ctx, logger, storage))
 	router.Delete("/subs-aggregator/remove/", remove.New(ctx, logger, storage))
 	router.Get("/subs-aggregator/list/", list.New(ctx, logger, storage))
+	router.Post("/subs-aggregator/sum/", countsum.New(ctx, logger, storage))
 
 	logger.Info("starting the server", slog.String("address", config.Address))
 
