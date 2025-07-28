@@ -14,7 +14,7 @@ import (
 )
 
 type Creater interface {
-	CreateSubscriptionEntry(ctx context.Context, entry subs.SubscriptionEntry) (int, error)
+	CreateSubscriptionEntry(ctx context.Context, entry subs.CreaterSubscriptionEntry) (int, error)
 }
 
 func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFunc {
@@ -26,8 +26,8 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 			slog.String("requires_id", middleware.GetReqID(r.Context())),
 		)
 
-		var dummyReq subs.DummySubscriptionEntry
-		var req subs.SubscriptionEntry
+		var dummyReq subs.DummyCreaterSubscriptionEntry
+		var req subs.CreaterSubscriptionEntry
 
 		err := render.DecodeJSON(r.Body, &dummyReq)
 		if err != nil {
@@ -48,8 +48,8 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 			render.JSON(w, r, response.Error("failed to decode request, field startdate"))
 
 			return
-
 		}
+
 		if dummyReq.EndDate != "" {
 			endDate, err := time.Parse("01-2006", dummyReq.EndDate)
 			if err != nil {
@@ -60,9 +60,11 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 				render.JSON(w, r, response.Error("failed to decode request, field enddate"))
 
 				return
-
 			}
+
 			req.EndDate = &endDate
+		} else {
+			req.EndDate = nil
 		}
 		req.StartDate = startDate
 		req.UserID = dummyReq.UserID
@@ -82,7 +84,8 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 			render.JSON(w, r, response.ValidationError(validateErr))
 			return
 		}
-		_, err = creater.CreateSubscriptionEntry(ctx, req)
+		log.Info("all fields are validated")
+		counter, err := creater.CreateSubscriptionEntry(ctx, req)
 		if err != nil {
 			log.Error("failed to create new entry", slog.Attr{
 				Key:   "err",
@@ -91,8 +94,10 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 			render.JSON(w, r, response.Error("failed to save"))
 			return
 		}
-		log.Info("created new entry")
-		render.JSON(w, r, response.StatusOK)
+		log.Info("created new entry", "count", counter)
+		render.JSON(w, r, response.StatusOKWithData(map[string]interface{}{
+			"created_count": counter,
+		}))
 
 	}
 }
