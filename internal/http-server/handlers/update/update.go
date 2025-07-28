@@ -14,8 +14,8 @@ import (
 )
 
 type Updater interface {
-	UpdateSubscriptionEntryPriceByServiceName(ctx context.Context, entry subs.FilterUpdateSubscriptionEntry) (int64, error)
-	UpdateSubscriptionEntryDateByServiceName(ctx context.Context, entry subs.FilterUpdateSubscriptionEntry) (int64, error)
+	UpdateSubscriptionEntryPriceByServiceName(ctx context.Context, entry subs.FilterUpdaterSubscriptionEntry) (int64, error)
+	UpdateSubscriptionEntryDateByServiceName(ctx context.Context, entry subs.FilterUpdaterSubscriptionEntry) (int64, error)
 }
 
 func New(ctx context.Context, log *slog.Logger, update Updater) http.HandlerFunc {
@@ -27,7 +27,7 @@ func New(ctx context.Context, log *slog.Logger, update Updater) http.HandlerFunc
 			"requires_id", middleware.GetReqID(r.Context()),
 		)
 
-		var dummyReq subs.DummyFilterUpdateSubscriptionEntry
+		var dummyReq subs.DummyFilterUpdaterSubscriptionEntry
 		var err error
 
 		err = render.DecodeJSON(r.Body, &dummyReq)
@@ -57,7 +57,7 @@ func New(ctx context.Context, log *slog.Logger, update Updater) http.HandlerFunc
 		log.Info("all fields are validated")
 
 		var counter int64
-		var req subs.FilterUpdateSubscriptionEntry
+		var req subs.FilterUpdaterSubscriptionEntry
 		req.ServiceName = dummyReq.ServiceName
 		req.UserID = dummyReq.UserID
 

@@ -13,8 +13,8 @@ import (
 )
 
 type Deleter interface {
-	RemoveSubscriptionEntryByUserID(ctx context.Context, entry subs.FilterRemoveSubscriptionEntry) (int64, error)
-	RemoveSubscriptionEntryByServiceName(ctx context.Context, entry subs.FilterRemoveSubscriptionEntry) (int64, error)
+	RemoveSubscriptionEntryByUserID(ctx context.Context, entry subs.FilterRemoverSubscriptionEntry) (int64, error)
+	RemoveSubscriptionEntryByServiceName(ctx context.Context, entry subs.FilterRemoverSubscriptionEntry) (int64, error)
 }
 
 func New(ctx context.Context, log *slog.Logger, deleter Deleter) http.HandlerFunc {
@@ -25,7 +25,7 @@ func New(ctx context.Context, log *slog.Logger, deleter Deleter) http.HandlerFun
 			slog.String("op", op),
 			slog.String("requires_id", middleware.GetReqID(r.Context())),
 		)
-		var req subs.FilterRemoveSubscriptionEntry
+		var req subs.FilterRemoverSubscriptionEntry
 		var err error
 
 

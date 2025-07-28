@@ -13,7 +13,7 @@ import (
 )
 
 type Reader interface {
-	ReadSubscriptionEntryByUserID(ctx context.Context, entry subs.FilterReadSubscriptionEntry) ([]*subs.FilterReadSubscriptionEntry, error)
+	ReadSubscriptionEntryByUserID(ctx context.Context, entry subs.FilterReaderSubscriptionEntry) ([]*subs.FilterReaderSubscriptionEntry, error)
 }
 
 func New(ctx context.Context, log *slog.Logger, reader Reader) http.HandlerFunc {
@@ -24,7 +24,7 @@ func New(ctx context.Context, log *slog.Logger, reader Reader) http.HandlerFunc 
 			"op", op,
 			"requires_id", middleware.GetReqID(r.Context()),
 		)
-		var req subs.FilterReadSubscriptionEntry
+		var req subs.FilterReaderSubscriptionEntry
 
 		err := render.DecodeJSON(r.Body, &req)
 		if err != nil {

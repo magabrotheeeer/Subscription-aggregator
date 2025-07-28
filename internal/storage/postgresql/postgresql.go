@@ -67,7 +67,7 @@ func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subs.Create
 
 }
 
-func (s *Storage) RemoveSubscriptionEntryByUserID(ctx context.Context, entry subs.FilterRemoveSubscriptionEntry) (int64, error) {
+func (s *Storage) RemoveSubscriptionEntryByUserID(ctx context.Context, entry subs.FilterRemoverSubscriptionEntry) (int64, error) {
 
 	const op = "storage.postgresql.DeleteSubscriptionEntryByUserID"
 
@@ -81,7 +81,7 @@ func (s *Storage) RemoveSubscriptionEntryByUserID(ctx context.Context, entry sub
 	return result, nil
 }
 
-func (s *Storage) RemoveSubscriptionEntryByServiceName(ctx context.Context, entry subs.FilterRemoveSubscriptionEntry) (int64, error) {
+func (s *Storage) RemoveSubscriptionEntryByServiceName(ctx context.Context, entry subs.FilterRemoverSubscriptionEntry) (int64, error) {
 
 	const op = "storage.postgresql.DeleteSubscriptionEntryByServiceName"
 
@@ -95,7 +95,7 @@ func (s *Storage) RemoveSubscriptionEntryByServiceName(ctx context.Context, entr
 	return result, nil
 }
 
-func (s *Storage) ReadSubscriptionEntryByUserID(ctx context.Context, entry subs.FilterReadSubscriptionEntry) ([]*subs.FilterReadSubscriptionEntry, error) {
+func (s *Storage) ReadSubscriptionEntryByUserID(ctx context.Context, entry subs.FilterReaderSubscriptionEntry) ([]*subs.FilterReaderSubscriptionEntry, error) {
 
 	const op = "storage.postgresql.ReadSubscriptionEntryByUserID"
 
@@ -105,9 +105,9 @@ func (s *Storage) ReadSubscriptionEntryByUserID(ctx context.Context, entry subs.
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	var result []*subs.FilterReadSubscriptionEntry
+	var result []*subs.FilterReaderSubscriptionEntry
 	for rows.Next() {
-		var item subs.FilterReadSubscriptionEntry
+		var item subs.FilterReaderSubscriptionEntry
 		err := rows.Scan(&item.ServiceName, &item.Price, &item.UserID, &item.StartDate, &item.EndDate)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
@@ -117,7 +117,7 @@ func (s *Storage) ReadSubscriptionEntryByUserID(ctx context.Context, entry subs.
 	return result, nil
 }
 
-func (s *Storage) UpdateSubscriptionEntryPriceByServiceName(ctx context.Context, entry subs.FilterUpdateSubscriptionEntry) (int64, error) {
+func (s *Storage) UpdateSubscriptionEntryPriceByServiceName(ctx context.Context, entry subs.FilterUpdaterSubscriptionEntry) (int64, error) {
 	const op = "storage.postgresql.UpdateSubscriptionEntryByServiceNamePrice"
 
 	commandTag, err := s.db.Exec(ctx, `
@@ -130,7 +130,7 @@ func (s *Storage) UpdateSubscriptionEntryPriceByServiceName(ctx context.Context,
 	return result, nil
 }
 
-func (s *Storage) UpdateSubscriptionEntryDateByServiceName(ctx context.Context, entry subs.FilterUpdateSubscriptionEntry) (int64, error) {
+func (s *Storage) UpdateSubscriptionEntryDateByServiceName(ctx context.Context, entry subs.FilterUpdaterSubscriptionEntry) (int64, error) {
 	const op = "storage.postgresql.UpdateSubscriptionEntryByService"
 
 	commandTag, err := s.db.Exec(ctx, `

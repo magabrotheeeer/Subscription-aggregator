@@ -2,7 +2,7 @@ package subscription
 
 import "time"
 
-// Структура для хранения данных при первичном обращении к серверу
+// Структура для хранения данных при первичном обращении к серверу для create
 type CreaterSubscriptionEntry struct {
 	ServiceName string     `json:"service_name" validator:"required,alphanum"`
 	Price       int        `json:"price" validator:"required,numeric"`
@@ -11,7 +11,7 @@ type CreaterSubscriptionEntry struct {
 	EndDate     *time.Time `json:"end_date,omitempty" validator:"omitempty,datetime=01-2006"`
 }
 
-// Структура для хранения данных, полученных в формате JSON
+// Структура для хранения данных, полученных в формате JSON, для конвертации времени для create
 type DummyCreaterSubscriptionEntry struct {
 	ServiceName string `json:"service_name" validator:"required,alphanum"`
 	Price       int    `json:"price" validator:"required,numeric"`
@@ -21,13 +21,13 @@ type DummyCreaterSubscriptionEntry struct {
 }
 
 // Структура для фильтрации данных для remove
-type FilterRemoveSubscriptionEntry struct {
+type FilterRemoverSubscriptionEntry struct {
 	ServiceName string `json:"service_name" validator:"omitempty,alphanum"`
 	UserID      string `json:"user_id" validator:"required,uuid"`
 }
 
 // Структура для фильтрации данных для read
-type FilterReadSubscriptionEntry struct {
+type FilterReaderSubscriptionEntry struct {
 	ServiceName string     `json:"service_name,omitempty" validator:"omitempty,alphanum"`
 	Price       int        `json:"price,omitempty" validator:"omitempty,numeric"`
 	UserID      string     `json:"user_id" validator:"required,uuid"`
@@ -36,7 +36,7 @@ type FilterReadSubscriptionEntry struct {
 }
 
 // Структура для фильтрации данных для update
-type FilterUpdateSubscriptionEntry struct {
+type FilterUpdaterSubscriptionEntry struct {
 	ServiceName string     `json:"service_name" validator:"required,alphanum"`
 	Price       int        `json:"price" validator:"omitempty,numeric"`
 	UserID      string     `json:"user_id" validator:"required,uuid"`
@@ -44,7 +44,8 @@ type FilterUpdateSubscriptionEntry struct {
 	EndDate     *time.Time `json:"end_date,omitempty" validator:"omitempty,datetime=01-2006"`
 }
 
-type DummyFilterUpdateSubscriptionEntry struct {
+// Структура для хранения данных, полученных в формате JSON, для конвертации времени для update
+type DummyFilterUpdaterSubscriptionEntry struct {
 	ServiceName string `json:"service_name" validator:"required,alphanum"`
 	Price       int    `json:"price" validator:"omitempty,numeric"`
 	UserID      string `json:"user_id" validator:"required,uuid"`
@@ -52,6 +53,7 @@ type DummyFilterUpdateSubscriptionEntry struct {
 	EndDate     string `json:"end_date,omitempty" validator:"omitempty,datetime=01-2006"`
 }
 
+// Структура для вывода всех данных для list
 type ListSubscriptionEntrys struct {
 	ServiceName string     `json:"service_name"`
 	Price       int        `json:"price"`
