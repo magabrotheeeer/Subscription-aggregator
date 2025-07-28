@@ -16,6 +16,16 @@ type Reader interface {
 	ReadSubscriptionEntryByUserID(ctx context.Context, entry subs.FilterReaderSubscriptionEntry) ([]*subs.FilterReaderSubscriptionEntry, error)
 }
 
+// @Summary Получить подписки по фильтру
+// @Description Возвращает список подписок пользователя согласно заданным фильтрам
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param data body subs.FilterReaderSubscriptionEntry true "Фильтры для поиска подписок"
+// @Success 200 {object} map[string]interface{} "read_count: число, entries: массив подписок"
+// @Failure 400 {object} map[string]interface{} "Ошибка валидации данных"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /api/v1/subscriptions/filter [post]
 func New(ctx context.Context, log *slog.Logger, reader Reader) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.reade.New"
@@ -45,7 +55,6 @@ func New(ctx context.Context, log *slog.Logger, reader Reader) http.HandlerFunc 
 				Value: slog.StringValue(err.Error()),
 			})
 
-			render.JSON(w, r, response.Error("Invalid request"))
 			render.JSON(w, r, response.ValidationError(validateErr))
 			return
 		}

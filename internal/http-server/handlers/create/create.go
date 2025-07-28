@@ -17,6 +17,14 @@ type Creater interface {
 	CreateSubscriptionEntry(ctx context.Context, entry subs.CreaterSubscriptionEntry) (int, error)
 }
 
+// @Summary Создать подписку
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param data body subs.DummyCreaterSubscriptionEntry true "Новая подписка"
+// @Success 201 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Router /api/v1/subscriptions [post]
 func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.create.New"
@@ -47,7 +55,6 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 				Value: slog.StringValue(err.Error()),
 			})
 
-			render.JSON(w, r, response.Error("Invalid request"))
 			render.JSON(w, r, response.ValidationError(validateErr))
 			return
 		}

@@ -15,6 +15,14 @@ type List interface {
 	ListSubscriptionEntrys(ctx context.Context) ([]*subs.ListSubscriptionEntrys, error)
 }
 
+// @Summary Получить список всех подписок
+// @Description Возвращает полный список всех подписок с количеством записей
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{} "list_count: число, entries: массив подписок"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /api/v1/subscriptions [get]
 func New(ctx context.Context, log *slog.Logger, list List) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.list.New"

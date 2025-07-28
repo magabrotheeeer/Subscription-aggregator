@@ -17,6 +17,16 @@ type Deleter interface {
 	RemoveSubscriptionEntryByServiceName(ctx context.Context, entry subs.FilterRemoverSubscriptionEntry) (int64, error)
 }
 
+// @Summary Удалить подписки
+// @Description Удаляет подписки пользователя по service_name или все подписки пользователя если service_name не указан
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param data body subs.FilterRemoverSubscriptionEntry true "Фильтры для удаления подписок"
+// @Success 200 {object} map[string]interface{} "deleted_count: число удаленных записей"
+// @Failure 400 {object} map[string]interface{} "Ошибка валидации данных"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /api/v1/subscriptions [delete]
 func New(ctx context.Context, log *slog.Logger, deleter Deleter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.remove.New"
@@ -49,7 +59,6 @@ func New(ctx context.Context, log *slog.Logger, deleter Deleter) http.HandlerFun
 				Value: slog.StringValue(err.Error()),
 			})
 
-			render.JSON(w, r, response.Error("Invalid request"))
 			render.JSON(w, r, response.ValidationError(validateErr))
 			return
 		}

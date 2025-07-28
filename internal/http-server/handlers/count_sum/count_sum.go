@@ -17,6 +17,16 @@ type CounterSum interface {
 	CountSumSubscriptionEntrys(ctx context.Context, entry subs.CounterSumSubscriptionEntrys) (float64, error)
 }
 
+// @Summary Получить сумму подписок за период
+// @Description Возвращает общую сумму подписок для конкретного пользователя и сервиса за указанный период
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param data body subs.DummyCounterSumSubscriptionEntrys true "Параметры для подсчета суммы"
+// @Success 200 {object} map[string]interface{} "sum_of_subscriptions: число"
+// @Failure 400 {object} map[string]interface{} "Ошибка валидации или парсинга"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /api/v1/subscriptions/sum [post]
 func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.countersum.New"
@@ -46,7 +56,6 @@ func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.Hand
 				Value: slog.StringValue(err.Error()),
 			})
 
-			render.JSON(w, r, response.Error("Invalid request"))
 			render.JSON(w, r, response.ValidationError(validateErr))
 			return
 		}

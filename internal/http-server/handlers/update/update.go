@@ -18,6 +18,16 @@ type Updater interface {
 	UpdateSubscriptionEntryDateByServiceName(ctx context.Context, entry subs.FilterUpdaterSubscriptionEntry) (int64, error)
 }
 
+// @Summary Обновить подписку
+// @Description Обновляет цену или даты подписки пользователя по service_name. Если указана цена - обновляется цена, иначе обновляются даты
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param data body subs.DummyFilterUpdaterSubscriptionEntry true "Данные для обновления подписки"
+// @Success 200 {object} map[string]interface{} "updated_count: число обновленных записей"
+// @Failure 400 {object} map[string]interface{} "Ошибка валидации данных или конвертации дат"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /api/v1/subscriptions [put]
 func New(ctx context.Context, log *slog.Logger, update Updater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.update.New"
@@ -50,7 +60,6 @@ func New(ctx context.Context, log *slog.Logger, update Updater) http.HandlerFunc
 				Value: slog.StringValue(err.Error()),
 			})
 
-			render.JSON(w, r, response.Error("Invalid request"))
 			render.JSON(w, r, response.ValidationError(validateErr))
 			return
 		}

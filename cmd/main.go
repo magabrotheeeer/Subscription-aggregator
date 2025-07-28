@@ -1,3 +1,8 @@
+// @title Subscription API
+// @version 1.0
+// @description Сервис учёта подписок
+// @host localhost:8080
+// @BasePath /api/v1
 package main
 
 import (
@@ -9,6 +14,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	_ "github.com/magabrotheeeer/subscription-aggregator/cmd/docs"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	countsum "github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/count_sum"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/create"
@@ -17,6 +23,7 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/remove"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/update"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/postgresql"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 func main() {
@@ -40,12 +47,22 @@ func main() {
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.URLFormat)
 
-	router.Post("/subs-aggregator/create/", create.New(ctx, logger, storage))
-	router.Get("/subs-aggregator/read/", read.New(ctx, logger, storage))
-	router.Put("/subs-aggregator/update/", update.New(ctx, logger, storage))
-	router.Delete("/subs-aggregator/remove/", remove.New(ctx, logger, storage))
-	router.Get("/subs-aggregator/list/", list.New(ctx, logger, storage))
-	router.Post("/subs-aggregator/sum/", countsum.New(ctx, logger, storage))
+	router.Route("/api/v1", func(r chi.Router) {
+		// Основные CRUD операции с подписками
+		r.Post("/subscriptions", create.New(ctx, logger, storage))        // создать подписку
+		r.Get("/subscriptions", list.New(ctx, logger, storage))           // список всех подписок  
+		r.Put("/subscriptions", update.New(ctx, logger, storage))         // обновить подписку
+		r.Delete("/subscriptions", remove.New(ctx, logger, storage))      // удалить подписки
+		
+		// Дополнительные операции
+		r.Post("/subscriptions/sum", countsum.New(ctx, logger, storage))    // сумма подписок
+		r.Post("/subscriptions/filter", read.New(ctx, logger, storage))    // фильтрованный поиск
+	})
+	router.Get("/docs/*", httpSwagger.WrapHandler)
+
+
+
+
 
 	logger.Info("starting the server", slog.String("address", config.Address))
 
