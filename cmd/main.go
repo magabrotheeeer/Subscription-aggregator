@@ -49,20 +49,16 @@ func main() {
 
 	router.Route("/api/v1", func(r chi.Router) {
 		// Основные CRUD операции с подписками
-		r.Post("/subscriptions", create.New(ctx, logger, storage))        // создать подписку
-		r.Get("/subscriptions", list.New(ctx, logger, storage))           // список всех подписок  
-		r.Put("/subscriptions", update.New(ctx, logger, storage))         // обновить подписку
-		r.Delete("/subscriptions", remove.New(ctx, logger, storage))      // удалить подписки
-		
+		r.Post("/subscriptions", create.New(ctx, logger, storage))   // создать подписку
+		r.Get("/subscriptions", list.New(ctx, logger, storage))      // список всех подписок
+		r.Put("/subscriptions", update.New(ctx, logger, storage))    // обновить подписку
+		r.Delete("/subscriptions", remove.New(ctx, logger, storage)) // удалить подписки
+
 		// Дополнительные операции
-		r.Post("/subscriptions/sum", countsum.New(ctx, logger, storage))    // сумма подписок
-		r.Post("/subscriptions/filter", read.New(ctx, logger, storage))    // фильтрованный поиск
+		r.Post("/subscriptions/sum", countsum.New(ctx, logger, storage)) // сумма подписок
+		r.Post("/subscriptions/filter", read.New(ctx, logger, storage))  // фильтрованный поиск
 	})
 	router.Get("/docs/*", httpSwagger.WrapHandler)
-
-
-
-
 
 	logger.Info("starting the server", slog.String("address", config.Address))
 
@@ -79,5 +75,4 @@ func main() {
 		os.Exit(1)
 	}
 	logger.Error("server stopped")
-
 }
