@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: test
+      POSTGRES_USER: papa
+      POSTGRES_PASSWORD: 1234
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  app:
+    build: .
+    environment:
+      - CONFIG_PATH=/config/config.yaml
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=papa
+      - DB_PASSWORD=1234
+      - DB_NAME=test
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    volumes:
+      - /home/papa/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro
+
+
+volumes:
+  pgdata:
