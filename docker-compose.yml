@@ -4,12 +4,17 @@ services:
     restart: always
     environment:
       POSTGRES_DB: test
-      POSTGRES_USER: papa
-      POSTGRES_PASSWORD: 1234
+      POSTGRES_USER: akhilgovmb
+      POSTGRES_PASSWORD: testpostgres
     ports:
       - "5433:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - "C:/docker/pgdata:/var/lib/postgresql/data"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U akhilgovmb -d test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   app:
     build: .
@@ -17,15 +22,16 @@ services:
       - CONFIG_PATH=/config/config.yaml
       - DB_HOST=db
       - DB_PORT=5432
-      - DB_USER=papa
-      - DB_PASSWORD=1234
       - DB_NAME=test
+      - DB_USER=akhilgovmb
+      - DB_PASSWORD=testpostgres
     ports:
       - "8080:8080"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
-      - /home/papa/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro
+      - C:/Users/akhilgovmb/Desktop/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro
 
 
 volumes:
