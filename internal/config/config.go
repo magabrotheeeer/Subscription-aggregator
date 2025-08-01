@@ -3,11 +3,9 @@ package config
 import (
 	"log"
 	"os"
-	//"strings"
 	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
-	//"gopkg.in/yaml.v3"
 )
 
 type Config struct {
