@@ -14,7 +14,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	_ "github.com/magabrotheeeer/subscription-aggregator/cmd/docs"
+	_ "github.com/magabrotheeeer/subscription-aggregator/docs"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	countsum "github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/count_sum"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/create"

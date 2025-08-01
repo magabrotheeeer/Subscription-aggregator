@@ -16,13 +16,13 @@ type List interface {
 }
 
 // @Summary Получить список всех подписок
-// @Description Возвращает полный список всех подписок с количеством записей
+// @Description Возвращает полный список подписок
 // @Tags subscriptions
 // @Accept json
 // @Produce json
-// @Success 200 {object} map[string]interface{} "list_count: число, entries: массив подписок"
-// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
-// @Router /subscriptions [get]
+// @Success 200 {object} map[string]interface{} "Количество и список подписок"
+// @Failure 500 {object} response.Response "Ошибка сервера"
+// @Router /subscriptions/list [get]
 func New(ctx context.Context, log *slog.Logger, list List) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.list.New"

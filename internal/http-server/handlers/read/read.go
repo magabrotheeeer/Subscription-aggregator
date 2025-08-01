@@ -17,16 +17,15 @@ type Reader interface {
 	ReadSubscriptionEntry(ctx context.Context, id int) ([]*subs.SubscriptionEntry, error)
 }
 
-// @Summary Получить подписки по фильтру
-// @Description Возвращает список подписок пользователя согласно заданным фильтрам
+// @Summary Получить подписку по ID
 // @Tags subscriptions
 // @Accept json
 // @Produce json
-// @Param data body subs.FilterReaderSubscriptionEntry true "Фильтры для поиска подписок"
-// @Success 200 {object} map[string]interface{} "read_count: число, entries: массив подписок"
-// @Failure 400 {object} map[string]interface{} "Ошибка валидации данных"
-// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
-// @Router /subscriptions/filter [post]
+// @Param id path string true "Уникальный ID подписки"
+// @Success 200 {object} subs.SubscriptionEntry "Подписка"
+// @Failure 400 {object} response.Response "Неверный ID"
+// @Failure 404 {object} response.Response "Подписка не найдена"
+// @Router /subscriptions/{id} [get]
 func New(ctx context.Context, log *slog.Logger, reader Reader) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.reade.New"

@@ -1,0 +1,215 @@
+basePath: /api/v1
+definitions:
+  github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response:
+    properties:
+      data: {}
+      error:
+        type: string
+      status:
+        type: string
+    type: object
+  github_com_magabrotheeeer_subscription-aggregator_internal_subscription.DummySubscriptionEntry:
+    properties:
+      end_date:
+        type: string
+      price:
+        type: integer
+      service_name:
+        type: string
+      start_date:
+        type: string
+      user_id:
+        type: string
+    type: object
+  github_com_magabrotheeeer_subscription-aggregator_internal_subscription.SubscriptionEntry:
+    properties:
+      end_date:
+        type: string
+      price:
+        type: integer
+      service_name:
+        type: string
+      start_date:
+        type: string
+      user_id:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Сервис учёта подписок
+  title: Subscription API
+  version: "1.0"
+paths:
+  /subscriptions/:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Данные новой подписки
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_subscription.DummySubscriptionEntry'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Успешное создание
+          schema:
+            $ref: '#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response'
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response'
+      summary: Создать подписку
+      tags:
+      - subscriptions
+  /subscriptions/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Уникальный ID подписки
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Количество удалённых записей
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response'
+        "404":
+          description: Подписка не найдена
+          schema:
+            $ref: '#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response'
+      summary: Удалить подписку по ID
+      tags:
+      - subscriptions
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Уникальный ID подписки
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Подписка
+          schema:
+            $ref: '#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_subscription.SubscriptionEntry'
+        "400":
+          description: Неверный ID
+          schema:
+            $ref: '#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response'
+        "404":
+          description: Подписка не найдена
+          schema:
+            $ref: '#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response'
+      summary: Получить подписку по ID
+      tags:
+      - subscriptions
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Уникальный ID подписки
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные для обновления подписки
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_subscription.DummySubscriptionEntry'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Обновлено записей
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response'
+        "404":
+          description: Подписка не найдена
+          schema:
+            $ref: '#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response'
+      summary: Обновить подписку по ID
+      tags:
+      - subscriptions
+  /subscriptions/list:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает полный список подписок
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Количество и список подписок
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response'
+      summary: Получить список всех подписок
+      tags:
+      - subscriptions
+  /subscriptions/sum/{id}:
+    post:
+      consumes:
+      - application/json
+      description: Подсчитывает суммарную стоимость подписок по фильтрам из тела запроса
+      parameters:
+      - description: Идентификатор пользователя (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Фильтры и даты для подсчёта суммы подписок
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_subscription.DummySubscriptionEntry'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Сумма подписок
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response'
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response'
+      summary: Подсчитать сумму подписок за период для пользователя
+      tags:
+      - subscriptions
+swagger: "2.0"

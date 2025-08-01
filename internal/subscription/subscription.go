@@ -2,7 +2,7 @@ package subscription
 
 import "time"
 
-// Структура для хранения данных при первичном обращении к серверу для create
+// Оригинальная структура для хранения данных
 type SubscriptionEntry struct {
 	ServiceName string     `json:"service_name"`
 	Price       int        `json:"price"`

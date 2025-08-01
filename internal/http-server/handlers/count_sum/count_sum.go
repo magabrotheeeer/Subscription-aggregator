@@ -19,16 +19,17 @@ type CounterSum interface {
 	CountSumSubscriptionEntrys(ctx context.Context, entry subs.SubscriptionEntry, id int) (float64, error)
 }
 
-// @Summary Получить сумму подписок за период
-// @Description Возвращает общую сумму подписок для конкретного пользователя и сервиса за указанный период
+// @Summary Подсчитать сумму подписок за период для пользователя
+// @Description Подсчитывает суммарную стоимость подписок по фильтрам из тела запроса
 // @Tags subscriptions
 // @Accept json
 // @Produce json
-// @Param data body subs.DummyCounterSumSubscriptionEntrys true "Параметры для подсчета суммы"
-// @Success 200 {object} map[string]interface{} "sum_of_subscriptions: число"
-// @Failure 400 {object} map[string]interface{} "Ошибка валидации или парсинга"
-// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
-// @Router /subscriptions/sum [post]
+// @Param id path string true "Идентификатор пользователя (UUID)"
+// @Param data body subs.DummySubscriptionEntry true "Фильтры и даты для подсчёта суммы подписок"
+// @Success 200 {object} map[string]interface{} "Сумма подписок"
+// @Failure 400 {object} response.Response "Ошибка валидации"
+// @Failure 500 {object} response.Response "Ошибка сервера"
+// @Router /subscriptions/sum/{id} [post]
 func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.countersum.New"

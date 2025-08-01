@@ -16,16 +16,15 @@ type Deleter interface {
 	RemoveSubscriptionEntry(ctx context.Context, id int) (int64, error)
 }
 
-// @Summary Удалить подписки
-// @Description Удаляет подписки пользователя по service_name или все подписки пользователя если service_name не указан
+// @Summary Удалить подписку по ID
 // @Tags subscriptions
 // @Accept json
 // @Produce json
-// @Param data body subs.FilterRemoverSubscriptionEntry true "Фильтры для удаления подписок"
-// @Success 200 {object} map[string]interface{} "deleted_count: число удаленных записей"
-// @Failure 400 {object} map[string]interface{} "Ошибка валидации данных"
-// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
-// @Router /subscriptions [delete]
+// @Param id path string true "Уникальный ID подписки"
+// @Success 200 {object} map[string]interface{} "Количество удалённых записей"
+// @Failure 400 {object} response.Response "Ошибка валидации"
+// @Failure 404 {object} response.Response "Подписка не найдена"
+// @Router /subscriptions/{id} [delete]
 func New(ctx context.Context, log *slog.Logger, deleter Deleter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.remove.New"

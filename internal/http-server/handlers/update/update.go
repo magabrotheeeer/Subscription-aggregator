@@ -19,16 +19,16 @@ type Updater interface {
 	UpdateSubscriptionEntry(ctx context.Context, entry subs.SubscriptionEntry, id int) (int64, error)
 }
 
-// @Summary Обновить подписку
-// @Description Обновляет цену или даты подписки пользователя по service_name. Если указана цена - обновляется цена, иначе обновляются даты
+// @Summary Обновить подписку по ID
 // @Tags subscriptions
 // @Accept json
 // @Produce json
-// @Param data body subs.DummyFilterUpdaterSubscriptionEntry true "Данные для обновления подписки"
-// @Success 200 {object} map[string]interface{} "updated_count: число обновленных записей"
-// @Failure 400 {object} map[string]interface{} "Ошибка валидации данных или конвертации дат"
-// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
-// @Router /subscriptions [put]
+// @Param id path string true "Уникальный ID подписки"
+// @Param data body subs.DummySubscriptionEntry true "Данные для обновления подписки"
+// @Success 200 {object} map[string]interface{} "Обновлено записей"
+// @Failure 400 {object} response.Response "Ошибка валидации"
+// @Failure 404 {object} response.Response "Подписка не найдена"
+// @Router /subscriptions/{id} [put]
 func New(ctx context.Context, log *slog.Logger, update Updater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.update.New"
