@@ -4,8 +4,10 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
+	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator"
@@ -14,8 +16,7 @@ import (
 )
 
 type Updater interface {
-	UpdateSubscriptionEntryPriceByServiceName(ctx context.Context, entry subs.FilterUpdaterSubscriptionEntry) (int64, error)
-	UpdateSubscriptionEntryDateByServiceName(ctx context.Context, entry subs.FilterUpdaterSubscriptionEntry) (int64, error)
+	UpdateSubscriptionEntry(ctx context.Context, entry subs.SubscriptionEntry, id int) (int64, error)
 }
 
 // @Summary Обновить подписку
@@ -37,7 +38,7 @@ func New(ctx context.Context, log *slog.Logger, update Updater) http.HandlerFunc
 			"requires_id", middleware.GetReqID(r.Context()),
 		)
 
-		var dummyReq subs.DummyFilterUpdaterSubscriptionEntry
+		var dummyReq subs.DummySubscriptionEntry
 		var err error
 
 		err = render.DecodeJSON(r.Body, &dummyReq)
@@ -50,7 +51,6 @@ func New(ctx context.Context, log *slog.Logger, update Updater) http.HandlerFunc
 
 			return
 		}
-
 		log.Info("request body decoded", slog.Any("request", dummyReq))
 
 		if err = validator.New().Struct(dummyReq); err != nil {
@@ -65,24 +65,29 @@ func New(ctx context.Context, log *slog.Logger, update Updater) http.HandlerFunc
 		}
 		log.Info("all fields are validated")
 
-		var counter int64
-		var req subs.FilterUpdaterSubscriptionEntry
-		req.ServiceName = dummyReq.ServiceName
-		req.UserID = dummyReq.UserID
+		id, err := strconv.Atoi(chi.URLParam(r, "id"))
+		if err != nil {
+			log.Error("failed to decode id from url", slog.Attr{
+				Key:   "err",
+				Value: slog.StringValue(err.Error())})
 
-		if dummyReq.Price != 0 {
-			req.Price = dummyReq.Price
-			counter, err = update.UpdateSubscriptionEntryPriceByServiceName(ctx, req)
-		}else {
-			startDate, err2 := time.Parse("01-2006", dummyReq.StartDate)
-			if err2 != nil {
-				log.Error("failed to convert, field: startdate", slog.Attr{
-					Key:   "err",
-					Value: slog.StringValue(err2.Error())})
+			render.JSON(w, r, response.Error("failed to decode id from url"))
 
-				render.JSON(w, r, response.Error("failed to convert, field: startdate"))
-				return
-			}
+			return
+		}
+
+		var req subs.SubscriptionEntry
+
+		startDate, err2 := time.Parse("01-2006", dummyReq.StartDate)
+		if err2 != nil {
+			log.Error("failed to convert, field: startdate", slog.Attr{
+				Key:   "err",
+				Value: slog.StringValue(err2.Error())})
+
+			render.JSON(w, r, response.Error("failed to convert, field: startdate"))
+			return
+		}
+		if dummyReq.EndDate != "" {
 			endDate, err2 := time.Parse("01-2006", dummyReq.EndDate)
 			if err2 != nil {
 				log.Error("failed to convert, field: enddate", slog.Attr{
@@ -92,10 +97,20 @@ func New(ctx context.Context, log *slog.Logger, update Updater) http.HandlerFunc
 				render.JSON(w, r, response.Error("failed to convert, field: enddate"))
 				return
 			}
-			req.StartDate = startDate
 			req.EndDate = &endDate
-			counter, err = update.UpdateSubscriptionEntryDateByServiceName(ctx, req)
+		} else {
+			req.EndDate = nil
 		}
+
+		var counter int64
+
+		req.ServiceName = dummyReq.ServiceName
+		req.UserID = dummyReq.UserID
+		req.Price = dummyReq.Price
+		req.StartDate = startDate
+
+		counter, err = update.UpdateSubscriptionEntry(ctx, req, id)
+
 		if err != nil {
 			log.Error("failed to update entry/entrys", slog.Attr{
 				Key:   "err",

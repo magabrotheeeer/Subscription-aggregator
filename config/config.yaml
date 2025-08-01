@@ -1,6 +1,6 @@
 env: "local"
-storage_connection_string: "postgres://akhilgovmb:testpostgres@db:5432/test?sslmode=disable"
+storage_connection_string: "postgres://akhilgovmb:testpostgres@localhost:5432/test?sslmode=disable"
 http_server:
-  address: ":8080"
+  address: "localhost:8080"
   timeout: 4s ## время на чтение запроса, время на отправку ответа
   idle_timeout: 60s ## время жизни соединения с клиентом

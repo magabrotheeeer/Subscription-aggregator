@@ -14,7 +14,7 @@ import (
 )
 
 type Creater interface {
-	CreateSubscriptionEntry(ctx context.Context, entry subs.CreaterSubscriptionEntry) (int, error)
+	CreateSubscriptionEntry(ctx context.Context, entry subs.SubscriptionEntry) (int, error)
 }
 
 // @Summary Создать подписку
@@ -34,9 +34,10 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 			slog.String("requires_id", middleware.GetReqID(r.Context())),
 		)
 
-		var dummyReq subs.DummyCreaterSubscriptionEntry
+		var dummyReq subs.DummySubscriptionEntry
+		var err error
 
-		err := render.DecodeJSON(r.Body, &dummyReq)
+		err = render.DecodeJSON(r.Body, &dummyReq)
 		if err != nil {
 			log.Error("failed to decode request body", slog.Attr{
 				Key:   "err",
@@ -60,6 +61,8 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 		}
 		log.Info("all fields are validated")
 
+		var req subs.SubscriptionEntry
+
 		startDate, err := time.Parse("01-2006", dummyReq.StartDate)
 		if err != nil {
 			log.Error("failed to convert, field: startdate", slog.Attr{
@@ -71,9 +74,9 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 			return
 		}
 
-		var req subs.CreaterSubscriptionEntry
-
-		if dummyReq.EndDate != "" {
+		if dummyReq.EndDate == "" {
+			req.EndDate = nil
+		} else {
 			endDate, err := time.Parse("01-2006", dummyReq.EndDate)
 			if err != nil {
 				log.Error("failed to convert, field: enddate", slog.Attr{
@@ -84,15 +87,13 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 
 				return
 			}
-
 			req.EndDate = &endDate
-		} else {
-			req.EndDate = nil
 		}
-		req.StartDate = startDate
+
+		req.ServiceName = dummyReq.ServiceName
 		req.UserID = dummyReq.UserID
 		req.Price = dummyReq.Price
-		req.ServiceName = dummyReq.ServiceName
+		req.StartDate = startDate
 
 		counter, err := creater.CreateSubscriptionEntry(ctx, req)
 		if err != nil {
@@ -108,5 +109,6 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 			"entrys_count": counter,
 		}))
 
+		
 	}
 }

@@ -49,14 +49,14 @@ func main() {
 
 	router.Route("/api/v1", func(r chi.Router) {
 		// Основные CRUD операции с подписками
-		r.Post("/subscriptions", create.New(ctx, logger, storage))   // создать подписку
-		r.Get("/subscriptions", list.New(ctx, logger, storage))      // список всех подписок
-		r.Put("/subscriptions", update.New(ctx, logger, storage))    // обновить подписку
-		r.Delete("/subscriptions", remove.New(ctx, logger, storage)) // удалить подписки
+		r.Post("/subscriptions/", create.New(ctx, logger, storage))   
+		r.Get("/subscriptions/{id}", read.New(ctx, logger, storage))  
+		r.Put("/subscriptions/{id}", update.New(ctx, logger, storage))    
+		r.Delete("/subscriptions/{id}", remove.New(ctx, logger, storage)) 
 
 		// Дополнительные операции
-		r.Post("/subscriptions/sum", countsum.New(ctx, logger, storage)) // сумма подписок
-		r.Post("/subscriptions/filter", read.New(ctx, logger, storage))  // фильтрованный поиск
+		r.Get("/subscriptions/list", list.New(ctx, logger, storage))      
+		r.Post("/subscriptions/sum/{id}", countsum.New(ctx, logger, storage)) 
 	})
 	router.Get("/docs/*", httpSwagger.WrapHandler)
 

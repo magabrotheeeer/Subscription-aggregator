@@ -12,7 +12,7 @@ import (
 )
 
 type List interface {
-	ListSubscriptionEntrys(ctx context.Context) ([]*subs.ListSubscriptionEntrys, error)
+	ListSubscriptionEntrys(ctx context.Context) ([]*subs.SubscriptionEntry, error)
 }
 
 // @Summary Получить список всех подписок

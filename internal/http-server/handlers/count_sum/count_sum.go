@@ -4,8 +4,10 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
+	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator"
@@ -14,7 +16,7 @@ import (
 )
 
 type CounterSum interface {
-	CountSumSubscriptionEntrys(ctx context.Context, entry subs.CounterSumSubscriptionEntrys) (float64, error)
+	CountSumSubscriptionEntrys(ctx context.Context, entry subs.SubscriptionEntry, id int) (float64, error)
 }
 
 // @Summary Получить сумму подписок за период
@@ -36,7 +38,8 @@ func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.Hand
 			"requires_id", middleware.GetReqID(r.Context()),
 		)
 
-		var dummyReq subs.DummyCounterSumSubscriptionEntrys
+		var dummyReq subs.DummySubscriptionEntry
+
 		err := render.DecodeJSON(r.Body, &dummyReq)
 		if err != nil {
 			log.Error("failed to decode request body", slog.Attr{
@@ -61,6 +64,17 @@ func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.Hand
 		}
 		log.Info("all fields are validated")
 
+		id, err := strconv.Atoi(chi.URLParam(r, "id"))
+		if err != nil {
+			log.Error("failed to decode id from url", slog.Attr{
+				Key:   "err",
+				Value: slog.StringValue(err.Error())})
+
+			render.JSON(w, r, response.Error("failed to decode id from url"))
+
+			return
+		}
+
 		startDate, err := time.Parse("01-2006", dummyReq.StartDate)
 		if err != nil {
 			log.Error("failed to convert, field: startdate", slog.Attr{
@@ -81,14 +95,16 @@ func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.Hand
 
 			return
 		}
-		var req subs.CounterSumSubscriptionEntrys
-		req.Price = dummyReq.Price
+
+		var req subs.SubscriptionEntry
+
 		req.ServiceName = dummyReq.ServiceName
 		req.UserID = dummyReq.UserID
+		req.Price = dummyReq.Price
 		req.StartDate = startDate
-		req.EndDate = endDate
+		req.EndDate = &endDate
 
-		res, err := counterSum.CountSumSubscriptionEntrys(ctx, req)
+		res, err := counterSum.CountSumSubscriptionEntrys(ctx, req, id)
 		if err != nil {
 			log.Error("failed to sum", slog.Attr{
 				Key:   "err",

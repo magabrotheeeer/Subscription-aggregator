@@ -90,7 +90,7 @@ func initializeSchema(conn *pgx.Conn) error {
 	return nil
 }
 
-func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subs.CreaterSubscriptionEntry) (int, error) {
+func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subs.SubscriptionEntry) (int, error) {
 	const op = "storage.postgresql.CreateSubscriptionEntry"
 
 	_, err := s.db.Exec(ctx, `
@@ -120,13 +120,12 @@ func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subs.Create
 	return res, nil
 }
 
-// исходя из задания не понял, могу ли я удалять пользователей
-func (s *Storage) RemoveSubscriptionEntryByUserID(ctx context.Context, entry subs.FilterRemoverSubscriptionEntry) (int64, error) {
+func (s *Storage) RemoveSubscriptionEntry(ctx context.Context, id int) (int64, error) {
 
 	const op = "storage.postgresql.DeleteSubscriptionEntryByUserID"
 
 	commandTag, err := s.db.Exec(ctx, `
-		DELETE FROM subscriptions WHERE user_id = $1`, entry.UserID)
+		DELETE FROM subscriptions WHERE id = $1`, id)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
@@ -135,34 +134,19 @@ func (s *Storage) RemoveSubscriptionEntryByUserID(ctx context.Context, entry sub
 	return result, nil
 }
 
-// исходя из задания не понял, могу ли я удалять пользователей
-func (s *Storage) RemoveSubscriptionEntryByServiceName(ctx context.Context, entry subs.FilterRemoverSubscriptionEntry) (int64, error) {
-
-	const op = "storage.postgresql.DeleteSubscriptionEntryByServiceName"
-
-	commandTag, err := s.db.Exec(ctx, `
-		DELETE FROM subscriptions WHERE service_name = $1 and user_id = $2`, entry.ServiceName, entry.UserID)
-	if err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
-	}
-	result := commandTag.RowsAffected()
-
-	return result, nil
-}
-
-func (s *Storage) ReadSubscriptionEntryByUserID(ctx context.Context, entry subs.FilterReaderSubscriptionEntry) ([]*subs.FilterReaderSubscriptionEntry, error) {
+func (s *Storage) ReadSubscriptionEntry(ctx context.Context, id int) ([]*subs.SubscriptionEntry, error) {
 
 	const op = "storage.postgresql.ReadSubscriptionEntryByUserID"
 
 	rows, err := s.db.Query(ctx, `
 		SELECT service_name, price, user_id, start_date, end_date 
-		FROM subscriptions WHERE user_id = $1`, entry.UserID)
+		FROM subscriptions WHERE id = $1`, id)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	var result []*subs.FilterReaderSubscriptionEntry
+	var result []*subs.SubscriptionEntry
 	for rows.Next() {
-		var item subs.FilterReaderSubscriptionEntry
+		var item subs.SubscriptionEntry
 		err := rows.Scan(&item.ServiceName, &item.Price, &item.UserID, &item.StartDate, &item.EndDate)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
@@ -172,12 +156,13 @@ func (s *Storage) ReadSubscriptionEntryByUserID(ctx context.Context, entry subs.
 	return result, nil
 }
 
-func (s *Storage) UpdateSubscriptionEntryPriceByServiceName(ctx context.Context, entry subs.FilterUpdaterSubscriptionEntry) (int64, error) {
+func (s *Storage) UpdateSubscriptionEntry(ctx context.Context, entry subs.SubscriptionEntry, id int) (int64, error) {
 	const op = "storage.postgresql.UpdateSubscriptionEntryByServiceNamePrice"
 
 	commandTag, err := s.db.Exec(ctx, `
-		UPDATE subscriptions SET price = $1 WHERE user_id = $2 AND service_name = $3`,
-		entry.Price, entry.UserID, entry.ServiceName)
+		UPDATE subscriptions SET service_name = $1, start_date = $2, end_date = $3, price = $4, user_id = $5
+			WHERE id = $6`,
+		entry.ServiceName, entry.StartDate, entry.EndDate, entry.Price, entry.UserID, id)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
@@ -185,22 +170,7 @@ func (s *Storage) UpdateSubscriptionEntryPriceByServiceName(ctx context.Context,
 	return result, nil
 }
 
-func (s *Storage) UpdateSubscriptionEntryDateByServiceName(ctx context.Context, entry subs.FilterUpdaterSubscriptionEntry) (int64, error) {
-	const op = "storage.postgresql.UpdateSubscriptionEntryByService"
-
-	commandTag, err := s.db.Exec(ctx, `
-		UPDATE subscriptions
-		SET start_date = $1, end_date = $2
-		WHERE user_id = $3 AND service_name = $4`,
-		entry.StartDate, entry.EndDate, entry.UserID, entry.ServiceName)
-	if err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
-	}
-	result := commandTag.RowsAffected()
-	return result, nil
-}
-
-func (s *Storage) ListSubscriptionEntrys(ctx context.Context) ([]*subs.ListSubscriptionEntrys, error) {
+func (s *Storage) ListSubscriptionEntrys(ctx context.Context) ([]*subs.SubscriptionEntry, error) {
 	const op = "storage.postgresql.ListSubscriptionEntrys"
 
 	rows, err := s.db.Query(ctx, `
@@ -209,9 +179,9 @@ func (s *Storage) ListSubscriptionEntrys(ctx context.Context) ([]*subs.ListSubsc
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	var result []*subs.ListSubscriptionEntrys
+	var result []*subs.SubscriptionEntry
 	for rows.Next() {
-		var item subs.ListSubscriptionEntrys
+		var item subs.SubscriptionEntry
 		err := rows.Scan(&item.ServiceName, &item.Price, &item.UserID, &item.StartDate, &item.EndDate)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
@@ -222,7 +192,7 @@ func (s *Storage) ListSubscriptionEntrys(ctx context.Context) ([]*subs.ListSubsc
 
 }
 
-func (s *Storage) CountSumSubscriptionEntrys(ctx context.Context, entry subs.CounterSumSubscriptionEntrys) (float64, error) {
+func (s *Storage) CountSumSubscriptionEntrys(ctx context.Context, entry subs.SubscriptionEntry, id int) (float64, error) {
 	const op = "storage.postgresql.CountSumSubscriptionEntrys"
 
 	var res *float64
@@ -233,8 +203,9 @@ func (s *Storage) CountSumSubscriptionEntrys(ctx context.Context, entry subs.Cou
 		WHERE user_id = $1
 			AND service_name = $2
 			AND start_date <= $3
-			AND (end_date IS NULL OR end_date >= $4)`,
-		entry.UserID, entry.ServiceName, entry.EndDate, entry.StartDate).Scan(&res)
+			AND (end_date IS NULL OR end_date >= $4)
+			AND id = $5`,
+		entry.UserID, entry.ServiceName, entry.EndDate, entry.StartDate, id).Scan(&res)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
@@ -245,4 +216,3 @@ func (s *Storage) CountSumSubscriptionEntrys(ctx context.Context, entry subs.Cou
 
 	return *res, nil
 }
-
