@@ -53,14 +53,14 @@ func main() {
 
 	router.Route("/api/v1", func(r chi.Router) {
 		// Основные CRUD операции с подписками
-		r.Post("/subscriptions/", create.New(ctx, logger, storage))   
-		r.Get("/subscriptions/{id}", read.New(ctx, logger, storage))  
-		r.Put("/subscriptions/{id}", update.New(ctx, logger, storage))    
-		r.Delete("/subscriptions/{id}", remove.New(ctx, logger, storage)) 
+		r.Post("/subscriptions/", create.New(ctx, logger, storage))
+		r.Get("/subscriptions/{id}", read.New(ctx, logger, storage))
+		r.Put("/subscriptions/{id}", update.New(ctx, logger, storage))
+		r.Delete("/subscriptions/{id}", remove.New(ctx, logger, storage))
 
 		// Дополнительные операции
-		r.Get("/subscriptions/list", list.New(ctx, logger, storage))      
-		r.Post("/subscriptions/sum/{id}", countsum.New(ctx, logger, storage)) 
+		r.Get("/subscriptions/list", list.New(ctx, logger, storage))
+		r.Post("/subscriptions/sum/{id}", countsum.New(ctx, logger, storage))
 	})
 	router.Get("/docs/*", httpSwagger.WrapHandler)
 
@@ -75,32 +75,31 @@ func main() {
 	}
 
 	serverError := make(chan error, 1)
-    go func() {
-        if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-            serverError <- err
-        }
-    }()
+	go func() {
+		if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			serverError <- err
+		}
+	}()
 
-    stop := make(chan os.Signal, 1)
-    signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
-    select {
-    case err := <-serverError:
+	select {
+	case err := <-serverError:
 		logger.Error("server error:", slog.Attr{Key: "err", Value: slog.StringValue(err.Error())})
-    case <-stop:
-        logger.Info("shutting down gracefully...")
+	case <-stop:
+		logger.Info("shutting down gracefully...")
 
-        ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-        defer cancel()
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
 
-        if err := srv.Shutdown(ctx); err != nil {
+		if err := srv.Shutdown(ctx); err != nil {
 			logger.Error("server shutdown error:", slog.Attr{Key: "err", Value: slog.StringValue(err.Error())})
-        }
-        // Закрытие соединения с БД (если не defer выше)
-        if err := storage.Db.Close(ctx); err != nil {
+		}
+		// Закрытие соединения с БД (если не defer выше)
+		if err := storage.Db.Close(ctx); err != nil {
 			logger.Error("DB close error:", slog.Attr{Key: "err", Value: slog.StringValue(err.Error())})
-			
-        }
-        logger.Info("server exited properly")
-    }
+		}
+		logger.Info("server exited properly")
+	}
 }

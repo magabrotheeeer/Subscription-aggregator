@@ -20,74 +20,28 @@ func New(storageConnectionString string) (*Storage, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if err := initializeSchema(conn); err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	return &Storage{Db: conn}, nil
-}
-
-func initializeSchema(conn *pgx.Conn) error {
-
-	_, err := conn.Exec(context.Background(), `
-        CREATE TABLE IF NOT EXISTS schema_info(
-            key TEXT PRIMARY KEY,
-            value TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-    `)
-	if err != nil {
-		return fmt.Errorf("failed to create schema_info: %w", err)
-	}
-
-	var exists bool
-	err = conn.QueryRow(context.Background(),
-		"SELECT EXISTS(SELECT 1 FROM schema_info WHERE key = 'initialized')").Scan(&exists)
-	if err != nil {
-		return fmt.Errorf("failed to check initialization: %w", err)
-	}
-
-	if !exists {
-		tx, err := conn.Begin(context.Background())
-		if err != nil {
-			return fmt.Errorf("failed to start transaction: %w", err)
-		}
-		defer tx.Rollback(context.Background())
-
-		_, err = tx.Exec(context.Background(), `
+	_, err = conn.Exec(context.Background(), `
             CREATE TABLE IF NOT EXISTS subscriptions(
                 id SERIAL PRIMARY KEY,
                 service_name TEXT NOT NULL,
                 price NUMERIC(10, 2) NOT NULL,
                 user_id UUID NOT NULL,
                 start_date DATE NOT NULL,
-                end_date DATE
-            );
+                end_date DATE);
         `)
-		if err != nil {
-			return fmt.Errorf("failed to create subscriptions table: %w", err)
-		}
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 
-		_, err = tx.Exec(context.Background(), `
+	_, err = conn.Exec(context.Background(), `
             CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id 
             ON subscriptions (user_id);
         `)
-		if err != nil {
-			return fmt.Errorf("failed to create index: %w", err)
-		}
-
-		_, err = tx.Exec(context.Background(),
-			"INSERT INTO schema_info (key, value) VALUES ('initialized', 'true')")
-		if err != nil {
-			return fmt.Errorf("failed to mark as initialized: %w", err)
-		}
-
-		if err = tx.Commit(context.Background()); err != nil {
-			return fmt.Errorf("failed to commit initialization: %w", err)
-		}
+	if err != nil {
+		return nil, fmt.Errorf("failed to create index: %w", err)
 	}
 
-	return nil
+	return &Storage{Db: conn}, nil
 }
 
 func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subs.SubscriptionEntry) (int, error) {
