@@ -124,12 +124,13 @@ func (s *Storage) UpdateSubscriptionEntry(ctx context.Context, entry subs.Subscr
 	return result, nil
 }
 
-func (s *Storage) ListSubscriptionEntrys(ctx context.Context) ([]*subs.SubscriptionEntry, error) {
+func (s *Storage) ListSubscriptionEntrys(ctx context.Context, limit, offset int) ([]*subs.SubscriptionEntry, error) {
 	const op = "storage.postgresql.ListSubscriptionEntrys"
 
 	rows, err := s.Db.Query(ctx, `
 		SELECT service_name, price, user_id, start_date, end_date
-		FROM subscriptions`)
+		FROM subscriptions LIMIT $1 OFFSET $2`,
+		limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}

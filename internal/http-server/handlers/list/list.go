@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
@@ -12,7 +13,7 @@ import (
 )
 
 type List interface {
-	ListSubscriptionEntrys(ctx context.Context) ([]*subs.SubscriptionEntry, error)
+	ListSubscriptionEntrys(ctx context.Context, limit, offset int) ([]*subs.SubscriptionEntry, error)
 }
 
 // @Summary Получить список всех подписок
@@ -31,8 +32,19 @@ func New(ctx context.Context, log *slog.Logger, list List) http.HandlerFunc {
 			"op", op,
 			"requires_id", middleware.GetReqID(r.Context()),
 		)
+		limitStr := r.URL.Query().Get("limit")
+		limit, err := strconv.Atoi(limitStr)
+		if err != nil || limit <= 0 {
+			limit = 0
+		}
 
-		res, err := list.ListSubscriptionEntrys(ctx)
+		offsetStr := r.URL.Query().Get("offset")
+		offset, err := strconv.Atoi(offsetStr)
+		if err != nil || limit <= 0 {
+			offset = 0
+		}
+
+		res, err := list.ListSubscriptionEntrys(ctx, limit, offset)
 		if err != nil {
 			log.Error("failed to list entrys", slog.Attr{
 				Key:   "err",
@@ -45,7 +57,8 @@ func New(ctx context.Context, log *slog.Logger, list List) http.HandlerFunc {
 		log.Info("list entrys", "count", len(res))
 		render.JSON(w, r, response.StatusOKWithData(map[string]interface{}{
 			"list_count": len(res),
-			"entries": res,
+			"entries":    res,
 		}))
 	}
 }
+
