@@ -7,10 +7,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -70,9 +74,33 @@ func main() {
 		IdleTimeout:  config.HTTPServer.IdleTimeout,
 	}
 
-	if err = srv.ListenAndServe(); err != nil {
-		logger.Error("failed to start the server", slog.Attr{Key: "err", Value: slog.StringValue(err.Error())})
-		os.Exit(1)
-	}
-	logger.Error("server stopped")
+	serverError := make(chan error, 1)
+    go func() {
+        if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+            serverError <- err
+        }
+    }()
+
+    stop := make(chan os.Signal, 1)
+    signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+    select {
+    case err := <-serverError:
+		logger.Error("server error:", slog.Attr{Key: "err", Value: slog.StringValue(err.Error())})
+    case <-stop:
+        logger.Info("shutting down gracefully...")
+
+        ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+        defer cancel()
+
+        if err := srv.Shutdown(ctx); err != nil {
+			logger.Error("server shutdown error:", slog.Attr{Key: "err", Value: slog.StringValue(err.Error())})
+        }
+        // Закрытие соединения с БД (если не defer выше)
+        if err := storage.Db.Close(ctx); err != nil {
+			logger.Error("DB close error:", slog.Attr{Key: "err", Value: slog.StringValue(err.Error())})
+			
+        }
+        logger.Info("server exited properly")
+    }
 }

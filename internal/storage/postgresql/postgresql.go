@@ -9,7 +9,7 @@ import (
 )
 
 type Storage struct {
-	db *pgx.Conn
+	Db *pgx.Conn
 }
 
 func New(storageConnectionString string) (*Storage, error) {
@@ -24,7 +24,7 @@ func New(storageConnectionString string) (*Storage, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return &Storage{db: conn}, nil
+	return &Storage{Db: conn}, nil
 }
 
 func initializeSchema(conn *pgx.Conn) error {
@@ -93,7 +93,7 @@ func initializeSchema(conn *pgx.Conn) error {
 func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subs.SubscriptionEntry) (int, error) {
 	const op = "storage.postgresql.CreateSubscriptionEntry"
 
-	_, err := s.db.Exec(ctx, `
+	_, err := s.Db.Exec(ctx, `
         INSERT INTO subscriptions (
             service_name,
             price,
@@ -112,7 +112,7 @@ func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subs.Subscr
 	}
 
 	var res int
-	err = s.db.QueryRow(ctx, "SELECT COUNT(*) FROM subscriptions").Scan(&res)
+	err = s.Db.QueryRow(ctx, "SELECT COUNT(*) FROM subscriptions").Scan(&res)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
@@ -124,7 +124,7 @@ func (s *Storage) RemoveSubscriptionEntry(ctx context.Context, id int) (int64, e
 
 	const op = "storage.postgresql.DeleteSubscriptionEntryByUserID"
 
-	commandTag, err := s.db.Exec(ctx, `
+	commandTag, err := s.Db.Exec(ctx, `
 		DELETE FROM subscriptions WHERE id = $1`, id)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
@@ -138,7 +138,7 @@ func (s *Storage) ReadSubscriptionEntry(ctx context.Context, id int) ([]*subs.Su
 
 	const op = "storage.postgresql.ReadSubscriptionEntryByUserID"
 
-	rows, err := s.db.Query(ctx, `
+	rows, err := s.Db.Query(ctx, `
 		SELECT service_name, price, user_id, start_date, end_date 
 		FROM subscriptions WHERE id = $1`, id)
 	if err != nil {
@@ -159,7 +159,7 @@ func (s *Storage) ReadSubscriptionEntry(ctx context.Context, id int) ([]*subs.Su
 func (s *Storage) UpdateSubscriptionEntry(ctx context.Context, entry subs.SubscriptionEntry, id int) (int64, error) {
 	const op = "storage.postgresql.UpdateSubscriptionEntryByServiceNamePrice"
 
-	commandTag, err := s.db.Exec(ctx, `
+	commandTag, err := s.Db.Exec(ctx, `
 		UPDATE subscriptions SET service_name = $1, start_date = $2, end_date = $3, price = $4, user_id = $5
 			WHERE id = $6`,
 		entry.ServiceName, entry.StartDate, entry.EndDate, entry.Price, entry.UserID, id)
@@ -173,7 +173,7 @@ func (s *Storage) UpdateSubscriptionEntry(ctx context.Context, entry subs.Subscr
 func (s *Storage) ListSubscriptionEntrys(ctx context.Context) ([]*subs.SubscriptionEntry, error) {
 	const op = "storage.postgresql.ListSubscriptionEntrys"
 
-	rows, err := s.db.Query(ctx, `
+	rows, err := s.Db.Query(ctx, `
 		SELECT service_name, price, user_id, start_date, end_date
 		FROM subscriptions`)
 	if err != nil {
@@ -197,7 +197,7 @@ func (s *Storage) CountSumSubscriptionEntrys(ctx context.Context, entry subs.Sub
 
 	var res *float64
 
-	err := s.db.QueryRow(ctx, `
+	err := s.Db.QueryRow(ctx, `
 		SELECT SUM(price)
 		FROM subscriptions
 		WHERE user_id = $1
