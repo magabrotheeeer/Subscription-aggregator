@@ -17,10 +17,12 @@ type List interface {
 }
 
 // @Summary Получить список всех подписок
-// @Description Возвращает полный список подписок
+// @Description Возвращает список подписок с поддержкой пагинации
 // @Tags subscriptions
 // @Accept json
 // @Produce json
+// @Param limit query int false "Количество элементов на странице" default(10)
+// @Param offset query int false "Смещение от начала списка" default(0)
 // @Success 200 {object} map[string]interface{} "Количество и список подписок"
 // @Failure 500 {object} response.Response "Ошибка сервера"
 // @Router /subscriptions/list [get]
