@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/auth"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
 )
 
@@ -51,27 +52,35 @@ func New(ctx context.Context, log *slog.Logger, registration Registration) http.
 
 			render.JSON(w, r, response.ValidationError(validateErr))
 			return
-		}	
+		}
 		log.Info("all fields are validated")
 
+		hash, err := auth.GetHash(registerRequest.Password)
+		if err != nil {
+			log.Error("failed to register new user", slog.Attr{
+				Key:   "err",
+				Value: slog.StringValue(err.Error())})
 
+			render.JSON(w, r, response.Error("failed to register new user"))
 
+			return
+		}
 
+		err = registration.RegisterUser(ctx, registerRequest.Username, hash)
+		if err != nil {
+			log.Error("failed to register new user", slog.Attr{
+				Key:   "err",
+				Value: slog.StringValue(err.Error())})
 
+			render.JSON(w, r, response.Error("failed to register new user"))
 
+			return
+		}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-	} 
+		log.Info("created new user", "username", registerRequest.Username)
+		render.JSON(w, r, response.StatusOKWithData(map[string]any{
+			"username": registerRequest.Username,
+			"message":  "user created succesfully",
+		}))
+	}
 }
