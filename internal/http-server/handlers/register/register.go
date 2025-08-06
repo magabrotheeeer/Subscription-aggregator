@@ -1,0 +1,77 @@
+package register
+
+import (
+	"context"
+	"log/slog"
+	"net/http"
+
+	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/render"
+	"github.com/go-playground/validator"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
+)
+
+type RegisterRequest struct {
+	Username string `json:"username" validate:"required,min=6,max=50"`
+	Password string `json:"password" validate:"required,min=6"`
+}
+
+type Registration interface {
+	RegisterUser(ctx context.Context, username, passwordHash string) error
+}
+
+func New(ctx context.Context, log *slog.Logger, registration Registration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		const op = "handlers.register.New"
+		var err error
+		var registerRequest RegisterRequest
+
+		log.With(
+			"op", op,
+			"requires_id", middleware.GetReqID(r.Context()),
+		)
+		err = render.DecodeJSON(r.Body, &registerRequest)
+		if err != nil {
+			log.Error("failed to decode request body", slog.Attr{
+				Key:   "err",
+				Value: slog.StringValue(err.Error())})
+
+			render.JSON(w, r, response.Error("failed to decode request"))
+
+			return
+		}
+		log.Info("request body decoded", slog.Any("request", registerRequest))
+
+		if err := validator.New().Struct(registerRequest); err != nil {
+			validateErr := err.(validator.ValidationErrors)
+			log.Error("Invalid request", slog.Attr{
+				Key:   "err",
+				Value: slog.StringValue(err.Error()),
+			})
+
+			render.JSON(w, r, response.ValidationError(validateErr))
+			return
+		}	
+		log.Info("all fields are validated")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	} 
+}
