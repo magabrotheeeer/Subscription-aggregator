@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"context"
 	"net/http"
 	"strings"
 )
@@ -16,13 +15,12 @@ func JWTMiddleware(jwtMaker JWTMaker) func(http.Handler) http.Handler {
 			}
 			tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 
-			claims, err := jwtMaker.ParseToken(tokenStr)
+			_, err := jwtMaker.ParseToken(tokenStr)
 			if err != nil {
 				http.Error(w, "invalid or expired token", http.StatusUnauthorized)
 				return
 			}
-			ctx := context.WithValue(r.Context(), "user", claims)
-			next.ServeHTTP(w, r.WithContext(ctx))
+			next.ServeHTTP(w, r)
 		})
 	}
 }
