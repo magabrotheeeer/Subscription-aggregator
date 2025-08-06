@@ -20,6 +20,7 @@ services:
     restart: always
     environment:
       - CONFIG_PATH=/config/config.yaml
+      - JWT_SECRET =aQwerty12345!@#SecretKeyExample67890_+
       - DB_HOST=db
       - DB_PORT=5432
       - DB_NAME=test
