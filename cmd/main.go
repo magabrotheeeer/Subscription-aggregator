@@ -20,10 +20,13 @@ import (
 	"github.com/go-chi/chi/middleware"
 	_ "github.com/magabrotheeeer/subscription-aggregator/docs"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/auth"
 	countsum "github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/count_sum"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/create"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/list"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/login"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/read"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/register"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/remove"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/update"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/postgresql"
@@ -45,6 +48,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	jwtSecretKey := os.Getenv("JWT_SECRET")
+	if jwtSecretKey == "" {
+		logger.Error("JWT_SECRET is not set")
+		os.Exit(1)
+	}
+	tokenTTL := time.Hour * 24
+	jwtMaker := auth.NewJWTMaker(jwtSecretKey, tokenTTL)
+
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Logger)
@@ -52,6 +63,12 @@ func main() {
 	router.Use(middleware.URLFormat)
 
 	router.Route("/api/v1", func(r chi.Router) {
+		r.Post("/register", register.New(ctx, logger, storage))
+		r.Post("/login", login.New(ctx, logger, storage, jwtMaker))
+	})
+
+	router.Route("/api/v1", func(r chi.Router) {
+		r.Use(auth.JWTMiddleware(jwtMaker))
 		// Основные CRUD операции с подписками
 		r.Post("/subscriptions/", create.New(ctx, logger, storage))
 		r.Get("/subscriptions/{id}", read.New(ctx, logger, storage))
