@@ -38,7 +38,7 @@ func New(ctx context.Context, log *slog.Logger, list List) http.HandlerFunc {
 		limitStr := r.URL.Query().Get("limit")
 		limit, err := strconv.Atoi(limitStr)
 		if err != nil || limit <= 0 {
-			limit = 0
+			limit = 10
 		}
 
 		offsetStr := r.URL.Query().Get("offset")
