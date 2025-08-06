@@ -105,10 +105,10 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 			return
 		}
 		log.Info("created new entry", "entrys in table:", counter)
-		render.JSON(w, r, response.StatusOKWithData(map[string]interface{}{
+		render.JSON(w, r, response.StatusOKWithData(map[string]any{
 			"entrys_count": counter,
 		}))
 
-		
 	}
 }
+
