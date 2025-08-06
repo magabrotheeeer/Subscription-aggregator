@@ -21,6 +21,16 @@ type Registration interface {
 	RegisterUser(ctx context.Context, username, passwordHash string) error
 }
 
+// New
+// @Summary Регистрация нового пользователя
+// @Tags auth
+// @Accept  json
+// @Produce json
+// @Param   registerRequest body RegisterRequest true "Данные для регистрации (username, password)"
+// @Success 200 {object} response.Response "Пользователь успешно создан"
+// @Failure 400 {object} response.Response "Ошибка валидации или некорректный запрос"
+// @Failure 500 {object} response.Response "Внутренняя ошибка сервера"
+// @Router /register [post]
 func New(ctx context.Context, log *slog.Logger, registration Registration) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.register.New"

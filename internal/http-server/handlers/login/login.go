@@ -22,6 +22,17 @@ type UserGetter interface {
 	GetUserByUsername(ctx context.Context, username string) (*user.User, error)
 }
 
+// New
+// @Summary Авторизация пользователя (логин)
+// @Tags auth
+// @Accept  json
+// @Produce json
+// @Param   loginRequest body LoginRequest true "Данные для входа (username, password)"
+// @Success 200 {object} map[string]string "JWT токен в поле token"
+// @Failure 400 {object} response.Response "Ошибка валидации или некорректный запрос"
+// @Failure 401 {object} response.Response "Некорректный пользователь или пароль"
+// @Failure 500 {object} response.Response "Внутренняя ошибка сервера"
+// @Router /login [post]
 func New(ctx context.Context, log *slog.Logger, userGetter UserGetter, jwtMaker auth.JWTMaker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.login.New"
