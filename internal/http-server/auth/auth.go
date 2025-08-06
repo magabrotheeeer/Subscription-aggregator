@@ -38,7 +38,7 @@ func (j *JWTMakerImpl) GenerateToken(username string) (string, error) {
 func (j *JWTMakerImpl) ParseToken(tokenStr string) (*jwt.RegisteredClaims, error) {
 	const op = "auth.parsetoken"
 	token, err := jwt.ParseWithClaims(tokenStr, &jwt.RegisteredClaims{},
-		func(token *jwt.Token) (interface{}, error) {
+		func(token *jwt.Token) (any, error) {
 			return []byte(j.secretKey), nil
 		})
 	if err != nil {

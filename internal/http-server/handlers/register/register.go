@@ -28,8 +28,8 @@ func New(ctx context.Context, log *slog.Logger, registration Registration) http.
 		var registerRequest RegisterRequest
 
 		log = log.With(
-			"op", op,
-			"requires_id", middleware.GetReqID(r.Context()),
+			slog.String("op", op),
+			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
 		err = render.DecodeJSON(r.Body, &registerRequest)
 		if err != nil {

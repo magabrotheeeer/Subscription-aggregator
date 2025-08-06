@@ -35,8 +35,8 @@ func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.Hand
 		const op = "handlers.countersum.New"
 
 		log = log.With(
-			"op", op,
-			"requires_id", middleware.GetReqID(r.Context()),
+			slog.String("op", op),
+			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
 
 		var dummyReq subs.DummySubscriptionEntry

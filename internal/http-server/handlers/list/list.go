@@ -31,9 +31,10 @@ func New(ctx context.Context, log *slog.Logger, list List) http.HandlerFunc {
 		const op = "handlers.list.New"
 
 		log = log.With(
-			"op", op,
-			"requires_id", middleware.GetReqID(r.Context()),
+			slog.String("op", op),
+			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
+
 		limitStr := r.URL.Query().Get("limit")
 		limit, err := strconv.Atoi(limitStr)
 		if err != nil || limit <= 0 {

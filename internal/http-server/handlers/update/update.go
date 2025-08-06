@@ -34,8 +34,8 @@ func New(ctx context.Context, log *slog.Logger, update Updater) http.HandlerFunc
 		const op = "handlers.update.New"
 
 		log = log.With(
-			"op", op,
-			"requires_id", middleware.GetReqID(r.Context()),
+			slog.String("op", op),
+			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
 
 		var dummyReq subs.DummySubscriptionEntry

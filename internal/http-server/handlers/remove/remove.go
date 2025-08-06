@@ -31,7 +31,7 @@ func New(ctx context.Context, log *slog.Logger, deleter Deleter) http.HandlerFun
 
 		log = log.With(
 			slog.String("op", op),
-			slog.String("requires_id", middleware.GetReqID(r.Context())),
+			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
 
 		var err error

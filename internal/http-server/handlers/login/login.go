@@ -29,8 +29,8 @@ func New(ctx context.Context, log *slog.Logger, userGetter UserGetter, jwtMaker 
 		var loginRequest LoginRequest
 
 		log = log.With(
-			"op", op,
-			"required_id", middleware.GetReqID(r.Context()),
+			slog.String("op", op),
+			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
 
 		err = render.DecodeJSON(r.Body, &loginRequest)

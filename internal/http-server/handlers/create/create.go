@@ -31,7 +31,7 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 
 		log = log.With(
 			slog.String("op", op),
-			slog.String("requires_id", middleware.GetReqID(r.Context())),
+			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
 
 		var dummyReq subs.DummySubscriptionEntry
@@ -111,4 +111,3 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 
 	}
 }
-
