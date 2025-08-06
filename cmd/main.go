@@ -68,7 +68,7 @@ func main() {
 	})
 
 	router.Route("/api/v1", func(r chi.Router) {
-		r.Use(auth.JWTMiddleware(jwtMaker))
+		r.Use(auth.JWTMiddleware(jwtMaker, logger))
 		// Основные CRUD операции с подписками
 		r.Post("/subscriptions/", create.New(ctx, logger, storage))
 		r.Get("/subscriptions/{id}", read.New(ctx, logger, storage))
