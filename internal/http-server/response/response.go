@@ -10,7 +10,7 @@ import (
 type Response struct {
 	Status string `json:"status"`
 	Error  string `json:"error,omitempty"`
-	Data interface{} `json:"data,omitempty"`
+	Data   any    `json:"data,omitempty"`
 }
 
 const (
@@ -18,10 +18,10 @@ const (
 	StatusError = "Error"
 )
 
-func StatusOKWithData(data interface{}) Response {
+func StatusOKWithData(data any) Response {
 	return Response{
 		Status: StatusOK,
-		Data: data,
+		Data:   data,
 	}
 }
 
