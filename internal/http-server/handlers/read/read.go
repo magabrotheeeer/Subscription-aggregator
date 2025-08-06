@@ -28,7 +28,7 @@ type Reader interface {
 // @Router /subscriptions/{id} [get]
 func New(ctx context.Context, log *slog.Logger, reader Reader) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		const op = "handlers.reade.New"
+		const op = "handlers.read.New"
 
 		log.With(
 			"op", op,
