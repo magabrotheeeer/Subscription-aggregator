@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/user"
 )
 
 type Storage struct {
@@ -38,7 +39,25 @@ func New(storageConnectionString string) (*Storage, error) {
             ON subscriptions (user_id);
         `)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create index: %w", err)
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = conn.Exec(context.Background(), `
+			CREATE TABLE IF NOT EXISTS users(
+				id SERIAL PRIMARY KEY,
+				username VARCHAR(255) UNIQUE NOT NULL,
+				password_hash VARCHAR(255) NOT NULL,
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);	
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	_, err = conn.Exec(context.Background(), `
+            CREATE INDEX IF NOT EXISTS idx_users_username
+            ON users (username);
+        `)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return &Storage{Db: conn}, nil
@@ -114,8 +133,13 @@ func (s *Storage) UpdateSubscriptionEntry(ctx context.Context, entry subs.Subscr
 	const op = "storage.postgresql.UpdateSubscriptionEntryByServiceNamePrice"
 
 	commandTag, err := s.Db.Exec(ctx, `
-		UPDATE subscriptions SET service_name = $1, start_date = $2, end_date = $3, price = $4, user_id = $5
-			WHERE id = $6`,
+		UPDATE subscriptions
+		SET service_name = $1,
+			start_date = $2,
+			end_date = $3,
+			price = $4,
+			user_id = $5
+		WHERE id = $6`,
 		entry.ServiceName, entry.StartDate, entry.EndDate, entry.Price, entry.UserID, id)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
@@ -170,4 +194,34 @@ func (s *Storage) CountSumSubscriptionEntrys(ctx context.Context, entry subs.Sub
 	}
 
 	return *res, nil
+}
+
+func (s *Storage) RegisterUser(ctx context.Context, username, passwordHash string) error {
+	const op = "storage.postgresql.RegisterUser"
+	_, err := s.Db.Exec(ctx, `
+		INSERT INTO users (
+			username,
+			password_hash,
+		) VALUES ($1, $2);`,
+		username, passwordHash)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
+func (s *Storage) GetUserByUsername(ctx context.Context, username string) (*user.User, error) {
+	const op = "storage.postgresql.GetUserByUsername"
+	user := &user.User{}
+	row := s.Db.QueryRow(ctx, `
+		SELECT id, username, password_hash, created_at
+		FROM users	
+		WHERE username = $1
+		`, username)
+	err := row.Scan(&user.ID, &user.Username, &user.PasswordHash, &user.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return user, nil
 }
