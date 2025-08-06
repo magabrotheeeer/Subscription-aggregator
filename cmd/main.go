@@ -65,19 +65,20 @@ func main() {
 	router.Route("/api/v1", func(r chi.Router) {
 		r.Post("/register", register.New(ctx, logger, storage))
 		r.Post("/login", login.New(ctx, logger, storage, jwtMaker))
-	})
 
-	router.Route("/api/v1", func(r chi.Router) {
-		r.Use(auth.JWTMiddleware(jwtMaker, logger))
-		// Основные CRUD операции с подписками
-		r.Post("/subscriptions/", create.New(ctx, logger, storage))
-		r.Get("/subscriptions/{id}", read.New(ctx, logger, storage))
-		r.Put("/subscriptions/{id}", update.New(ctx, logger, storage))
-		r.Delete("/subscriptions/{id}", remove.New(ctx, logger, storage))
+		r.Group(func(r chi.Router) {
+			r.Use(auth.JWTMiddleware(jwtMaker, logger))
 
-		// Дополнительные операции
-		r.Get("/subscriptions/list", list.New(ctx, logger, storage))
-		r.Post("/subscriptions/sum/{id}", countsum.New(ctx, logger, storage))
+			// Основные CRUD операции с подписками
+			r.Post("/subscriptions/", create.New(ctx, logger, storage))
+			r.Get("/subscriptions/{id}", read.New(ctx, logger, storage))
+			r.Put("/subscriptions/{id}", update.New(ctx, logger, storage))
+			r.Delete("/subscriptions/{id}", remove.New(ctx, logger, storage))
+
+			// Дополнительные операции
+			r.Get("/subscriptions/list", list.New(ctx, logger, storage))
+			r.Post("/subscriptions/sum/{id}", countsum.New(ctx, logger, storage))
+		})
 	})
 	router.Get("/docs/*", httpSwagger.WrapHandler)
 
@@ -113,7 +114,6 @@ func main() {
 		if err := srv.Shutdown(ctx); err != nil {
 			logger.Error("server shutdown error:", slog.Attr{Key: "err", Value: slog.StringValue(err.Error())})
 		}
-		// Закрытие соединения с БД (если не defer выше)
 		if err := storage.Db.Close(ctx); err != nil {
 			logger.Error("DB close error:", slog.Attr{Key: "err", Value: slog.StringValue(err.Error())})
 		}
