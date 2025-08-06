@@ -34,7 +34,7 @@ func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.Hand
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.countersum.New"
 
-		log.With(
+		log = log.With(
 			"op", op,
 			"requires_id", middleware.GetReqID(r.Context()),
 		)
@@ -115,8 +115,9 @@ func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.Hand
 			return
 		}
 		log.Info("sum of subscriptions", "sum", res)
-		render.JSON(w, r, response.StatusOKWithData(map[string]interface{}{
+		render.JSON(w, r, response.StatusOKWithData(map[string]any{
 			"sum_of_subscriptions": res,
 		}))
 	}
 }
+

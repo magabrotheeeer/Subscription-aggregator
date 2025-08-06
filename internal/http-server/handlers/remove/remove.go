@@ -29,7 +29,7 @@ func New(ctx context.Context, log *slog.Logger, deleter Deleter) http.HandlerFun
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.remove.New"
 
-		log.With(
+		log = log.With(
 			slog.String("op", op),
 			slog.String("requires_id", middleware.GetReqID(r.Context())),
 		)
@@ -59,7 +59,7 @@ func New(ctx context.Context, log *slog.Logger, deleter Deleter) http.HandlerFun
 			return
 		}
 		log.Info("deleted entry/entrys", "count", counter)
-		render.JSON(w, r, response.StatusOKWithData(map[string]interface{}{
+		render.JSON(w, r, response.StatusOKWithData(map[string]any{
 			"deleted_count": counter,
 		}))
 

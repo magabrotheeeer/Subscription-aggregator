@@ -27,7 +27,7 @@ func New(ctx context.Context, log *slog.Logger, registration Registration) http.
 		var err error
 		var registerRequest RegisterRequest
 
-		log.With(
+		log = log.With(
 			"op", op,
 			"requires_id", middleware.GetReqID(r.Context()),
 		)

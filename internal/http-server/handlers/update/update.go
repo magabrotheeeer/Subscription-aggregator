@@ -33,7 +33,7 @@ func New(ctx context.Context, log *slog.Logger, update Updater) http.HandlerFunc
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.update.New"
 
-		log.With(
+		log = log.With(
 			"op", op,
 			"requires_id", middleware.GetReqID(r.Context()),
 		)
@@ -121,7 +121,7 @@ func New(ctx context.Context, log *slog.Logger, update Updater) http.HandlerFunc
 		}
 
 		log.Info("update entry/entrys", "count", counter)
-		render.JSON(w, r, response.StatusOKWithData(map[string]interface{}{
+		render.JSON(w, r, response.StatusOKWithData(map[string]any{
 			"updated_count": counter,
 		}))
 	}

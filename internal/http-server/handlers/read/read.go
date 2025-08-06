@@ -30,7 +30,7 @@ func New(ctx context.Context, log *slog.Logger, reader Reader) http.HandlerFunc 
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.read.New"
 
-		log.With(
+		log = log.With(
 			"op", op,
 			"requires_id", middleware.GetReqID(r.Context()),
 		)
@@ -57,8 +57,9 @@ func New(ctx context.Context, log *slog.Logger, reader Reader) http.HandlerFunc 
 		}
 		log.Info("read entry/entrys", "count", len(res))
 
-		render.JSON(w, r, response.StatusOKWithData(map[string]interface{}{
+		render.JSON(w, r, response.StatusOKWithData(map[string]any{
 			"entries": res,
 		}))
 	}
 }
+
