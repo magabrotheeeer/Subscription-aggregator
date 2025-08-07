@@ -2,6 +2,7 @@ package create
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -13,8 +14,12 @@ import (
 	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
 )
 
-type Creater interface {
+type StorageEntryCreater interface {
 	CreateSubscriptionEntry(ctx context.Context, entry subs.SubscriptionEntry) (int, error)
+}
+
+type CacheEntryCreator interface {
+	Set(key string, value any, expiration time.Duration) error
 }
 
 // @Summary Создать подписку
@@ -25,7 +30,7 @@ type Creater interface {
 // @Success 201 {object} response.Response "Успешное создание"
 // @Failure 400 {object} response.Response "Ошибка валидации"
 // @Router /subscriptions/ [post]
-func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFunc {
+func New(ctx context.Context, log *slog.Logger, createrStorage StorageEntryCreater, createrCache CacheEntryCreator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.create.New"
 
@@ -95,7 +100,8 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 		req.Price = dummyReq.Price
 		req.StartDate = startDate
 
-		counter, err := creater.CreateSubscriptionEntry(ctx, req)
+		id, err := createrStorage.CreateSubscriptionEntry(ctx, req)
+
 		if err != nil {
 			log.Error("failed to create new entry", slog.Attr{
 				Key:   "err",
@@ -104,9 +110,20 @@ func New(ctx context.Context, log *slog.Logger, creater Creater) http.HandlerFun
 			render.JSON(w, r, response.Error("failed to save"))
 			return
 		}
-		log.Info("created new entry", "entrys in table:", counter)
+		log.Info("created new entry", "last added id:", id)
+
+		cacheKey := fmt.Sprintf("subscription:%d", id)
+
+		if err := createrCache.Set(cacheKey, req, time.Hour); err != nil {
+			log.Warn("failed to add to cache", slog.Attr{
+				Key:   "err",
+				Value: slog.StringValue(err.Error()),
+			})
+		}
+		log.Info("cache updated", slog.String("key", cacheKey))
+
 		render.JSON(w, r, response.StatusOKWithData(map[string]any{
-			"entrys_count": counter,
+			"last added id": id,
 		}))
 
 	}

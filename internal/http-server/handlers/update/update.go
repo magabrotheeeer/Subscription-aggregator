@@ -2,6 +2,7 @@ package update
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -15,8 +16,12 @@ import (
 	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
 )
 
-type Updater interface {
+type StorageEntryUpdater interface {
 	UpdateSubscriptionEntry(ctx context.Context, entry subs.SubscriptionEntry, id int) (int64, error)
+}
+
+type CacheEntryUpdater interface {
+	Set(key string, value any, expiration time.Duration) error
 }
 
 // @Summary Обновить подписку по ID
@@ -29,7 +34,7 @@ type Updater interface {
 // @Failure 400 {object} response.Response "Ошибка валидации"
 // @Failure 404 {object} response.Response "Подписка не найдена"
 // @Router /subscriptions/{id} [put]
-func New(ctx context.Context, log *slog.Logger, update Updater) http.HandlerFunc {
+func New(ctx context.Context, log *slog.Logger, updaterStorage StorageEntryUpdater, updaterCache CacheEntryUpdater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.update.New"
 
@@ -109,10 +114,10 @@ func New(ctx context.Context, log *slog.Logger, update Updater) http.HandlerFunc
 		req.Price = dummyReq.Price
 		req.StartDate = startDate
 
-		counter, err = update.UpdateSubscriptionEntry(ctx, req, id)
+		counter, err = updaterStorage.UpdateSubscriptionEntry(ctx, req, id)
 
 		if err != nil {
-			log.Error("failed to update entry/entrys", slog.Attr{
+			log.Error("failed to update entry/entrys in storage", slog.Attr{
 				Key:   "err",
 				Value: slog.StringValue(err.Error()),
 			})
@@ -120,7 +125,18 @@ func New(ctx context.Context, log *slog.Logger, update Updater) http.HandlerFunc
 			return
 		}
 
-		log.Info("update entry/entrys", "count", counter)
+		log.Info("update entry/entrys in storage", "count", counter)
+
+		cacheKey := fmt.Sprintf("subscription:%d", id)
+
+		if err := updaterCache.Set(cacheKey, req, time.Hour); err != nil {
+			log.Warn("failed to update entry/entrys in cache", slog.Attr{
+				Key:   "err",
+				Value: slog.StringValue(err.Error()),
+			})
+		}
+		log.Info("cache updated", slog.String("key", cacheKey))
+
 		render.JSON(w, r, response.StatusOKWithData(map[string]any{
 			"updated_count": counter,
 		}))

@@ -2,6 +2,7 @@ package read
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -13,8 +14,12 @@ import (
 	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
 )
 
-type Reader interface {
-	ReadSubscriptionEntry(ctx context.Context, id int) ([]*subs.SubscriptionEntry, error)
+type StorageEntryReader interface {
+	ReadSubscriptionEntry(ctx context.Context, id int) (*subs.SubscriptionEntry, error)
+}
+
+type CacheEntryReader interface {
+	Get(key string, result any) (bool, error)
 }
 
 // @Summary Получить подписку по ID
@@ -26,7 +31,7 @@ type Reader interface {
 // @Failure 400 {object} response.Response "Неверный ID"
 // @Failure 404 {object} response.Response "Подписка не найдена"
 // @Router /subscriptions/{id} [get]
-func New(ctx context.Context, log *slog.Logger, reader Reader) http.HandlerFunc {
+func New(ctx context.Context, log *slog.Logger, readerStorage StorageEntryReader, readerCache CacheEntryReader) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.read.New"
 
@@ -45,21 +50,36 @@ func New(ctx context.Context, log *slog.Logger, reader Reader) http.HandlerFunc 
 
 			return
 		}
-
-		res, err := reader.ReadSubscriptionEntry(ctx, id)
+		var res *subs.SubscriptionEntry
+		cacheKey := fmt.Sprintf("subscription:%d", id)
+		found, err := readerCache.Get(cacheKey, &res)
 		if err != nil {
-			log.Error("failed to read entry/entrys", slog.Attr{
+			log.Error("failed to read from cache", slog.Attr{
 				Key:   "err",
 				Value: slog.StringValue(err.Error()),
 			})
-			render.JSON(w, r, response.Error("failed to read"))
+			render.JSON(w, r, response.Error("internal error"))
 			return
 		}
-		log.Info("read entry/entrys", "count", len(res))
+
+		if found {
+			log.Info("read entry/entrys from cache", "count", 1)
+		} else {
+			res, err = readerStorage.ReadSubscriptionEntry(ctx, id)
+			if err != nil {
+				log.Error("failed to read entry/entrys", slog.Attr{
+					Key:   "err",
+					Value: slog.StringValue(err.Error()),
+				})
+				render.JSON(w, r, response.Error("failed to read"))
+				return
+			}
+			log.Info("read entry/entrys from storage", "count", 1)
+		}
 
 		render.JSON(w, r, response.StatusOKWithData(map[string]any{
 			"entries": res,
 		}))
+
 	}
 }
-

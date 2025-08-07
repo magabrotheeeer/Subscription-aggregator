@@ -2,6 +2,7 @@ package remove
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -12,8 +13,12 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
 )
 
-type Deleter interface {
+type StorageEntryDeleter interface {
 	RemoveSubscriptionEntry(ctx context.Context, id int) (int64, error)
+}
+
+type CacheEntryDeleter interface {
+	Invalidate(key string) error
 }
 
 // @Summary Удалить подписку по ID
@@ -25,7 +30,7 @@ type Deleter interface {
 // @Failure 400 {object} response.Response "Ошибка валидации"
 // @Failure 404 {object} response.Response "Подписка не найдена"
 // @Router /subscriptions/{id} [delete]
-func New(ctx context.Context, log *slog.Logger, deleter Deleter) http.HandlerFunc {
+func New(ctx context.Context, log *slog.Logger, deleterStorage StorageEntryDeleter, deleterCache CacheEntryDeleter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.remove.New"
 
@@ -48,10 +53,20 @@ func New(ctx context.Context, log *slog.Logger, deleter Deleter) http.HandlerFun
 		}
 
 		var counter int64
-
-		counter, err = deleter.RemoveSubscriptionEntry(ctx, id)
+		cacheKey := fmt.Sprintf("subscription:%d", id)
+		err = deleterCache.Invalidate(cacheKey)
 		if err != nil {
-			log.Error("failed to remove entry/entrys", slog.Attr{
+			log.Error("failed to remove entry/entrys from cache", slog.Attr{
+				Key:   "err",
+				Value: slog.StringValue(err.Error()),
+			})
+			render.JSON(w, r, response.Error("failed to remove from cache"))
+		}
+		log.Info("deleted entry/entrys from cache", "count", counter)
+
+		counter, err = deleterStorage.RemoveSubscriptionEntry(ctx, id)
+		if err != nil {
+			log.Error("failed to remove entry/entrys from storage", slog.Attr{
 				Key:   "err",
 				Value: slog.StringValue(err.Error()),
 			})
