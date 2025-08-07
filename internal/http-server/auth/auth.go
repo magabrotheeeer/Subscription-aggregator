@@ -36,7 +36,7 @@ func (j *JWTMakerImpl) GenerateToken(username string) (string, error) {
 }
 
 func (j *JWTMakerImpl) ParseToken(tokenStr string) (*jwt.RegisteredClaims, error) {
-	const op = "auth.parsetoken"
+	const op = "auth.Parsetoken"
 	token, err := jwt.ParseWithClaims(tokenStr, &jwt.RegisteredClaims{},
 		func(token *jwt.Token) (any, error) {
 			return []byte(j.secretKey), nil
@@ -52,7 +52,7 @@ func (j *JWTMakerImpl) ParseToken(tokenStr string) (*jwt.RegisteredClaims, error
 }
 
 func GetHash(password string) (string, error) {
-	const op = "auth.gethash"
+	const op = "auth.Gethash"
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)
@@ -61,7 +61,7 @@ func GetHash(password string) (string, error) {
 }
 
 func CompareHash(originalHash, externalPassword string) error {
-	const op = "auth.comparehash"
+	const op = "auth.Comparehash"
 	err := bcrypt.CompareHashAndPassword([]byte(originalHash), []byte(externalPassword))
 	if err == nil {
 		return nil
