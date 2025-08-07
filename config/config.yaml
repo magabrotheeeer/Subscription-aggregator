@@ -1,6 +1,17 @@
 env: "local"
 storage_connection_string: "postgres://akhilgovmb:testpostgres@db:5432/test?sslmode=disable"
+redis_connection:
+  addr: "localhost:6379"
+  password: "test1234"
+  user: "testuser"
+  db: 0
+  max_retries: 5
+  dial_timeout: 10s 
+  timeout: 4s
 http_server:
   address: ":8080"
   timeout: 4s ## время на чтение запроса, время на отправку ответа
   idle_timeout: 60s ## время жизни соединения с клиентом
+jwttoken:
+  jwt_secret_key: "aQwerty12345!@#SecretKeyExample67890_+"
+  token_ttl: 24h
