@@ -1,9 +1,9 @@
 env: "local"
 storage_connection_string: "postgres://akhilgovmb:testpostgres@db:5432/test?sslmode=disable"
 redis_connection:
-  addr: "localhost:6379"
+  addr: "redis:6379"
   password: "test1234"
-  user: "testuser"
+  user: ""
   db: 0
   max_retries: 5
   dial_timeout: 10s 
