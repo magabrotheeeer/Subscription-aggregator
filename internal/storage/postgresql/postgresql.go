@@ -65,8 +65,8 @@ func New(storageConnectionString string) (*Storage, error) {
 
 func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subs.SubscriptionEntry) (int, error) {
 	const op = "storage.postgresql.CreateSubscriptionEntry"
-
-	_, err := s.Db.Exec(ctx, `
+	var newId int
+	err := s.Db.QueryRow(ctx, `
         INSERT INTO subscriptions (
             service_name,
             price,
@@ -78,19 +78,13 @@ func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subs.Subscr
 		entry.Price,
 		entry.UserID,
 		entry.StartDate,
-		entry.EndDate)
+		entry.EndDate).Scan(&newId)
 
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 
-	var res int
-	err = s.Db.QueryRow(ctx, "SELECT COUNT(*) FROM subscriptions").Scan(&res)
-	if err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
-	}
-
-	return res, nil
+	return newId, nil
 }
 
 func (s *Storage) RemoveSubscriptionEntry(ctx context.Context, id int) (int64, error) {
@@ -107,26 +101,20 @@ func (s *Storage) RemoveSubscriptionEntry(ctx context.Context, id int) (int64, e
 	return result, nil
 }
 
-func (s *Storage) ReadSubscriptionEntry(ctx context.Context, id int) ([]*subs.SubscriptionEntry, error) {
+func (s *Storage) ReadSubscriptionEntry(ctx context.Context, id int) (*subs.SubscriptionEntry, error) {
 
 	const op = "storage.postgresql.ReadSubscriptionEntryByUserID"
 
-	rows, err := s.Db.Query(ctx, `
+	row := s.Db.QueryRow(ctx, `
 		SELECT service_name, price, user_id, start_date, end_date 
 		FROM subscriptions WHERE id = $1`, id)
+	var result subs.SubscriptionEntry
+	err := row.Scan(&result.ServiceName, &result.Price, &result.UserID, &result.StartDate, &result.EndDate)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	var result []*subs.SubscriptionEntry
-	for rows.Next() {
-		var item subs.SubscriptionEntry
-		err := rows.Scan(&item.ServiceName, &item.Price, &item.UserID, &item.StartDate, &item.EndDate)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", op, err)
-		}
-		result = append(result, &item)
-	}
-	return result, nil
+
+	return &result, nil
 }
 
 func (s *Storage) UpdateSubscriptionEntry(ctx context.Context, entry subs.SubscriptionEntry, id int) (int64, error) {
