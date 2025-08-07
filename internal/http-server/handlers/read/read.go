@@ -47,11 +47,12 @@ func New(ctx context.Context, log *slog.Logger, readerStorage StorageEntryReader
 				Value: slog.StringValue(err.Error())})
 
 			render.JSON(w, r, response.Error("failed to decode id from url"))
-
 			return
 		}
+
 		var res *subs.SubscriptionEntry
 		cacheKey := fmt.Sprintf("subscription:%d", id)
+
 		found, err := readerCache.Get(cacheKey, &res)
 		if err != nil {
 			log.Error("failed to read from cache", slog.Attr{

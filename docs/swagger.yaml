@@ -34,6 +34,32 @@ definitions:
       user_id:
         type: string
     type: object
+  internal_http-server_handlers_login.LoginRequest:
+    properties:
+      password:
+        minLength: 6
+        type: string
+      username:
+        maxLength: 50
+        minLength: 6
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  internal_http-server_handlers_register.RegisterRequest:
+    properties:
+      password:
+        minLength: 6
+        type: string
+      username:
+        maxLength: 50
+        minLength: 6
+        type: string
+    required:
+    - password
+    - username
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -41,6 +67,70 @@ info:
   title: Subscription API
   version: "1.0"
 paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Данные для входа (username, password)
+        in: body
+        name: loginRequest
+        required: true
+        schema:
+          $ref: '#/definitions/internal_http-server_handlers_login.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JWT токен в поле token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Ошибка валидации или некорректный запрос
+          schema:
+            $ref: '#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response'
+        "401":
+          description: Некорректный пользователь или пароль
+          schema:
+            $ref: '#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response'
+      summary: Авторизация пользователя (логин)
+      tags:
+      - auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Данные для регистрации (username, password)
+        in: body
+        name: registerRequest
+        required: true
+        schema:
+          $ref: '#/definitions/internal_http-server_handlers_register.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Пользователь успешно создан
+          schema:
+            $ref: '#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response'
+        "400":
+          description: Ошибка валидации или некорректный запрос
+          schema:
+            $ref: '#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response'
+      summary: Регистрация нового пользователя
+      tags:
+      - auth
   /subscriptions/:
     post:
       consumes:
@@ -160,7 +250,18 @@ paths:
     get:
       consumes:
       - application/json
-      description: Возвращает полный список подписок
+      description: Возвращает список подписок с поддержкой пагинации
+      parameters:
+      - default: 10
+        description: Количество элементов на странице
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Смещение от начала списка
+        in: query
+        name: offset
+        type: integer
       produces:
       - application/json
       responses:

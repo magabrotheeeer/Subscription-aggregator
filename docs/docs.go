@@ -15,6 +15,105 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/login": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Авторизация пользователя (логин)",
+                "parameters": [
+                    {
+                        "description": "Данные для входа (username, password)",
+                        "name": "loginRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_http-server_handlers_login.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "JWT токен в поле token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка валидации или некорректный запрос",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Некорректный пользователь или пароль",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/register": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Регистрация нового пользователя",
+                "parameters": [
+                    {
+                        "description": "Данные для регистрации (username, password)",
+                        "name": "registerRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_http-server_handlers_register.RegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Пользователь успешно создан",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка валидации или некорректный запрос",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/subscriptions/": {
             "post": {
                 "consumes": [
@@ -56,7 +155,7 @@ const docTemplate = `{
         },
         "/subscriptions/list": {
             "get": {
-                "description": "Возвращает полный список подписок",
+                "description": "Возвращает список подписок с поддержкой пагинации",
                 "consumes": [
                     "application/json"
                 ],
@@ -67,6 +166,22 @@ const docTemplate = `{
                     "subscriptions"
                 ],
                 "summary": "Получить список всех подписок",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Количество элементов на странице",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Смещение от начала списка",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Количество и список подписок",
@@ -325,6 +440,42 @@ const docTemplate = `{
                 },
                 "user_id": {
                     "type": "string"
+                }
+            }
+        },
+        "internal_http-server_handlers_login.LoginRequest": {
+            "type": "object",
+            "required": [
+                "password",
+                "username"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string",
+                    "minLength": 6
+                },
+                "username": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 6
+                }
+            }
+        },
+        "internal_http-server_handlers_register.RegisterRequest": {
+            "type": "object",
+            "required": [
+                "password",
+                "username"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string",
+                    "minLength": 6
+                },
+                "username": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 6
                 }
             }
         }

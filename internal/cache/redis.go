@@ -36,7 +36,7 @@ func InitServer(ctx context.Context, cfg config.RedisConnection) (*Cache, error)
 func (c *Cache) Get(key string, result any) (bool, error) {
 	const op = "cache.Get"
 	val, err := c.Db.Get(context.Background(), key).Result()
-	if err != redis.Nil {
+	if err == redis.Nil {
 		return false, nil
 	}
 	if err != nil {

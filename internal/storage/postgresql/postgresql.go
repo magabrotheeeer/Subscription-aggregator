@@ -73,7 +73,8 @@ func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subs.Subscr
             user_id,
             start_date,
             end_date
-        ) VALUES ($1, $2, $3, $4, $5)`,
+        ) VALUES ($1, $2, $3, $4, $5)
+		RETURNING id`,
 		entry.ServiceName,
 		entry.Price,
 		entry.UserID,
