@@ -19,6 +19,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	_ "github.com/magabrotheeeer/subscription-aggregator/docs"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/cache"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/auth"
 	countsum "github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/count_sum"
@@ -36,7 +37,7 @@ import (
 func main() {
 	ctx := context.Background()
 	config := config.MustLoad()
-	fmt.Println(config)
+	fmt.Println(config.String())
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	logger.Info("starting subscription-aggregator", slog.String("env", config.Env))
@@ -47,14 +48,13 @@ func main() {
 		logger.Error("failed to init storage", slog.Attr{Key: "err", Value: slog.StringValue(err.Error())})
 		os.Exit(1)
 	}
-
-	jwtSecretKey := os.Getenv("JWT_SECRET")
-	if jwtSecretKey == "" {
-		logger.Error("JWT_SECRET is not set")
+	cache, err := cache.InitServer(ctx, config.RedisConnection)
+	if err != nil {
+		logger.Error("failed to init cache redis", slog.Attr{Key: "err", Value: slog.StringValue(err.Error())})
 		os.Exit(1)
 	}
-	tokenTTL := time.Hour * 24
-	jwtMaker := auth.NewJWTMaker(jwtSecretKey, tokenTTL)
+
+	jwtMaker := auth.NewJWTMaker(config.JWTSecretKey, config.TokenTTL)
 
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
@@ -70,10 +70,10 @@ func main() {
 			r.Use(auth.JWTMiddleware(jwtMaker, logger))
 
 			// Основные CRUD операции с подписками
-			r.Post("/subscriptions/", create.New(ctx, logger, storage))
-			r.Get("/subscriptions/{id}", read.New(ctx, logger, storage))
-			r.Put("/subscriptions/{id}", update.New(ctx, logger, storage))
-			r.Delete("/subscriptions/{id}", remove.New(ctx, logger, storage))
+			r.Post("/subscriptions/", create.New(ctx, logger, storage, cache))
+			r.Get("/subscriptions/{id}", read.New(ctx, logger, storage, cache))
+			r.Put("/subscriptions/{id}", update.New(ctx, logger, storage, cache))
+			r.Delete("/subscriptions/{id}", remove.New(ctx, logger, storage, cache))
 
 			// Дополнительные операции
 			r.Get("/subscriptions/list", list.New(ctx, logger, storage))
