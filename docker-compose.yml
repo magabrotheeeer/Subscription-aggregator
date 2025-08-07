@@ -14,6 +14,14 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+  redis:
+    image: redis:7
+    command: ["redis-server", "--requirepass", "test1234"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - "C:/Users/akhilgovmb/docker/redisdata:/data"
+    restart: always
 
   app:
     build: .
@@ -26,14 +34,19 @@ services:
       - DB_NAME=test
       - DB_USER=akhilgovmb
       - DB_PASSWORD=testpostgres
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=test1234
     ports:
       - "8080:8080"
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     volumes:
       - "C:/Users/akhilgovmb/Desktop/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro"
 
 
 volumes:
   pgdata:
+  redisdata:
