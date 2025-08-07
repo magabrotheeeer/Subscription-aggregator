@@ -14,7 +14,7 @@ func JWTMiddleware(jwtMaker JWTMaker, log *slog.Logger) func(http.Handler) http.
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
-			const op = "auth.jwtmiddleware"
+			const op = "auth.Jwtmiddleware"
 
 			log = log.With(
 				slog.String("op", op),
