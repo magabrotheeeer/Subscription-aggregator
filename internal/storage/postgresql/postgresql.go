@@ -201,7 +201,7 @@ func (s *Storage) RegisterUser(ctx context.Context, username, passwordHash strin
 	_, err := s.Db.Exec(ctx, `
 		INSERT INTO users (
 			username,
-			password_hash,
+			password_hash
 		) VALUES ($1, $2);`,
 		username, passwordHash)
 	if err != nil {

@@ -1,5 +1,5 @@
 env: "local"
-storage_connection_string: "postgres://papa:1234@db:5432/test?sslmode=disable"
+storage_connection_string: "postgres://akhilgovmb:testpostgres@db:5432/test?sslmode=disable"
 http_server:
   address: ":8080"
   timeout: 4s ## время на чтение запроса, время на отправку ответа
