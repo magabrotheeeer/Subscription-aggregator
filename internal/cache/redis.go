@@ -17,18 +17,18 @@ type Cache struct {
 func InitServer(ctx context.Context, cfg config.RedisConnection) (*Cache, error) {
 	const op = "cache.Initserver"
 	db := redis.NewClient(&redis.Options{
-		Addr: cfg.Addr,
-		Password: cfg.Password,
-		DB: cfg.DB,
-		Username: cfg.User,
-		MaxRetries: cfg.MaxRetries,
-		DialTimeout: cfg.DialTimeout,
-		ReadTimeout: cfg.Timeout,
+		Addr:         cfg.Addr,
+		Password:     cfg.Password,
+		DB:           cfg.DB,
+		Username:     cfg.User,
+		MaxRetries:   cfg.MaxRetries,
+		DialTimeout:  cfg.DialTimeout,
+		ReadTimeout:  cfg.Timeout,
 		WriteTimeout: cfg.Timeout,
 	})
 
 	if err := db.Ping(ctx).Err(); err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)	
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return &Cache{Db: db}, nil
 }
@@ -55,7 +55,7 @@ func (c *Cache) Set(key string, value any, expiration time.Duration) error {
 		return err
 	}
 	return c.Db.Set(context.Background(), key, jsonData, expiration).Err()
-} 
+}
 
 func (c *Cache) Invalidate(key string) error {
 	return c.Db.Del(context.Background(), key).Err()
