@@ -77,7 +77,7 @@ func main() {
 
 			// Дополнительные операции
 			r.Get("/subscriptions/list", list.New(ctx, logger, storage))
-			r.Post("/subscriptions/sum/{id}", countsum.New(ctx, logger, storage))
+			r.Post("/subscriptions/sum", countsum.New(ctx, logger, storage))
 		})
 	})
 	router.Get("/docs/*", httpSwagger.WrapHandler)
