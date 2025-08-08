@@ -35,7 +35,7 @@ type RedisConnection struct {
 
 type JWTToken struct {
 	JWTSecretKey string        `yaml:"jwt_secret_key"`
-	TokenTTL          time.Duration `yaml:"token_ttl"`
+	TokenTTL     time.Duration `yaml:"token_ttl"`
 }
 
 func MustLoad() *Config {
@@ -56,39 +56,37 @@ func MustLoad() *Config {
 }
 
 func (c *Config) String() string {
-    return fmt.Sprintf(
-        "Env: %s\n"+
-            "StorageConnectionString: %s\n"+
-            "RedisConnection:\n"+
-            "  Addr: %s\n"+
-            "  Password: %s\n"+
-            "  User: %s\n"+
-            "  DB: %d\n"+
-            "  MaxRetries: %d\n"+
-            "  DialTimeout: %s\n"+
-            "  Timeout: %s\n"+
-            "HTTPServer:\n"+
-            "  Address: %s\n"+
-            "  Timeout: %s\n"+
-            "  IdleTimeout: %s\n"+
-            "JWTToken:\n"+
-            "  JWTSecretKey: %s\n"+
-            "  TokenTTL: %s\n",
-        c.Env,
-        c.StorageConnectionString,
-        c.RedisConnection.Addr,
-        c.RedisConnection.Password,
-        c.RedisConnection.User,
-        c.RedisConnection.DB,
-        c.RedisConnection.MaxRetries,
-        c.RedisConnection.DialTimeout,
-        c.RedisConnection.Timeout,
-        c.HTTPServer.Address,
-        c.HTTPServer.Timeout,
-        c.HTTPServer.IdleTimeout,
-        c.JWTToken.JWTSecretKey,
-        c.JWTToken.TokenTTL,
-    )
+	return fmt.Sprintf(
+		"Env: %s\n"+
+			"StorageConnectionString: %s\n"+
+			"RedisConnection:\n"+
+			"  Addr: %s\n"+
+			"  Password: %s\n"+
+			"  User: %s\n"+
+			"  DB: %d\n"+
+			"  MaxRetries: %d\n"+
+			"  DialTimeout: %s\n"+
+			"  Timeout: %s\n"+
+			"HTTPServer:\n"+
+			"  Address: %s\n"+
+			"  Timeout: %s\n"+
+			"  IdleTimeout: %s\n"+
+			"JWTToken:\n"+
+			"  JWTSecretKey: %s\n"+
+			"  TokenTTL: %s\n",
+		c.Env,
+		c.StorageConnectionString,
+		c.RedisConnection.Addr,
+		c.RedisConnection.Password,
+		c.RedisConnection.User,
+		c.RedisConnection.DB,
+		c.RedisConnection.MaxRetries,
+		c.RedisConnection.DialTimeout,
+		c.RedisConnection.Timeout,
+		c.HTTPServer.Address,
+		c.HTTPServer.Timeout,
+		c.HTTPServer.IdleTimeout,
+		c.JWTToken.JWTSecretKey,
+		c.JWTToken.TokenTTL,
+	)
 }
-
-
