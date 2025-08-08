@@ -2,13 +2,14 @@ package postgresql
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	countsum "github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/count_sum"
 	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/user"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/util"
 )
 
 type Storage struct {
@@ -166,27 +167,66 @@ func (s *Storage) ListSubscriptionEntrys(ctx context.Context, username string, l
 func (s *Storage) CountSumSubscriptionEntrys(ctx context.Context, entry countsum.SubscriptionFilterSum) (float64, error) {
 	const op = "storage.postgresql.CountSumSubscriptionEntrys"
 
-	var res sql.NullFloat64
-
-	err := s.Db.QueryRow(ctx, `
-			SELECT SUM(price)
-			FROM subscriptions
-			WHERE username = $1
-				AND ($2::text IS NULL OR service_name = $2)
-				AND start_date <= COALESCE($3, start_date)
-				AND (end_date IS NULL OR end_date >= COALESCE($4, end_date))
-		`,
-		entry.Username, entry.ServiceName, entry.EndDate, entry.StartDate).Scan(&res)
-
+	rows, err := s.Db.Query(ctx, `
+    SELECT service_name, price, start_date, end_date
+    FROM subscriptions
+    WHERE username = $1
+      AND ($2::text IS NULL OR service_name = $2)
+      AND start_date <= COALESCE($3, start_date)
+      AND (end_date IS NULL OR end_date > COALESCE($4, end_date))
+	`, entry.Username, entry.ServiceName, entry.EndDate, entry.StartDate)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
+	defer rows.Close()
 
-	if !res.Valid {
-		return 0, nil
+	var total float64
+	for rows.Next() {
+		var serviceName string
+		var price float64
+		var startDate time.Time
+		var endDate *time.Time
+
+		err := rows.Scan(&serviceName, &price, &startDate, &endDate)
+		if err != nil {
+			return 0, fmt.Errorf("%s: %w", op, err)
+		}
+
+		activeStart := util.MaxDate(startDate, entry.StartDate)
+
+		var filterEnd time.Time
+		if entry.EndDate != nil {
+			filterEnd = *entry.EndDate
+		} else {
+			filterEnd = time.Date(9999, 12, 31, 0, 0, 0, 0, time.UTC)
+		}
+
+		var adjustedEndDate *time.Time
+		if endDate != nil {
+			newEnd := endDate.AddDate(0, 0, -1)
+			adjustedEndDate = &newEnd
+		} else {
+			adjustedEndDate = nil
+		}
+
+		var activeEnd time.Time
+		if adjustedEndDate != nil && adjustedEndDate.Before(filterEnd) {
+			activeEnd = *adjustedEndDate
+		} else {
+			activeEnd = filterEnd
+		}
+
+		if !activeEnd.Before(activeStart) {
+			months := util.MonthsBetween(activeStart, activeEnd)
+			total += price * float64(months)
+		}
 	}
 
-	return res.Float64, nil
+	if err := rows.Err(); err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return total, nil
 }
 
 func (s *Storage) RegisterUser(ctx context.Context, username, passwordHash string) error {
