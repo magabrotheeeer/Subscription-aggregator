@@ -8,12 +8,13 @@ import (
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/auth"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
 	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
 )
 
 type List interface {
-	ListSubscriptionEntrys(ctx context.Context, limit, offset int) ([]*subs.SubscriptionEntry, error)
+	ListSubscriptionEntrys(ctx context.Context, username string, limit, offset int) ([]*subs.SubscriptionEntry, error)
 }
 
 // @Summary Получить список всех подписок
@@ -46,8 +47,13 @@ func New(ctx context.Context, log *slog.Logger, list List) http.HandlerFunc {
 		if err != nil || limit <= 0 {
 			offset = 0
 		}
-
-		res, err := list.ListSubscriptionEntrys(ctx, limit, offset)
+		username, ok := r.Context().Value(auth.UserKey).(string)
+		if !ok || username == "" {
+			log.Error("username not found in context")
+			render.JSON(w, r, response.Error("unauthorized"))
+			return
+		}
+		res, err := list.ListSubscriptionEntrys(ctx, username, limit, offset)
 		if err != nil {
 			log.Error("failed to list entrys", slog.Attr{
 				Key:   "err",

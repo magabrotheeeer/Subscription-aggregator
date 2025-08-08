@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/auth"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
 	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
 )
@@ -96,7 +97,13 @@ func New(ctx context.Context, log *slog.Logger, createrStorage StorageEntryCreat
 		}
 
 		req.ServiceName = dummyReq.ServiceName
-		req.UserID = dummyReq.UserID
+		username, ok := r.Context().Value(auth.UserKey).(string)
+		if !ok || username == "" {
+			log.Error("username not found in context")
+			render.JSON(w, r, response.Error("unauthorized"))
+			return
+		}
+		req.Username = username
 		req.Price = dummyReq.Price
 		req.StartDate = startDate
 
