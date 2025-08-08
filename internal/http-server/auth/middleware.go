@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -9,6 +10,10 @@ import (
 	"github.com/go-chi/render"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
 )
+
+type contextKey string
+
+const UserKey contextKey = "username"
 
 func JWTMiddleware(jwtMaker JWTMaker, log *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -30,7 +35,7 @@ func JWTMiddleware(jwtMaker JWTMaker, log *slog.Logger) func(http.Handler) http.
 			}
 			tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 
-			_, err := jwtMaker.ParseToken(tokenStr)
+			claims, err := jwtMaker.ParseToken(tokenStr)
 			if err != nil {
 				log.Error("invalid or expired token", slog.Attr{
 					Key:   "err",
@@ -40,7 +45,8 @@ func JWTMiddleware(jwtMaker JWTMaker, log *slog.Logger) func(http.Handler) http.
 
 				return
 			}
-			next.ServeHTTP(w, r)
+			ctx := context.WithValue(r.Context(), UserKey, claims.Subject)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
