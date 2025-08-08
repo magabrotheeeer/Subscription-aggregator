@@ -4,19 +4,17 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"time"
 
-	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/auth"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
-	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
 )
 
 type CounterSum interface {
-	CountSumSubscriptionEntrys(ctx context.Context, entry subs.SubscriptionEntry, id int) (float64, error)
+	CountSumSubscriptionEntrys(ctx context.Context, entry SubscriptionFilterSum) (float64, error)
 }
 
 // @Summary Подсчитать сумму подписок за период для пользователя
@@ -39,9 +37,9 @@ func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.Hand
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
 
-		var dummyReq subs.DummySubscriptionEntry
+		var filterReq DummySubscriptionFilterSum
 
-		err := render.DecodeJSON(r.Body, &dummyReq)
+		err := render.DecodeJSON(r.Body, &filterReq)
 		if err != nil {
 			log.Error("failed to decode request body", slog.Attr{
 				Key:   "err",
@@ -51,9 +49,9 @@ func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.Hand
 
 			return
 		}
-		log.Info("request body decoded", slog.Any("request", dummyReq))
+		log.Info("request body decoded", slog.Any("request", filterReq))
 
-		if err := validator.New().Struct(dummyReq); err != nil {
+		if err := validator.New().Struct(filterReq); err != nil {
 			validateErr := err.(validator.ValidationErrors)
 			log.Error("Invalid request", slog.Attr{
 				Key:   "err",
@@ -65,18 +63,9 @@ func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.Hand
 		}
 		log.Info("all fields are validated")
 
-		id, err := strconv.Atoi(chi.URLParam(r, "id"))
-		if err != nil {
-			log.Error("failed to decode id from url", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error())})
+		var filter SubscriptionFilterSum
 
-			render.JSON(w, r, response.Error("failed to decode id from url"))
-
-			return
-		}
-
-		startDate, err := time.Parse("01-2006", dummyReq.StartDate)
+		startDate, err := time.Parse("01-2006", filterReq.StartDate)
 		if err != nil {
 			log.Error("failed to convert, field: startdate", slog.Attr{
 				Key:   "err",
@@ -86,26 +75,39 @@ func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.Hand
 
 			return
 		}
-		endDate, err := time.Parse("01-2006", dummyReq.EndDate)
-		if err != nil {
-			log.Error("failed to convert, field: enddate", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error())})
+		var endDate *time.Time
+		if filterReq.EndDate == "" {
+			filter.EndDate = nil
+		} else {
+			endDate, err := time.Parse("01-2006", filterReq.EndDate)
+			if err != nil {
+				log.Error("failed to convert, field: enddate", slog.Attr{
+					Key:   "err",
+					Value: slog.StringValue(err.Error())})
 
-			render.JSON(w, r, response.Error("failed to convert, field: enddate"))
+				render.JSON(w, r, response.Error("failed to convert, field: enddate"))
 
-			return
+				return
+			}
+			filter.EndDate = &endDate
+		}
+		if filterReq.ServiceName == "" {
+			filter.ServiceName = nil
+		} else {
+			filter.ServiceName = &filterReq.ServiceName
 		}
 
-		var req subs.SubscriptionEntry
+		username, ok := r.Context().Value(auth.UserKey).(string)
+		if !ok || username == "" {
+			log.Error("username not found in context")
+			render.JSON(w, r, response.Error("unauthorized"))
+			return
+		}
+		filter.Username = username
+		filter.StartDate = startDate
+		filter.EndDate = endDate
 
-		req.ServiceName = dummyReq.ServiceName
-		req.UserID = dummyReq.UserID
-		req.Price = dummyReq.Price
-		req.StartDate = startDate
-		req.EndDate = &endDate
-
-		res, err := counterSum.CountSumSubscriptionEntrys(ctx, req, id)
+		res, err := counterSum.CountSumSubscriptionEntrys(ctx, filter)
 		if err != nil {
 			log.Error("failed to sum", slog.Attr{
 				Key:   "err",
@@ -120,4 +122,3 @@ func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.Hand
 		}))
 	}
 }
-
