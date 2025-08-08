@@ -2,9 +2,11 @@ package postgresql
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	countsum "github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/count_sum"
 	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/user"
 )
@@ -26,7 +28,7 @@ func New(storageConnectionString string) (*Storage, error) {
                 id SERIAL PRIMARY KEY,
                 service_name TEXT NOT NULL,
                 price NUMERIC(10, 2) NOT NULL,
-                user_id UUID NOT NULL,
+                username VARCHAR(255) NOT NULL,
                 start_date DATE NOT NULL,
                 end_date DATE);
         `)
@@ -36,7 +38,7 @@ func New(storageConnectionString string) (*Storage, error) {
 
 	_, err = conn.Exec(context.Background(), `
             CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id 
-            ON subscriptions (user_id);
+            ON subscriptions (username);
         `)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -70,14 +72,14 @@ func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subs.Subscr
         INSERT INTO subscriptions (
             service_name,
             price,
-            user_id,
+            username,
             start_date,
             end_date
         ) VALUES ($1, $2, $3, $4, $5)
 		RETURNING id`,
 		entry.ServiceName,
 		entry.Price,
-		entry.UserID,
+		entry.Username,
 		entry.StartDate,
 		entry.EndDate).Scan(&newId)
 
@@ -107,10 +109,10 @@ func (s *Storage) ReadSubscriptionEntry(ctx context.Context, id int) (*subs.Subs
 	const op = "storage.postgresql.ReadSubscriptionEntryByUserID"
 
 	row := s.Db.QueryRow(ctx, `
-		SELECT service_name, price, user_id, start_date, end_date 
+		SELECT service_name, price, username, start_date, end_date 
 		FROM subscriptions WHERE id = $1`, id)
 	var result subs.SubscriptionEntry
-	err := row.Scan(&result.ServiceName, &result.Price, &result.UserID, &result.StartDate, &result.EndDate)
+	err := row.Scan(&result.ServiceName, &result.Price, &result.Username, &result.StartDate, &result.EndDate)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -127,9 +129,9 @@ func (s *Storage) UpdateSubscriptionEntry(ctx context.Context, entry subs.Subscr
 			start_date = $2,
 			end_date = $3,
 			price = $4,
-			user_id = $5
+			username = $5
 		WHERE id = $6`,
-		entry.ServiceName, entry.StartDate, entry.EndDate, entry.Price, entry.UserID, id)
+		entry.ServiceName, entry.StartDate, entry.EndDate, entry.Price, entry.Username, id)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
@@ -137,20 +139,21 @@ func (s *Storage) UpdateSubscriptionEntry(ctx context.Context, entry subs.Subscr
 	return result, nil
 }
 
-func (s *Storage) ListSubscriptionEntrys(ctx context.Context, limit, offset int) ([]*subs.SubscriptionEntry, error) {
+func (s *Storage) ListSubscriptionEntrys(ctx context.Context, username string, limit, offset int) ([]*subs.SubscriptionEntry, error) {
 	const op = "storage.postgresql.ListSubscriptionEntrys"
 
 	rows, err := s.Db.Query(ctx, `
-		SELECT service_name, price, user_id, start_date, end_date
-		FROM subscriptions LIMIT $1 OFFSET $2`,
-		limit, offset)
+		SELECT service_name, price, username, start_date, end_date
+		FROM subscriptions LIMIT $1 OFFSET $2
+		WHERE username = $3`,
+		limit, offset, username)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	var result []*subs.SubscriptionEntry
 	for rows.Next() {
 		var item subs.SubscriptionEntry
-		err := rows.Scan(&item.ServiceName, &item.Price, &item.UserID, &item.StartDate, &item.EndDate)
+		err := rows.Scan(&item.ServiceName, &item.Price, &item.Username, &item.StartDate, &item.EndDate)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
@@ -160,29 +163,30 @@ func (s *Storage) ListSubscriptionEntrys(ctx context.Context, limit, offset int)
 
 }
 
-func (s *Storage) CountSumSubscriptionEntrys(ctx context.Context, entry subs.SubscriptionEntry, id int) (float64, error) {
+func (s *Storage) CountSumSubscriptionEntrys(ctx context.Context, entry countsum.SubscriptionFilterSum) (float64, error) {
 	const op = "storage.postgresql.CountSumSubscriptionEntrys"
 
-	var res *float64
+	var res sql.NullFloat64
 
 	err := s.Db.QueryRow(ctx, `
-		SELECT SUM(price)
-		FROM subscriptions
-		WHERE user_id = $1
-			AND service_name = $2
-			AND start_date <= $3
-			AND (end_date IS NULL OR end_date >= $4)
-			AND id = $5`,
-		entry.UserID, entry.ServiceName, entry.EndDate, entry.StartDate, id).Scan(&res)
+			SELECT SUM(price)
+			FROM subscriptions
+			WHERE username = $1
+				AND ($2::text IS NULL OR service_name = $2)
+				AND start_date <= COALESCE($3, start_date)
+				AND (end_date IS NULL OR end_date >= COALESCE($4, end_date))
+		`,
+		entry.Username, entry.ServiceName, entry.EndDate, entry.StartDate).Scan(&res)
+
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if res == nil {
+	if !res.Valid {
 		return 0, nil
 	}
 
-	return *res, nil
+	return res.Float64, nil
 }
 
 func (s *Storage) RegisterUser(ctx context.Context, username, passwordHash string) error {
