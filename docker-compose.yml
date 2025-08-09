@@ -36,6 +36,7 @@ services:
       - DB_PASSWORD=1234
       - REDIS_ADDR=redis:6379
       - REDIS_PASSWORD=test1234
+      - TEST_POSTGRES=postgres://papa:1234@db:5432/test?sslmode=disable
     ports:
       - "8080:8080"
     depends_on:
