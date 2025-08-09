@@ -3,14 +3,14 @@ services:
     image: postgres:15
     environment:
       POSTGRES_DB: test
-      POSTGRES_USER: akhilgovmb
-      POSTGRES_PASSWORD: testpostgres
+      POSTGRES_USER: papa
+      POSTGRES_PASSWORD: 1234
     ports:
       - "5433:5432"
     volumes:
-      - "C:/Users/akhilgovmb/docker/pgdata:/var/lib/postgresql/data"
+      - /home/papa/docker/pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U akhilgovmb -d test"]
+      test: ["CMD-SHELL", "pg_isready -U papa -d test"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -20,7 +20,7 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - "C:/Users/akhilgovmb/docker/redisdata:/data"
+      - /home/papa/docker/redisdata:/data
     restart: always
 
   app:
@@ -32,8 +32,8 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - DB_NAME=test
-      - DB_USER=akhilgovmb
-      - DB_PASSWORD=testpostgres
+      - DB_USER=papa
+      - DB_PASSWORD=1234
       - REDIS_ADDR=redis:6379
       - REDIS_PASSWORD=test1234
     ports:
@@ -44,7 +44,7 @@ services:
       redis:
         condition: service_started
     volumes:
-      - "C:/Users/akhilgovmb/Desktop/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro"
+      - /home/papa/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro
 
 
 volumes:
