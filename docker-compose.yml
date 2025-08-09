@@ -2,7 +2,7 @@ services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_DB: test
+      POSTGRES_DB: original_db
       POSTGRES_USER: papa
       POSTGRES_PASSWORD: 1234
     ports:
@@ -10,7 +10,7 @@ services:
     volumes:
       - /home/papa/docker/pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U papa -d test"]
+      test: ["CMD-SHELL", "pg_isready -U papa -d original_db"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -28,15 +28,14 @@ services:
     restart: always
     environment:
       - CONFIG_PATH=/config/config.yaml
-      - JWT_SECRET=aQwerty12345!@#SecretKeyExample67890_+
-      - DB_HOST=db
+      - JWT_SECRET=aQwerty12345!@#SecretKeyExample67890_+ - DB_HOST=db
       - DB_PORT=5432
-      - DB_NAME=test
+      - DB_NAME=original_db
       - DB_USER=papa
       - DB_PASSWORD=1234
       - REDIS_ADDR=redis:6379
       - REDIS_PASSWORD=test1234
-      - TEST_POSTGRES=postgres://papa:1234@db:5432/test?sslmode=disable
+      - TEST_POSTGRES=postgres://papa:1234@localhost:5433/test?sslmode=disable  ## бд для тестов
     ports:
       - "8080:8080"
     depends_on:
@@ -46,6 +45,15 @@ services:
         condition: service_started
     volumes:
       - /home/papa/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro
+  test:
+    build: .
+    environment:
+      - TEST_POSTGRES=postgres://papa:1234@db:5432/test?sslmode=disable
+    depends_on:
+      - db
+      - redis
+    command: ["go", "test", "./...", "-v"]
+
 
 
 volumes:
