@@ -5,6 +5,7 @@ go 1.23.1
 toolchain go1.24.5
 
 require (
+	github.com/alicebob/miniredis/v2 v2.35.0
 	github.com/go-chi/chi v1.5.5
 	github.com/go-chi/render v1.0.3
 	github.com/go-playground/validator v9.31.0+incompatible
@@ -40,6 +41,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/swaggo/files v0.0.0-20220610200504-28940afbdbfe // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	golang.org/x/net v0.30.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
 	golang.org/x/tools v0.26.0 // indirect
