@@ -145,8 +145,9 @@ func (s *Storage) ListSubscriptionEntrys(ctx context.Context, username string, l
 
 	rows, err := s.Db.Query(ctx, `
 		SELECT service_name, price, username, start_date, end_date
-		FROM subscriptions LIMIT $1 OFFSET $2
-		WHERE username = $3`,
+		FROM subscriptions
+		WHERE username = $3
+		LIMIT $1 OFFSET $2`,
 		limit, offset, username)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -229,19 +230,21 @@ func (s *Storage) CountSumSubscriptionEntrys(ctx context.Context, entry countsum
 	return total, nil
 }
 
-func (s *Storage) RegisterUser(ctx context.Context, username, passwordHash string) error {
+func (s *Storage) RegisterUser(ctx context.Context, username, passwordHash string) (int, error) {
+	var newId int
 	const op = "storage.postgresql.RegisterUser"
-	_, err := s.Db.Exec(ctx, `
+	err := s.Db.QueryRow(ctx, `
 		INSERT INTO users (
 			username,
 			password_hash
-		) VALUES ($1, $2);`,
-		username, passwordHash)
+		) VALUES ($1, $2)
+		RETURNING id;`,
+		username, passwordHash).Scan(&newId)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return nil
+	return newId, nil
 }
 
 func (s *Storage) GetUserByUsername(ctx context.Context, username string) (*user.User, error) {
@@ -249,7 +252,7 @@ func (s *Storage) GetUserByUsername(ctx context.Context, username string) (*user
 	user := &user.User{}
 	row := s.Db.QueryRow(ctx, `
 		SELECT id, username, password_hash, created_at
-		FROM users	
+		FROM users
 		WHERE username = $1
 		`, username)
 	err := row.Scan(&user.ID, &user.Username, &user.PasswordHash, &user.CreatedAt)

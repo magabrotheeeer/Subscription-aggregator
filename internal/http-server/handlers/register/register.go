@@ -18,7 +18,7 @@ type RegisterRequest struct {
 }
 
 type Registration interface {
-	RegisterUser(ctx context.Context, username, passwordHash string) error
+	RegisterUser(ctx context.Context, username, passwordHash string) (int, error)
 }
 
 // New
@@ -77,7 +77,7 @@ func New(ctx context.Context, log *slog.Logger, registration Registration) http.
 			return
 		}
 
-		err = registration.RegisterUser(ctx, registerRequest.Username, hash)
+		id, err := registration.RegisterUser(ctx, registerRequest.Username, hash)
 		if err != nil {
 			log.Error("failed to register new user", slog.Attr{
 				Key:   "err",
@@ -92,6 +92,7 @@ func New(ctx context.Context, log *slog.Logger, registration Registration) http.
 		render.JSON(w, r, response.StatusOKWithData(map[string]any{
 			"username": registerRequest.Username,
 			"message":  "user created succesfully",
+			"id":       id,
 		}))
 	}
 }
