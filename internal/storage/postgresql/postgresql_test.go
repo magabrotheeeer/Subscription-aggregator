@@ -176,7 +176,7 @@ func TestCountSumSubscriptionEntrys(t *testing.T) {
 	t.Run("sum all katya", func(t *testing.T) {
 		filter := countsum.SubscriptionFilterSum{
 			Username:    "katya",
-			ServiceName: ptrString(""),
+			ServiceName: nil,
 			StartDate:   time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
 			EndDate:     ptrTime(time.Date(2024, 3, 31, 0, 0, 0, 0, time.UTC)),
 		}
@@ -200,7 +200,7 @@ func TestCountSumSubscriptionEntrys(t *testing.T) {
 	t.Run("filter by period", func(t *testing.T) {
 		filter := countsum.SubscriptionFilterSum{
 			Username:    "katya",
-			ServiceName: ptrString(""),
+			ServiceName: nil,
 			StartDate:   time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
 			EndDate:     ptrTime(time.Date(2024, 2, 28, 0, 0, 0, 0, time.UTC)),
 		}
