@@ -1,0 +1,42 @@
+version: 2
+
+run:
+  timeout: 5m
+  tests: true # проверять код в тестах тоже
+
+linters:
+  enable:
+    - govet         # встроенный анализатор Go
+    - staticcheck   # новые и полезные предупреждения
+    - errcheck      # проверка необработанных ошибок
+    - revive        # стиль и best practices
+    - ineffassign   # неиспользуемые присваивания
+    - gosimple      # упрощение кода
+    - gofumpt       # более строгий gofmt
+    - goimports     # сортировка импортов
+    - unused        # неиспользуемые переменные, функции и т.д.
+    - goconst       # поиск дублирующихся констант
+    - gosec         # проверка безопасности (SQL-инъекции, хардкод паролей и т.п.)
+    - whitespace    # проверка лишних пробелов
+    - unparam       # удаление неиспользуемых параметров функций
+    - prealloc      # оптимизация выделения памяти для слайсов
+
+issues:
+  exclude-use-default: false
+  # Игнорируем слишком длинные строки
+  exclude-rules:
+    - linters:
+        - lll
+      source: "."
+
+linters-settings:
+  gofmt:
+    simplify: true
+  gofumpt:
+    extra-rules: true
+  revive:
+    severity: warning
+    # Можно включить ваши правила
+  gosec:
+    excludes:
+      - G404 # «Слабый» генератор случайных чисел (rand) — иногда не 

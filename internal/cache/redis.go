@@ -17,14 +17,14 @@ type Cache struct {
 func InitServer(ctx context.Context, cfg config.RedisConnection) (*Cache, error) {
 	const op = "cache.Initserver"
 	db := redis.NewClient(&redis.Options{
-		Addr:         cfg.Addr,
+		Addr:         cfg.AddressRedis,
 		Password:     cfg.Password,
 		DB:           cfg.DB,
 		Username:     cfg.User,
 		MaxRetries:   cfg.MaxRetries,
 		DialTimeout:  cfg.DialTimeout,
-		ReadTimeout:  cfg.Timeout,
-		WriteTimeout: cfg.Timeout,
+		ReadTimeout:  cfg.TimeoutRedis,
+		WriteTimeout: cfg.TimeoutRedis,
 	})
 
 	if err := db.Ping(ctx).Err(); err != nil {

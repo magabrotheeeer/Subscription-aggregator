@@ -18,19 +18,19 @@ type Config struct {
 }
 
 type HTTPServer struct {
-	Address     string        `yaml:"address"`
-	Timeout     time.Duration `yaml:"timeout"`
+	AddressHttp string        `yaml:"address"`
+	TimeoutHttp time.Duration `yaml:"timeout"`
 	IdleTimeout time.Duration `yaml:"idle_timeout"`
 }
 
 type RedisConnection struct {
-	Addr        string        `yaml:"addr"`
-	Password    string        `yaml:"password"`
-	User        string        `yaml:"user"`
-	DB          int           `yaml:"db"`
-	MaxRetries  int           `yaml:"max_retries"`
-	DialTimeout time.Duration `yaml:"dial_timeout"`
-	Timeout     time.Duration `yaml:"timeout"`
+	AddressRedis string        `yaml:"addr"`
+	Password     string        `yaml:"password"`
+	User         string        `yaml:"user"`
+	DB           int           `yaml:"db"`
+	MaxRetries   int           `yaml:"max_retries"`
+	DialTimeout  time.Duration `yaml:"dial_timeout"`
+	TimeoutRedis time.Duration `yaml:"timeout"`
 }
 
 type JWTToken struct {
@@ -76,17 +76,17 @@ func (c *Config) String() string {
 			"  TokenTTL: %s\n",
 		c.Env,
 		c.StorageConnectionString,
-		c.RedisConnection.Addr,
-		c.RedisConnection.Password,
-		c.RedisConnection.User,
-		c.RedisConnection.DB,
-		c.RedisConnection.MaxRetries,
-		c.RedisConnection.DialTimeout,
-		c.RedisConnection.Timeout,
-		c.HTTPServer.Address,
-		c.HTTPServer.Timeout,
-		c.HTTPServer.IdleTimeout,
-		c.JWTToken.JWTSecretKey,
-		c.JWTToken.TokenTTL,
+		c.AddressRedis,
+		c.Password,
+		c.User,
+		c.DB,
+		c.MaxRetries,
+		c.DialTimeout,
+		c.TimeoutRedis,
+		c.AddressHttp,
+		c.TimeoutHttp,
+		c.IdleTimeout,
+		c.JWTSecretKey,
+		c.TokenTTL,
 	)
 }

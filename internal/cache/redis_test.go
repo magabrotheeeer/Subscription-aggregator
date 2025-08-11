@@ -24,10 +24,10 @@ func setupTestCache(t *testing.T) *Cache {
 	t.Cleanup(func() { mr.Close() })
 
 	cfg := config.RedisConnection{
-		Addr:     mr.Addr(),
-		Password: "",
-		DB:       0,
-		User:     "",
+		AddressRedis: mr.Addr(),
+		Password:     "",
+		DB:           0,
+		User:         "",
 	}
 
 	cache, err := InitServer(context.Background(), cfg)
@@ -87,7 +87,7 @@ func TestGetInvalidJSON(t *testing.T) {
 
 func TestInitServerInvalidAddr(t *testing.T) {
 	cfg := config.RedisConnection{
-		Addr: "127.0.0.1:9999",
+		AddressRedis: "127.0.0.1:9999",
 	}
 
 	cache, err := InitServer(context.Background(), cfg)

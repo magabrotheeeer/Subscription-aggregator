@@ -66,8 +66,9 @@ func TestRemoveSusbscriptionEntry(t *testing.T) {
 	assert.Equal(t, entry, *got)
 
 	res, err := storage.RemoveSubscriptionEntry(ctx, id)
-	assert.Equal(t, int64(1), res, "rows affected should be 1")
 
+	assert.Equal(t, int64(1), res, "rows affected should be 1")
+	require.NoError(t, err)
 	_, err = storage.ReadSubscriptionEntry(ctx, id)
 	require.Error(t, err, "expected an error because entry should be deleted")
 }
