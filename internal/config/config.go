@@ -1,3 +1,4 @@
+// Package config предоставялет структуры и функцию для парсинга и загрузки конфига
 package config
 
 import (
@@ -9,6 +10,7 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
+// Config общая структура для хранения настроек
 type Config struct {
 	Env                     string `yaml:"env"`
 	StorageConnectionString string `yaml:"storage_connection_string"`
@@ -17,27 +19,31 @@ type Config struct {
 	JWTToken                `yaml:"jwttoken"`
 }
 
+// HTTPServer структура для настройки сервера
 type HTTPServer struct {
-	AddressHttp string        `yaml:"address"`
-	TimeoutHttp time.Duration `yaml:"timeout"`
+	AddressHTTP string        `yaml:"addresshttp"`
+	TimeoutHTTP time.Duration `yaml:"timeouthttp"`
 	IdleTimeout time.Duration `yaml:"idle_timeout"`
 }
 
+// RedisConnection структура для настройки подключения к redis
 type RedisConnection struct {
-	AddressRedis string        `yaml:"addr"`
+	AddressRedis string        `yaml:"addressredis"`
 	Password     string        `yaml:"password"`
 	User         string        `yaml:"user"`
 	DB           int           `yaml:"db"`
 	MaxRetries   int           `yaml:"max_retries"`
 	DialTimeout  time.Duration `yaml:"dial_timeout"`
-	TimeoutRedis time.Duration `yaml:"timeout"`
+	TimeoutRedis time.Duration `yaml:"timeoutredis"`
 }
 
+// JWTToken структура для работы с jwt-токеном
 type JWTToken struct {
 	JWTSecretKey string        `yaml:"jwt_secret_key"`
 	TokenTTL     time.Duration `yaml:"token_ttl"`
 }
 
+// MustLoad функция для загрузки конфига, возвращает конфиг, сгенерированный из config/config.go
 func MustLoad() *Config {
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
@@ -82,8 +88,8 @@ func (c *Config) String() string {
 		c.MaxRetries,
 		c.DialTimeout,
 		c.TimeoutRedis,
-		c.AddressHttp,
-		c.TimeoutHttp,
+		c.AddressHTTP,
+		c.TimeoutHTTP,
 		c.IdleTimeout,
 		c.JWTSecretKey,
 		c.TokenTTL,

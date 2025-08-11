@@ -19,10 +19,10 @@ import (
 )
 
 type mockList struct {
-	ListFunc func(ctx context.Context, username string, limit, offset int) ([]*subs.SubscriptionEntry, error)
+	ListFunc func(ctx context.Context, username string, limit, offset int) ([]*subs.Entry, error)
 }
 
-func (m *mockList) ListSubscriptionEntrys(ctx context.Context, username string, limit, offset int) ([]*subs.SubscriptionEntry, error) {
+func (m *mockList) ListSubscriptionEntrys(ctx context.Context, username string, limit, offset int) ([]*subs.Entry, error) {
 	return m.ListFunc(ctx, username, limit, offset)
 }
 
@@ -41,13 +41,13 @@ func TestListHandler(t *testing.T) {
 	baseCtx := context.WithValue(context.Background(), mware.UserKey, "testuser")
 
 	t.Run("success", func(t *testing.T) {
-		expected := []*subs.SubscriptionEntry{
+		expected := []*subs.Entry{
 			{ServiceName: "Netflix", Price: 1299},
 			{ServiceName: "YouTube Premium", Price: 399},
 		}
 
 		mock := &mockList{
-			ListFunc: func(ctx context.Context, username string, limit, offset int) ([]*subs.SubscriptionEntry, error) {
+			ListFunc: func(ctx context.Context, username string, limit, offset int) ([]*subs.Entry, error) {
 				require.Equal(t, "testuser", username)
 				require.Equal(t, 10, limit)
 				require.Equal(t, 0, offset)
@@ -75,7 +75,7 @@ func TestListHandler(t *testing.T) {
 
 	t.Run("unauthorized - no username in ctx", func(t *testing.T) {
 		mock := &mockList{
-			ListFunc: func(ctx context.Context, username string, limit, offset int) ([]*subs.SubscriptionEntry, error) {
+			ListFunc: func(ctx context.Context, username string, limit, offset int) ([]*subs.Entry, error) {
 				t.Fatal("ListSubscriptionEntrys should not be called when unauthorized")
 				return nil, nil
 			},
@@ -93,7 +93,7 @@ func TestListHandler(t *testing.T) {
 
 	t.Run("storage returns error", func(t *testing.T) {
 		mock := &mockList{
-			ListFunc: func(ctx context.Context, username string, limit, offset int) ([]*subs.SubscriptionEntry, error) {
+			ListFunc: func(ctx context.Context, username string, limit, offset int) ([]*subs.Entry, error) {
 				return nil, errors.New("db error")
 			},
 		}

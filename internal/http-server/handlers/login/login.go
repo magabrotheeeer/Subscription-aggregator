@@ -1,3 +1,7 @@
+// Package login предоставляет HTTP‑обработчик для авторизации пользователя.
+// Обработчик принимает логин и пароль, валидирует входные данные,
+// проверяет наличие пользователя и корректность пароля,
+// а затем генерирует JWT‑токен при успешной аутентификации.
 package login
 
 import (
@@ -14,16 +18,24 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/user"
 )
 
-type LoginRequest struct {
+// Request содержит данные для авторизации пользователя.
+// Поля валидируются на минимальную и максимальную длину.
+type Request struct {
 	Username string `json:"username" validate:"required,min=6,max=50"`
 	Password string `json:"password" validate:"required,min=6"`
 }
 
+// UserGetter определяет контракт для получения данных пользователя
+// по его имени пользователя (username).
 type UserGetter interface {
 	GetUserByUsername(ctx context.Context, username string) (*user.User, error)
 }
 
-// New
+// New возвращает HTTP‑обработчик, который обрабатывает POST‑запрос на авторизацию пользователя.
+// Обработчик декодирует JSON с логином и паролем, валидирует данные,
+// проверяет существование пользователя и соответствие пароля,
+// генерирует JWT‑токен и возвращает его в ответе.
+//
 // @Summary Авторизация пользователя (логин)
 // @Tags auth
 // @Accept  json
@@ -38,7 +50,7 @@ func New(ctx context.Context, log *slog.Logger, userGetter UserGetter, jwtMaker 
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.login.New"
 		var err error
-		var loginRequest LoginRequest
+		var loginRequest Request
 
 		log = log.With(
 			slog.String("op", op),

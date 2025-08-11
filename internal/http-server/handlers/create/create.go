@@ -1,3 +1,6 @@
+// Package create предоставляет HTTP-обработчик для создания новой подписки.
+// Обработчик валидирует входные данные, преобразует их в структуру доменной
+// модели и сохраняет в хранилище, а также добавляет запись в кэш.
 package create
 
 import (
@@ -16,14 +19,22 @@ import (
 	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
 )
 
+// StorageEntryCreater определяет контракт для сохранения новой
+// записи о подписке в хранилище.
 type StorageEntryCreater interface {
-	CreateSubscriptionEntry(ctx context.Context, entry subs.SubscriptionEntry) (int, error)
+	CreateSubscriptionEntry(ctx context.Context, entry subs.Entry) (int, error)
 }
 
+// CacheEntryCreator определяет метод для сохранения данных о
+// подписке в кэше с указанным временем жизни.
 type CacheEntryCreator interface {
 	Set(key string, value any, expiration time.Duration) error
 }
 
+// New возвращает HTTP-обработчик, который обрабатывает POST-запрос на создание новой подписки.
+// Обработчик декодирует JSON из тела запроса, валидирует поля, конвертирует даты,
+// сохраняет запись в хранилище, добавляет её в кэш и возвращает клиенту идентификатор созданной записи.
+//
 // @Summary Создать подписку
 // @Tags subscriptions
 // @Accept json
@@ -41,7 +52,7 @@ func New(ctx context.Context, log *slog.Logger, createrStorage StorageEntryCreat
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
 
-		var dummyReq subs.DummySubscriptionEntry
+		var dummyReq subs.DummyEntry
 		var err error
 
 		err = render.DecodeJSON(r.Body, &dummyReq)
@@ -60,7 +71,7 @@ func New(ctx context.Context, log *slog.Logger, createrStorage StorageEntryCreat
 		}
 		log.Info("all fields are validated")
 
-		var req subs.SubscriptionEntry
+		var req subs.Entry
 
 		startDate, err := time.Parse("01-2006", dummyReq.StartDate)
 		if err != nil {

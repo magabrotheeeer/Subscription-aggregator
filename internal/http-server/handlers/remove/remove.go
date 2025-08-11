@@ -1,3 +1,6 @@
+// Package remove предоставляет HTTP‑обработчик для удаления подписки по её ID.
+// Обработчик удаляет данные сначала из кэша, затем из хранилища,
+// и возвращает количество удалённых записей.
 package remove
 
 import (
@@ -14,14 +17,23 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
 
+// StorageEntryDeleter определяет контракт для удаления записи подписки из хранилища по её ID.
 type StorageEntryDeleter interface {
 	RemoveSubscriptionEntry(ctx context.Context, id int) (int64, error)
 }
 
+// CacheEntryDeleter определяет контракт для удаления данных подписки из кэша по ключу.
 type CacheEntryDeleter interface {
 	Invalidate(key string) error
 }
 
+// New возвращает HTTP‑обработчик, который обрабатывает DELETE‑запрос на удаление подписки по ID.
+// Логика работы:
+//  1. Считывает ID подписки из URL.
+//  2. Удаляет данные из кэша (если есть).
+//  3. Удаляет данные из хранилища.
+//  4. Возвращает количество удалённых записей.
+//
 // @Summary Удалить подписку по ID
 // @Tags subscriptions
 // @Accept json

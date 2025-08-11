@@ -1,3 +1,6 @@
+// Package update предоставляет HTTP‑обработчик для обновления данных подписки по её ID.
+// Обработчик принимает новые значения полей в формате JSON, валидирует их,
+// обновляет запись в хранилище, синхронизирует данные в кэше и возвращает количество обновлённых записей.
 package update
 
 import (
@@ -18,14 +21,27 @@ import (
 	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
 )
 
+// StorageEntryUpdater определяет контракт для обновления подписки в хранилище по её ID.
 type StorageEntryUpdater interface {
-	UpdateSubscriptionEntry(ctx context.Context, entry subs.SubscriptionEntry, id int) (int64, error)
+	UpdateSubscriptionEntry(ctx context.Context, entry subs.Entry, id int) (int64, error)
 }
 
+// CacheEntryUpdater определяет контракт для сохранения обновлённых данных подписки в кэше.
 type CacheEntryUpdater interface {
 	Set(key string, value any, expiration time.Duration) error
 }
 
+// New возвращает HTTP‑обработчик, который обрабатывает PUT‑запрос для обновления подписи по ID.
+// Логика работы:
+//  1. Декодирует JSON‑тело запроса в структуру DummySubscriptionEntry.
+//  2. Валидирует входные данные.
+//  3. Получает ID подписки из пути запроса.
+//  4. Преобразует даты начала и окончания.
+//  5. Формирует объект SubscriptionEntry.
+//  6. Обновляет запись в хранилище.
+//  7. Обновляет запись в кэше.
+//  8. Возвращает количество обновлённых записей.
+//
 // @Summary Обновить подписку по ID
 // @Tags subscriptions
 // @Accept json
@@ -45,7 +61,7 @@ func New(ctx context.Context, log *slog.Logger, updaterStorage StorageEntryUpdat
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
 
-		var dummyReq subs.DummySubscriptionEntry
+		var dummyReq subs.DummyEntry
 		var err error
 
 		err = render.DecodeJSON(r.Body, &dummyReq)
@@ -71,7 +87,7 @@ func New(ctx context.Context, log *slog.Logger, updaterStorage StorageEntryUpdat
 			return
 		}
 
-		var req subs.SubscriptionEntry
+		var req subs.Entry
 
 		startDate, err2 := time.Parse("01-2006", dummyReq.StartDate)
 		if err2 != nil {

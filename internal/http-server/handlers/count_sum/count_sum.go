@@ -1,3 +1,7 @@
+// Package countsum предоставляет HTTP‑обработчик для подсчёта суммарной стоимости
+// подписок пользователя за заданный период с возможностью фильтрации по названию сервиса.
+// Обработчик принимает JSON с параметрами фильтрации и датами, валидирует данные,
+// преобразует их в структуру фильтра и вызывает бизнес‑логику подсчёта./ а также хэндлер для работы
 package countsum
 
 import (
@@ -14,10 +18,15 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
 
+// CounterSum определяет метод для подсчета суммы по фильтру
 type CounterSum interface {
-	CountSumSubscriptionEntrys(ctx context.Context, entry SubscriptionFilterSum) (float64, error)
+	CountSumSubscriptionEntrys(ctx context.Context, entry FilterSum) (float64, error)
 }
 
+// New возвращает HTTP‑обработчик, который принимает JSON с фильтрами и датами,
+// валидирует входные данные, преобразует их в структуру фильтра
+// и вызывает сервис подсчёта суммарной стоимости подписок пользователя.
+//
 // @Summary Подсчитать сумму подписок за период для пользователя
 // @Description Подсчитывает суммарную стоимость подписок по фильтрам из тела запроса
 // @Tags subscriptions
@@ -38,7 +47,7 @@ func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.Hand
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
 
-		var filterReq DummySubscriptionFilterSum
+		var filterReq DummyFilterSum
 
 		err := render.DecodeJSON(r.Body, &filterReq)
 		if err != nil {
@@ -56,7 +65,7 @@ func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.Hand
 		}
 		log.Info("all fields are validated")
 
-		var filter SubscriptionFilterSum
+		var filter FilterSum
 
 		startDate, err := time.Parse("01-2006", filterReq.StartDate)
 		if err != nil {

@@ -40,7 +40,7 @@ func TestRegisterHandler(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("success", func(t *testing.T) {
-		body, _ := json.Marshal(register.RegisterRequest{
+		body, _ := json.Marshal(register.Request{
 			Username: "testuser",
 			Password: "password123",
 		})
@@ -86,7 +86,7 @@ func TestRegisterHandler(t *testing.T) {
 	})
 
 	t.Run("validation error", func(t *testing.T) {
-		body, _ := json.Marshal(register.RegisterRequest{
+		body, _ := json.Marshal(register.Request{
 			Username: "usr", // слишком короткое имя
 			Password: "",    // пустой пароль
 		})
@@ -107,7 +107,7 @@ func TestRegisterHandler(t *testing.T) {
 	})
 
 	t.Run("RegisterUser error", func(t *testing.T) {
-		body, _ := json.Marshal(register.RegisterRequest{
+		body, _ := json.Marshal(register.Request{
 			Username: "testuser",
 			Password: "password123",
 		})

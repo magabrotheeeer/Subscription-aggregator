@@ -28,10 +28,10 @@ func (discardHandler) WithGroup(string) slog.Handler             { return discar
 func makeLogger() *slog.Logger { return slog.New(discardHandler{}) }
 
 type mockCounterSum struct {
-	CountSumFunc func(ctx context.Context, entry countsum.SubscriptionFilterSum) (float64, error)
+	CountSumFunc func(ctx context.Context, entry countsum.FilterSum) (float64, error)
 }
 
-func (m *mockCounterSum) CountSumSubscriptionEntrys(ctx context.Context, entry countsum.SubscriptionFilterSum) (float64, error) {
+func (m *mockCounterSum) CountSumSubscriptionEntrys(ctx context.Context, entry countsum.FilterSum) (float64, error) {
 	return m.CountSumFunc(ctx, entry)
 }
 
@@ -43,7 +43,7 @@ func newRequestWithUser(body []byte, username string) *http.Request {
 func TestCountSumHandler(t *testing.T) {
 	ctx := context.Background()
 
-	validReq := countsum.DummySubscriptionFilterSum{
+	validReq := countsum.DummyFilterSum{
 		ServiceName: "Netflix",
 		StartDate:   "01-2024",
 		EndDate:     "02-2024",
@@ -53,7 +53,7 @@ func TestCountSumHandler(t *testing.T) {
 		body, _ := json.Marshal(validReq)
 
 		mock := &mockCounterSum{
-			CountSumFunc: func(ctx context.Context, entry countsum.SubscriptionFilterSum) (float64, error) {
+			CountSumFunc: func(ctx context.Context, entry countsum.FilterSum) (float64, error) {
 				require.Equal(t, "Netflix", *entry.ServiceName)
 				require.Equal(t, "testuser", entry.Username)
 				return 123.45, nil
@@ -75,7 +75,7 @@ func TestCountSumHandler(t *testing.T) {
 
 	t.Run("invalid JSON", func(t *testing.T) {
 		mock := &mockCounterSum{
-			CountSumFunc: func(ctx context.Context, entry countsum.SubscriptionFilterSum) (float64, error) {
+			CountSumFunc: func(ctx context.Context, entry countsum.FilterSum) (float64, error) {
 				t.Fatal("should not be called")
 				return 0, nil
 			},
@@ -91,7 +91,7 @@ func TestCountSumHandler(t *testing.T) {
 	})
 
 	t.Run("validation error", func(t *testing.T) {
-		badReq := countsum.DummySubscriptionFilterSum{
+		badReq := countsum.DummyFilterSum{
 			ServiceName: "Netflix",
 			StartDate:   "",
 			EndDate:     "02-2024",
@@ -99,7 +99,7 @@ func TestCountSumHandler(t *testing.T) {
 		body, _ := json.Marshal(badReq)
 
 		mock := &mockCounterSum{
-			CountSumFunc: func(ctx context.Context, entry countsum.SubscriptionFilterSum) (float64, error) {
+			CountSumFunc: func(ctx context.Context, entry countsum.FilterSum) (float64, error) {
 				t.Fatal("CountSumSubscriptionEntrys should not be called on validation error")
 				return 0, nil
 			},
@@ -161,7 +161,7 @@ func TestCountSumHandler(t *testing.T) {
 		body, _ := json.Marshal(validReq)
 
 		mock := &mockCounterSum{
-			CountSumFunc: func(ctx context.Context, entry countsum.SubscriptionFilterSum) (float64, error) {
+			CountSumFunc: func(ctx context.Context, entry countsum.FilterSum) (float64, error) {
 				return 0, errors.New("db error")
 			},
 		}

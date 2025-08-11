@@ -1,3 +1,6 @@
+// Package response содержит вспомогательные типы и функции для формирования
+// унифицированных JSON‑ответов HTTP‑обработчиков. Пакет упрощает возврат
+// успешных ответов, ошибок и сообщений валидации в едином формате.
 package response
 
 import (
@@ -7,6 +10,10 @@ import (
 	"github.com/go-playground/validator"
 )
 
+// Response описывает стандартную структуру JSON‑ответа сервера.
+// Поле Status — статус запроса ("OK" или "Error").
+// Поле Error — текст ошибки (опционально, при неуспехе).
+// Поле Data — данные ответа (опционально, при успехе).
 type Response struct {
 	Status string `json:"status"`
 	Error  string `json:"error,omitempty"`
@@ -14,10 +21,13 @@ type Response struct {
 }
 
 const (
-	StatusOK    = "OK"
+	// StatusOK — значение статуса для успешного ответа.
+	StatusOK = "OK"
+	// StatusError — значение статуса для ответа с ошибкой.
 	StatusError = "Error"
 )
 
+// StatusOKWithData возвращает успешный Response с переданными данными.
 func StatusOKWithData(data any) Response {
 	return Response{
 		Status: StatusOK,
@@ -25,6 +35,7 @@ func StatusOKWithData(data any) Response {
 	}
 }
 
+// Error возвращает Response с ошибкой и переданным сообщением.
 func Error(msg string) Response {
 	return Response{
 		Status: StatusError,
@@ -32,6 +43,8 @@ func Error(msg string) Response {
 	}
 }
 
+// ValidationError формирует Response со статусом Error на основе ошибок валидации.
+// Каждое нарушение формируется в человеко‑читаемый текст, объединённый через запятую.
 func ValidationError(errs validator.ValidationErrors) Response {
 	var errsMsgs []string
 

@@ -1,3 +1,6 @@
+// Package read предоставляет HTTP‑обработчик для получения данных одной подписки по ID.
+// Обработчик сначала пытается найти данные в кэше, а при отсутствии — запрашивает из хранилища,
+// и возвращает результат в формате JSON.
 package read
 
 import (
@@ -15,14 +18,23 @@ import (
 	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
 )
 
+// StorageEntryReader определяет контракт для чтения подписки по её уникальному ID из хранилища.
 type StorageEntryReader interface {
-	ReadSubscriptionEntry(ctx context.Context, id int) (*subs.SubscriptionEntry, error)
+	ReadSubscriptionEntry(ctx context.Context, id int) (*subs.Entry, error)
 }
 
+// CacheEntryReader определяет контракт для получения данных подписки из кэша по ключу.
 type CacheEntryReader interface {
 	Get(key string, result any) (bool, error)
 }
 
+// New возвращает HTTP‑обработчик, который обрабатывает GET‑запрос на получение подписки по ID.
+// Логика работы:
+//  1. Считывает ID подписки из пути запроса.
+//  2. Пытается найти данные в кэше.
+//  3. Если в кэше нет — запрашивает из хранилища.
+//  4. Возвращает данные подписки в формате JSON.
+//
 // @Summary Получить подписку по ID
 // @Tags subscriptions
 // @Accept json
@@ -48,7 +60,7 @@ func New(ctx context.Context, log *slog.Logger, readerStorage StorageEntryReader
 			return
 		}
 
-		var res *subs.SubscriptionEntry
+		var res *subs.Entry
 		cacheKey := fmt.Sprintf("subscription:%d", id)
 
 		found, err := readerCache.Get(cacheKey, &res)

@@ -1,3 +1,4 @@
+// Package cache предоставляет функции и структуру для работы с Redis
 package cache
 
 import (
@@ -10,10 +11,12 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// Cache предоставляет подключение к бд
 type Cache struct {
 	Db *redis.Client
 }
 
+// InitServer создает объект cache с настройками из config/config.yaml
 func InitServer(ctx context.Context, cfg config.RedisConnection) (*Cache, error) {
 	const op = "cache.Initserver"
 	db := redis.NewClient(&redis.Options{
@@ -33,6 +36,7 @@ func InitServer(ctx context.Context, cfg config.RedisConnection) (*Cache, error)
 	return &Cache{Db: db}, nil
 }
 
+// Get проверяет наличие значения по ключу key и записывает это же значение результат в result
 func (c *Cache) Get(key string, result any) (bool, error) {
 	const op = "cache.Get"
 	val, err := c.Db.Get(context.Background(), key).Result()
@@ -49,6 +53,8 @@ func (c *Cache) Get(key string, result any) (bool, error) {
 	return true, nil
 }
 
+// Set добавляет новое значение value по ключу key
+// expiration - время хранение в redis
 func (c *Cache) Set(key string, value any, expiration time.Duration) error {
 	jsonData, err := json.Marshal(value)
 	if err != nil {
@@ -57,6 +63,7 @@ func (c *Cache) Set(key string, value any, expiration time.Duration) error {
 	return c.Db.Set(context.Background(), key, jsonData, expiration).Err()
 }
 
+// Invalidate удаляет значение по ключу key
 func (c *Cache) Invalidate(key string) error {
 	return c.Db.Del(context.Background(), key).Err()
 }

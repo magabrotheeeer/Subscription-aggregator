@@ -83,13 +83,13 @@ func main() {
 	})
 	router.Get("/docs/*", httpSwagger.WrapHandler)
 
-	logger.Info("starting the server", slog.String("address", config.AddressHttp))
+	logger.Info("starting the server", slog.String("address", config.AddressHTTP))
 
 	srv := &http.Server{
-		Addr:         config.AddressHttp,
+		Addr:         config.AddressHTTP,
 		Handler:      router,
-		ReadTimeout:  config.TimeoutHttp,
-		WriteTimeout: config.TimeoutHttp,
+		ReadTimeout:  config.TimeoutHTTP,
+		WriteTimeout: config.TimeoutHTTP,
 		IdleTimeout:  config.IdleTimeout,
 	}
 

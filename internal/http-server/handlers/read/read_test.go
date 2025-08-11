@@ -20,10 +20,10 @@ import (
 )
 
 type mockStorage struct {
-	ReadFunc func(ctx context.Context, id int) (*subs.SubscriptionEntry, error)
+	ReadFunc func(ctx context.Context, id int) (*subs.Entry, error)
 }
 
-func (m *mockStorage) ReadSubscriptionEntry(ctx context.Context, id int) (*subs.SubscriptionEntry, error) {
+func (m *mockStorage) ReadSubscriptionEntry(ctx context.Context, id int) (*subs.Entry, error) {
 	return m.ReadFunc(ctx, id)
 }
 
@@ -48,7 +48,7 @@ func makeLogger() *slog.Logger {
 
 func TestReadHandler(t *testing.T) {
 	ctx := context.Background()
-	exampleEntry := &subs.SubscriptionEntry{
+	exampleEntry := &subs.Entry{
 		ServiceName: "Netflix",
 		Username:    "testuser",
 		Price:       899,
@@ -57,7 +57,7 @@ func TestReadHandler(t *testing.T) {
 
 	t.Run("success from cache", func(t *testing.T) {
 		storage := &mockStorage{
-			ReadFunc: func(ctx context.Context, id int) (*subs.SubscriptionEntry, error) {
+			ReadFunc: func(ctx context.Context, id int) (*subs.Entry, error) {
 				t.Fatal("storage should not be called when found in cache")
 				return nil, nil
 			},
@@ -65,7 +65,7 @@ func TestReadHandler(t *testing.T) {
 		cache := &mockCache{
 			GetFunc: func(key string, result any) (bool, error) {
 				require.Equal(t, "subscription:42", key)
-				ptr := result.(**subs.SubscriptionEntry)
+				ptr := result.(**subs.Entry)
 				*ptr = exampleEntry
 				return true, nil
 			},
@@ -86,7 +86,7 @@ func TestReadHandler(t *testing.T) {
 
 	t.Run("success from storage", func(t *testing.T) {
 		storage := &mockStorage{
-			ReadFunc: func(ctx context.Context, id int) (*subs.SubscriptionEntry, error) {
+			ReadFunc: func(ctx context.Context, id int) (*subs.Entry, error) {
 				require.Equal(t, 42, id)
 				return exampleEntry, nil
 			},
@@ -139,7 +139,7 @@ func TestReadHandler(t *testing.T) {
 
 	t.Run("storage error", func(t *testing.T) {
 		storage := &mockStorage{
-			ReadFunc: func(ctx context.Context, id int) (*subs.SubscriptionEntry, error) {
+			ReadFunc: func(ctx context.Context, id int) (*subs.Entry, error) {
 				return nil, errors.New("db error")
 			},
 		}

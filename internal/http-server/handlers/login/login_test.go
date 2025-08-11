@@ -60,7 +60,7 @@ func TestLoginHandler(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		// тело запроса
-		body, _ := json.Marshal(login.LoginRequest{
+		body, _ := json.Marshal(login.Request{
 			Username: "validuser",
 			Password: "password123",
 		})
@@ -113,7 +113,7 @@ func TestLoginHandler(t *testing.T) {
 	})
 
 	t.Run("validation error", func(t *testing.T) {
-		body, _ := json.Marshal(login.LoginRequest{
+		body, _ := json.Marshal(login.Request{
 			Username: "",
 			Password: "",
 		})
@@ -136,7 +136,7 @@ func TestLoginHandler(t *testing.T) {
 	})
 
 	t.Run("user not found", func(t *testing.T) {
-		body, _ := json.Marshal(login.LoginRequest{
+		body, _ := json.Marshal(login.Request{
 			Username: "validuser",
 			Password: "password123",
 		})
@@ -158,7 +158,7 @@ func TestLoginHandler(t *testing.T) {
 	})
 
 	t.Run("wrong password", func(t *testing.T) {
-		body, _ := json.Marshal(login.LoginRequest{
+		body, _ := json.Marshal(login.Request{
 			Username: "validuser",
 			Password: "wrongpass",
 		})
@@ -183,7 +183,7 @@ func TestLoginHandler(t *testing.T) {
 	})
 
 	t.Run("token generation error", func(t *testing.T) {
-		body, _ := json.Marshal(login.LoginRequest{
+		body, _ := json.Marshal(login.Request{
 			Username: "validuser",
 			Password: "password123",
 		})

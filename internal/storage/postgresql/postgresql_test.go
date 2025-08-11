@@ -27,7 +27,7 @@ func TestCreateSubscriptionsEntry(t *testing.T) {
 	storage := setupStorage(t)
 
 	end := time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC)
-	entry := subs.SubscriptionEntry{
+	entry := subs.Entry{
 		ServiceName: "yandex-plus",
 		Price:       500,
 		Username:    "testuser",
@@ -50,7 +50,7 @@ func TestRemoveSusbscriptionEntry(t *testing.T) {
 	storage := setupStorage(t)
 
 	end := time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC)
-	entry := subs.SubscriptionEntry{
+	entry := subs.Entry{
 		ServiceName: "yandex-plus",
 		Price:       500,
 		Username:    "testuser",
@@ -76,7 +76,7 @@ func TestRemoveSusbscriptionEntry(t *testing.T) {
 func TestReadSubscriptionEntry(t *testing.T) {
 	storage := setupStorage(t)
 
-	entry := subs.SubscriptionEntry{
+	entry := subs.Entry{
 		ServiceName: "kinopoisk",
 		Price:       500,
 		Username:    "testuser",
@@ -103,7 +103,7 @@ func TestListSubscriptionEntrys(t *testing.T) {
 	storage := setupStorage(t)
 	ctx := context.Background()
 
-	subsToInsert := []subs.SubscriptionEntry{
+	subsToInsert := []subs.Entry{
 		{ServiceName: "netflix", Price: 100, Username: "userA", StartDate: time.Now()},
 		{ServiceName: "spotify", Price: 200, Username: "userA", StartDate: time.Now()},
 		{ServiceName: "youtube", Price: 300, Username: "userA", StartDate: time.Now()},
@@ -145,7 +145,7 @@ func TestCountSumSubscriptionEntrys(t *testing.T) {
 	storage := setupStorage(t)
 	ctx := context.Background()
 
-	entries := []subs.SubscriptionEntry{
+	entries := []subs.Entry{
 		{
 			ServiceName: "kinopoisk",
 			Price:       300,
@@ -175,7 +175,7 @@ func TestCountSumSubscriptionEntrys(t *testing.T) {
 	}
 
 	t.Run("sum all katya", func(t *testing.T) {
-		filter := countsum.SubscriptionFilterSum{
+		filter := countsum.FilterSum{
 			Username:    "katya",
 			ServiceName: nil,
 			StartDate:   time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -187,7 +187,7 @@ func TestCountSumSubscriptionEntrys(t *testing.T) {
 	})
 
 	t.Run("only kinopoisk for katya", func(t *testing.T) {
-		filter := countsum.SubscriptionFilterSum{
+		filter := countsum.FilterSum{
 			Username:    "katya",
 			ServiceName: ptrString("kinopoisk"),
 			StartDate:   time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -199,7 +199,7 @@ func TestCountSumSubscriptionEntrys(t *testing.T) {
 	})
 
 	t.Run("filter by period", func(t *testing.T) {
-		filter := countsum.SubscriptionFilterSum{
+		filter := countsum.FilterSum{
 			Username:    "katya",
 			ServiceName: nil,
 			StartDate:   time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
@@ -211,7 +211,7 @@ func TestCountSumSubscriptionEntrys(t *testing.T) {
 	})
 
 	t.Run("no results", func(t *testing.T) {
-		filter := countsum.SubscriptionFilterSum{Username: "ghost"}
+		filter := countsum.FilterSum{Username: "ghost"}
 		total, err := storage.CountSumSubscriptionEntrys(ctx, filter)
 		require.NoError(t, err)
 		assert.Zero(t, total)

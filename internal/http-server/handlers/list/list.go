@@ -1,3 +1,7 @@
+// Package list предоставляет HTTP‑обработчик для получения списка подписок пользователя
+// с поддержкой пагинации. Обработчик принимает параметры limit и offset из query,
+// получает имя пользователя из контекста, вызывает бизнес-логику получения данных
+// и возвращает клиенту общее количество и список подписок.
 package list
 
 import (
@@ -14,10 +18,17 @@ import (
 	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
 )
 
+// List определяет метод для получения списка подписок пользователя
+// с возможностью ограничения количества элементов (limit) и смещения (offset).
 type List interface {
-	ListSubscriptionEntrys(ctx context.Context, username string, limit, offset int) ([]*subs.SubscriptionEntry, error)
+	ListSubscriptionEntrys(ctx context.Context, username string, limit, offset int) ([]*subs.Entry, error)
 }
 
+// New возвращает HTTP‑обработчик, который обрабатывает GET‑запрос на получение списка подписок.
+// Обработчик читает параметры пагинации limit и offset из query, достаёт имя пользователя
+// из контекста запроса, вызывает метод бизнес-логики для получения списка подписок
+// и возвращает клиенту общее количество и массив найденных подписок.
+//
 // @Summary Получить список всех подписок
 // @Description Возвращает список подписок с поддержкой пагинации
 // @Tags subscriptions

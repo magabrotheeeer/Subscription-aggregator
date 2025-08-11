@@ -1,3 +1,6 @@
+// Package mware содержит middleware для HTTP‑сервера.
+// Здесь реализована проверка JWT‑токена, аутентификация пользователя
+// и добавление имени пользователя в контекст запроса.
 package mware
 
 import (
@@ -13,10 +16,20 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
 
+// contextKey используется для хранения данных в контексте запроса
+// без риска коллизий ключей от стороннего кода.
 type contextKey string
 
+// UserKey — ключ, под которым в контексте запроса хранится имя пользователя.
 const UserKey contextKey = "username"
 
+// JWTMiddleware возвращает middleware, которое проверяет JWT‑токен в заголовке Authorization.
+// Логика работы:
+//  1. Считывает значение заголовка Authorization.
+//  2. Проверяет, что он начинается с "Bearer ".
+//  3. Валидирует токен и извлекает из него Subject (имя пользователя).
+//  4. Кладёт имя пользователя в контекст запроса.
+//  5. Передаёт управление следующему обработчику.
 func JWTMiddleware(jwtMaker auth.JWTMaker, log *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

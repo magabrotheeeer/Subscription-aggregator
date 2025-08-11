@@ -1,3 +1,7 @@
+// Package register предоставляет HTTP‑обработчик для регистрации нового пользователя.
+// Обработчик принимает логин и пароль в формате JSON, валидирует их,
+// хэширует пароль, вызывает бизнес‑логику для создания пользователя
+// и возвращает данные о созданном пользователе в ответе.
 package register
 
 import (
@@ -13,16 +17,28 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
 
-type RegisterRequest struct {
+// Request содержит данные, необходимые для регистрации нового пользователя.
+// Поля проходят проверку на обязательность и минимальную/максимальную длину.
+type Request struct {
 	Username string `json:"username" validate:"required,min=6,max=50"`
 	Password string `json:"password" validate:"required,min=6"`
 }
 
+// Registration определяет контракт для сервиса регистрации пользователей.
+// Реализация должна сохранять нового пользователя с указанным username и хэшем пароля,
+// возвращая уникальный идентификатор созданной записи или ошибку.
 type Registration interface {
 	RegisterUser(ctx context.Context, username, passwordHash string) (int, error)
 }
 
-// New
+// New возвращает HTTP‑обработчик, который обрабатывает POST‑запрос для регистрации нового пользователя.
+// Логика работы:
+//  1. Декодирует JSON‑тело запроса в структуру RegisterRequest.
+//  2. Валидирует входные данные.
+//  3. Хэширует пароль.
+//  4. Вызывает сервис регистрации пользователя.
+//  5. Возвращает клиенту информацию о созданном пользователе.
+//
 // @Summary Регистрация нового пользователя
 // @Tags auth
 // @Accept  json
@@ -36,7 +52,7 @@ func New(ctx context.Context, log *slog.Logger, registration Registration) http.
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.register.New"
 		var err error
-		var registerRequest RegisterRequest
+		var registerRequest Request
 
 		log = log.With(
 			slog.String("op", op),

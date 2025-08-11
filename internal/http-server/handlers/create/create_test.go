@@ -21,10 +21,10 @@ import (
 )
 
 type mockStorage struct {
-	CreateFunc func(ctx context.Context, entry subs.SubscriptionEntry) (int, error)
+	CreateFunc func(ctx context.Context, entry subs.Entry) (int, error)
 }
 
-func (m *mockStorage) CreateSubscriptionEntry(ctx context.Context, entry subs.SubscriptionEntry) (int, error) {
+func (m *mockStorage) CreateSubscriptionEntry(ctx context.Context, entry subs.Entry) (int, error) {
 	return m.CreateFunc(ctx, entry)
 }
 
@@ -51,7 +51,7 @@ func TestCreateHandler(t *testing.T) {
 	ctx := context.WithValue(context.Background(), mware.UserKey, "testuser")
 
 	t.Run("success", func(t *testing.T) {
-		dummy := subs.DummySubscriptionEntry{
+		dummy := subs.DummyEntry{
 			ServiceName: "Netflix",
 			Price:       1200,
 			StartDate:   "01-2024",
@@ -60,7 +60,7 @@ func TestCreateHandler(t *testing.T) {
 		body, _ := json.Marshal(dummy)
 
 		storage := &mockStorage{
-			CreateFunc: func(ctx context.Context, entry subs.SubscriptionEntry) (int, error) {
+			CreateFunc: func(ctx context.Context, entry subs.Entry) (int, error) {
 				require.Equal(t, "Netflix", entry.ServiceName)
 				require.Equal(t, "testuser", entry.Username)
 				return 42, nil
@@ -89,7 +89,7 @@ func TestCreateHandler(t *testing.T) {
 
 	t.Run("invalid JSON", func(t *testing.T) {
 		storage := &mockStorage{
-			CreateFunc: func(ctx context.Context, entry subs.SubscriptionEntry) (int, error) {
+			CreateFunc: func(ctx context.Context, entry subs.Entry) (int, error) {
 				t.Fatal("storage should not be called on invalid JSON")
 				return 0, nil
 			},
@@ -113,7 +113,7 @@ func TestCreateHandler(t *testing.T) {
 
 	t.Run("validation error", func(t *testing.T) {
 		storage := &mockStorage{
-			CreateFunc: func(ctx context.Context, entry subs.SubscriptionEntry) (int, error) {
+			CreateFunc: func(ctx context.Context, entry subs.Entry) (int, error) {
 				t.Fatal("storage should not be called on validation error")
 				return 0, nil
 			},
@@ -125,7 +125,7 @@ func TestCreateHandler(t *testing.T) {
 			},
 		}
 
-		dummy := subs.DummySubscriptionEntry{
+		dummy := subs.DummyEntry{
 			Price:     1200,
 			StartDate: "01-2024",
 			EndDate:   "02-2024",
@@ -144,14 +144,14 @@ func TestCreateHandler(t *testing.T) {
 
 	t.Run("invalid startDate", func(t *testing.T) {
 		storage := &mockStorage{
-			CreateFunc: func(ctx context.Context, entry subs.SubscriptionEntry) (int, error) {
+			CreateFunc: func(ctx context.Context, entry subs.Entry) (int, error) {
 				t.Fatal("storage should not be called on invalid startDate")
 				return 0, nil
 			},
 		}
 		cache := &mockCache{}
 
-		dummy := subs.DummySubscriptionEntry{
+		dummy := subs.DummyEntry{
 			ServiceName: "Netflix",
 			Price:       1200,
 			StartDate:   "wrong-date",
@@ -171,14 +171,14 @@ func TestCreateHandler(t *testing.T) {
 
 	t.Run("invalid endDate", func(t *testing.T) {
 		storage := &mockStorage{
-			CreateFunc: func(ctx context.Context, entry subs.SubscriptionEntry) (int, error) {
+			CreateFunc: func(ctx context.Context, entry subs.Entry) (int, error) {
 				t.Fatal("storage should not be called on invalid endDate")
 				return 0, nil
 			},
 		}
 		cache := &mockCache{}
 
-		dummy := subs.DummySubscriptionEntry{
+		dummy := subs.DummyEntry{
 			ServiceName: "Netflix",
 			Price:       1200,
 			StartDate:   "01-2024",
@@ -198,14 +198,14 @@ func TestCreateHandler(t *testing.T) {
 
 	t.Run("no username in context", func(t *testing.T) {
 		storage := &mockStorage{
-			CreateFunc: func(ctx context.Context, entry subs.SubscriptionEntry) (int, error) {
+			CreateFunc: func(ctx context.Context, entry subs.Entry) (int, error) {
 				t.Fatal("storage should not be called when username missing")
 				return 0, nil
 			},
 		}
 		cache := &mockCache{}
 
-		dummy := subs.DummySubscriptionEntry{
+		dummy := subs.DummyEntry{
 			ServiceName: "Netflix",
 			Price:       1200,
 			StartDate:   "01-2024",
@@ -223,13 +223,13 @@ func TestCreateHandler(t *testing.T) {
 
 	t.Run("storage error", func(t *testing.T) {
 		storage := &mockStorage{
-			CreateFunc: func(ctx context.Context, entry subs.SubscriptionEntry) (int, error) {
+			CreateFunc: func(ctx context.Context, entry subs.Entry) (int, error) {
 				return 0, errors.New("db error")
 			},
 		}
 		cache := &mockCache{}
 
-		dummy := subs.DummySubscriptionEntry{
+		dummy := subs.DummyEntry{
 			ServiceName: "Netflix",
 			Price:       1200,
 			StartDate:   "01-2024",
@@ -248,7 +248,7 @@ func TestCreateHandler(t *testing.T) {
 
 	t.Run("cache error but still success", func(t *testing.T) {
 		storage := &mockStorage{
-			CreateFunc: func(ctx context.Context, entry subs.SubscriptionEntry) (int, error) {
+			CreateFunc: func(ctx context.Context, entry subs.Entry) (int, error) {
 				return 42, nil
 			},
 		}
@@ -258,7 +258,7 @@ func TestCreateHandler(t *testing.T) {
 			},
 		}
 
-		dummy := subs.DummySubscriptionEntry{
+		dummy := subs.DummyEntry{
 			ServiceName: "Netflix",
 			Price:       1200,
 			StartDate:   "01-2024",
