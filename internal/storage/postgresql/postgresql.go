@@ -7,9 +7,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	countsum "github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/count_sum"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/month"
 	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/user"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/util"
 )
 
 type Storage struct {
@@ -193,7 +193,7 @@ func (s *Storage) CountSumSubscriptionEntrys(ctx context.Context, entry countsum
 			return 0, fmt.Errorf("%s: %w", op, err)
 		}
 
-		activeStart := util.MaxDate(startDate, entry.StartDate)
+		activeStart := month.MaxDate(startDate, entry.StartDate)
 
 		var filterEnd time.Time
 		if entry.EndDate != nil {
@@ -218,7 +218,7 @@ func (s *Storage) CountSumSubscriptionEntrys(ctx context.Context, entry countsum
 		}
 
 		if !activeEnd.Before(activeStart) {
-			months := util.MonthsBetween(activeStart, activeEnd)
+			months := month.MonthsBetween(activeStart, activeEnd)
 			total += price * float64(months)
 		}
 	}
