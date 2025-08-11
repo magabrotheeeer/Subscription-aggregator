@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
 )
 
@@ -42,10 +43,7 @@ func New(ctx context.Context, log *slog.Logger, readerStorage StorageEntryReader
 
 		id, err := strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
-			log.Error("failed to decode id from url", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error())})
-
+			log.Error("failed to decode id from url", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to decode id from url"))
 			return
 		}
@@ -55,10 +53,7 @@ func New(ctx context.Context, log *slog.Logger, readerStorage StorageEntryReader
 
 		found, err := readerCache.Get(cacheKey, &res)
 		if err != nil {
-			log.Error("failed to read from cache", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error()),
-			})
+			log.Error("failed to read from cache", sl.Err(err))
 			render.JSON(w, r, response.Error("internal error"))
 			return
 		}
@@ -68,10 +63,7 @@ func New(ctx context.Context, log *slog.Logger, readerStorage StorageEntryReader
 		} else {
 			res, err = readerStorage.ReadSubscriptionEntry(ctx, id)
 			if err != nil {
-				log.Error("failed to read entry/entrys", slog.Attr{
-					Key:   "err",
-					Value: slog.StringValue(err.Error()),
-				})
+				log.Error("failed to read entry/entrys", sl.Err(err))
 				render.JSON(w, r, response.Error("failed to read"))
 				return
 			}

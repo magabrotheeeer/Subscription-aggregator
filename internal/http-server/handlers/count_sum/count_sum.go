@@ -11,6 +11,7 @@ import (
 	"github.com/go-playground/validator"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/auth"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
 
 type CounterSum interface {
@@ -41,23 +42,15 @@ func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.Hand
 
 		err := render.DecodeJSON(r.Body, &filterReq)
 		if err != nil {
-			log.Error("failed to decode request body", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error())})
-
+			log.Error("failed to decode request body", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to decode request"))
-
 			return
 		}
 		log.Info("request body decoded", slog.Any("request", filterReq))
 
 		if err := validator.New().Struct(filterReq); err != nil {
 			validateErr := err.(validator.ValidationErrors)
-			log.Error("Invalid request", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error()),
-			})
-
+			log.Error("Invalid request", sl.Err(err))
 			render.JSON(w, r, response.ValidationError(validateErr))
 			return
 		}
@@ -67,12 +60,8 @@ func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.Hand
 
 		startDate, err := time.Parse("01-2006", filterReq.StartDate)
 		if err != nil {
-			log.Error("failed to convert, field: startdate", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error())})
-
+			log.Error("failed to convert, field: startdate", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to convert, field: startdate"))
-
 			return
 		}
 		var endDate *time.Time
@@ -81,12 +70,8 @@ func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.Hand
 		} else {
 			endDate, err := time.Parse("01-2006", filterReq.EndDate)
 			if err != nil {
-				log.Error("failed to convert, field: enddate", slog.Attr{
-					Key:   "err",
-					Value: slog.StringValue(err.Error())})
-
+				log.Error("failed to convert, field: enddate", sl.Err(err))
 				render.JSON(w, r, response.Error("failed to convert, field: enddate"))
-
 				return
 			}
 			filter.EndDate = &endDate
@@ -109,10 +94,7 @@ func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.Hand
 
 		res, err := counterSum.CountSumSubscriptionEntrys(ctx, filter)
 		if err != nil {
-			log.Error("failed to sum", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error()),
-			})
+			log.Error("failed to sum", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to sum"))
 			return
 		}

@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
 
 type StorageEntryDeleter interface {
@@ -43,12 +44,8 @@ func New(ctx context.Context, log *slog.Logger, deleterStorage StorageEntryDelet
 
 		id, err := strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
-			log.Error("failed to decode id from url", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error())})
-
+			log.Error("failed to decode id from url", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to decode id from url"))
-
 			return
 		}
 
@@ -56,20 +53,14 @@ func New(ctx context.Context, log *slog.Logger, deleterStorage StorageEntryDelet
 		cacheKey := fmt.Sprintf("subscription:%d", id)
 		err = deleterCache.Invalidate(cacheKey)
 		if err != nil {
-			log.Error("failed to remove entry/entrys from cache", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error()),
-			})
+			log.Error("failed to remove entry/entrys from cache", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to remove from cache"))
 		}
 		log.Info("deleted entry/entrys from cache", "count", counter)
 
 		counter, err = deleterStorage.RemoveSubscriptionEntry(ctx, id)
 		if err != nil {
-			log.Error("failed to remove entry/entrys from storage", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error()),
-			})
+			log.Error("failed to remove entry/entrys from storage", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to remove"))
 			return
 		}

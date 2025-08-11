@@ -10,6 +10,7 @@ import (
 	"github.com/go-playground/validator"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/auth"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
 
 type RegisterRequest struct {
@@ -44,23 +45,15 @@ func New(ctx context.Context, log *slog.Logger, registration Registration) http.
 
 		err = render.DecodeJSON(r.Body, &registerRequest)
 		if err != nil {
-			log.Error("failed to decode request body", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error())})
-
+			log.Error("failed to decode request body", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to decode request"))
-
 			return
 		}
 		log.Info("request body decoded", slog.Any("request", registerRequest))
 
 		if err := validator.New().Struct(registerRequest); err != nil {
 			validateErr := err.(validator.ValidationErrors)
-			log.Error("Invalid request", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error()),
-			})
-
+			log.Error("Invalid request", sl.Err(err))
 			render.JSON(w, r, response.ValidationError(validateErr))
 			return
 		}
@@ -68,23 +61,15 @@ func New(ctx context.Context, log *slog.Logger, registration Registration) http.
 
 		hash, err := auth.GetHash(registerRequest.Password)
 		if err != nil {
-			log.Error("failed to register new user", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error())})
-
+			log.Error("failed to register new user", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to register new user"))
-
 			return
 		}
 
 		id, err := registration.RegisterUser(ctx, registerRequest.Username, hash)
 		if err != nil {
-			log.Error("failed to register new user", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error())})
-
+			log.Error("failed to register new user", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to register new user"))
-
 			return
 		}
 

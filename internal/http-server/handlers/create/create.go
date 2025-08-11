@@ -12,6 +12,7 @@ import (
 	"github.com/go-playground/validator"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/auth"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
 )
 
@@ -45,23 +46,15 @@ func New(ctx context.Context, log *slog.Logger, createrStorage StorageEntryCreat
 
 		err = render.DecodeJSON(r.Body, &dummyReq)
 		if err != nil {
-			log.Error("failed to decode request body", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error())})
-
+			log.Error("failed to decode request body", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to decode request"))
-
 			return
 		}
 		log.Info("request body decoded", slog.Any("request", dummyReq))
 
 		if err := validator.New().Struct(dummyReq); err != nil {
 			validateErr := err.(validator.ValidationErrors)
-			log.Error("Invalid request", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error()),
-			})
-
+			log.Error("Invalid request", sl.Err(err))
 			render.JSON(w, r, response.ValidationError(validateErr))
 			return
 		}
@@ -71,12 +64,8 @@ func New(ctx context.Context, log *slog.Logger, createrStorage StorageEntryCreat
 
 		startDate, err := time.Parse("01-2006", dummyReq.StartDate)
 		if err != nil {
-			log.Error("failed to convert, field: startdate", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error())})
-
+			log.Error("failed to convert, field: startdate", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to convert, field: startdate"))
-
 			return
 		}
 
@@ -85,12 +74,8 @@ func New(ctx context.Context, log *slog.Logger, createrStorage StorageEntryCreat
 		} else {
 			endDate, err := time.Parse("01-2006", dummyReq.EndDate)
 			if err != nil {
-				log.Error("failed to convert, field: enddate", slog.Attr{
-					Key:   "err",
-					Value: slog.StringValue(err.Error())})
-
+				log.Error("failed to convert, field: enddate", sl.Err(err))
 				render.JSON(w, r, response.Error("failed to convert, field: enddate"))
-
 				return
 			}
 			req.EndDate = &endDate
@@ -110,10 +95,7 @@ func New(ctx context.Context, log *slog.Logger, createrStorage StorageEntryCreat
 		id, err := createrStorage.CreateSubscriptionEntry(ctx, req)
 
 		if err != nil {
-			log.Error("failed to create new entry", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error()),
-			})
+			log.Error("failed to create new entry", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to save"))
 			return
 		}
@@ -122,16 +104,12 @@ func New(ctx context.Context, log *slog.Logger, createrStorage StorageEntryCreat
 		cacheKey := fmt.Sprintf("subscription:%d", id)
 
 		if err := createrCache.Set(cacheKey, req, time.Hour); err != nil {
-			log.Warn("failed to add to cache", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error()),
-			})
+			log.Warn("failed to add to cache", sl.Err(err))
 		}
 		log.Info("cache updated", slog.String("key", cacheKey))
 
 		render.JSON(w, r, response.StatusOKWithData(map[string]any{
 			"last added id": id,
 		}))
-
 	}
 }

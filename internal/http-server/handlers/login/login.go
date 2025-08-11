@@ -10,6 +10,7 @@ import (
 	"github.com/go-playground/validator"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/auth"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/user"
 )
 
@@ -46,23 +47,15 @@ func New(ctx context.Context, log *slog.Logger, userGetter UserGetter, jwtMaker 
 
 		err = render.DecodeJSON(r.Body, &loginRequest)
 		if err != nil {
-			log.Error("failed to decode request body", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error())})
-
+			log.Error("failed to decode request body", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to decode request"))
-
 			return
 		}
 		log.Info("request body decoded", slog.Any("request", loginRequest))
 
 		if err := validator.New().Struct(loginRequest); err != nil {
 			validateErr := err.(validator.ValidationErrors)
-			log.Error("Invalid request", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error()),
-			})
-
+			log.Error("Invalid request", sl.Err(err))
 			render.JSON(w, r, response.ValidationError(validateErr))
 			return
 		}
@@ -70,36 +63,23 @@ func New(ctx context.Context, log *slog.Logger, userGetter UserGetter, jwtMaker 
 
 		user, err := userGetter.GetUserByUsername(ctx, loginRequest.Username)
 		if err != nil {
-			log.Error("incorrect user or password", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error())})
-
+			log.Error("incorrect user or password", sl.Err(err))
 			render.JSON(w, r, response.Error("incorrect user or password"))
-
 			return
 		}
 
 		err = auth.CompareHash(user.PasswordHash, loginRequest.Password)
 		if err != nil {
-			log.Error("incorrect user or password", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error())})
-
+			log.Error("incorrect user or password", sl.Err(err))
 			render.JSON(w, r, response.Error("incorrect user or password"))
-
 			return
 		}
 
 		token, err := jwtMaker.GenerateToken(user.Username)
 		if err != nil {
-			log.Error("could not generate token", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error())})
-
+			log.Error("could not generate token", sl.Err(err))
 			render.JSON(w, r, response.Error("could not generate token"))
-
 			return
-
 		}
 		log.Info("created token", "token", token)
 		render.JSON(w, r, response.StatusOKWithData(map[string]any{

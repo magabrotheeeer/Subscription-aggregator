@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/render"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/auth"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
 )
 
@@ -55,10 +56,7 @@ func New(ctx context.Context, log *slog.Logger, list List) http.HandlerFunc {
 		}
 		res, err := list.ListSubscriptionEntrys(ctx, username, limit, offset)
 		if err != nil {
-			log.Error("failed to list entrys", slog.Attr{
-				Key:   "err",
-				Value: slog.StringValue(err.Error()),
-			})
+			log.Error("failed to list entrys", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to list"))
 			return
 		}
