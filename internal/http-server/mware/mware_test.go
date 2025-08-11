@@ -3,11 +3,10 @@ package mware_test
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"log/slog"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
@@ -23,6 +22,7 @@ type mockJWTMaker struct {
 func (m *mockJWTMaker) GenerateToken(username string) (string, error) {
 	return "", nil
 }
+
 func (m *mockJWTMaker) ParseToken(tokenStr string) (*jwt.RegisteredClaims, error) {
 	return m.ParseFunc(tokenStr)
 }

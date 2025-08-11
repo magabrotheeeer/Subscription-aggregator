@@ -99,7 +99,6 @@ func New(ctx context.Context, log *slog.Logger, updaterStorage StorageEntryUpdat
 		req.StartDate = startDate
 
 		counter, err = updaterStorage.UpdateSubscriptionEntry(ctx, req, id)
-
 		if err != nil {
 			log.Error("failed to update entry/entrys in storage", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to update"))

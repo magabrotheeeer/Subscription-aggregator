@@ -93,7 +93,6 @@ func New(ctx context.Context, log *slog.Logger, createrStorage StorageEntryCreat
 		req.StartDate = startDate
 
 		id, err := createrStorage.CreateSubscriptionEntry(ctx, req)
-
 		if err != nil {
 			log.Error("failed to create new entry", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to save"))

@@ -68,6 +68,5 @@ func New(ctx context.Context, log *slog.Logger, deleterStorage StorageEntryDelet
 		render.JSON(w, r, response.StatusOKWithData(map[string]any{
 			"deleted_count": counter,
 		}))
-
 	}
 }

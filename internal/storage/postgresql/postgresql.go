@@ -83,7 +83,6 @@ func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subs.Subscr
 		entry.Username,
 		entry.StartDate,
 		entry.EndDate).Scan(&newId)
-
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
@@ -92,7 +91,6 @@ func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subs.Subscr
 }
 
 func (s *Storage) RemoveSubscriptionEntry(ctx context.Context, id int) (int64, error) {
-
 	const op = "storage.postgresql.DeleteSubscriptionEntryByUserID"
 
 	commandTag, err := s.Db.Exec(ctx, `
@@ -106,7 +104,6 @@ func (s *Storage) RemoveSubscriptionEntry(ctx context.Context, id int) (int64, e
 }
 
 func (s *Storage) ReadSubscriptionEntry(ctx context.Context, id int) (*subs.SubscriptionEntry, error) {
-
 	const op = "storage.postgresql.ReadSubscriptionEntryByUserID"
 
 	row := s.Db.QueryRow(ctx, `
@@ -162,7 +159,6 @@ func (s *Storage) ListSubscriptionEntrys(ctx context.Context, username string, l
 		result = append(result, &item)
 	}
 	return result, nil
-
 }
 
 func (s *Storage) CountSumSubscriptionEntrys(ctx context.Context, entry countsum.SubscriptionFilterSum) (float64, error) {

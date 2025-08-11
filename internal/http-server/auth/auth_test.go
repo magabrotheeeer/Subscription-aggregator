@@ -50,24 +50,24 @@ func TestJWTMaker_ParseToken_InvalidFormat(t *testing.T) {
 }
 
 func TestGetHashAndCompareHash(t *testing.T) {
-    password := "mypassword"
+	password := "mypassword"
 
-    t.Run("success", func(t *testing.T) {
-        hash, err := GetHash(password)
-        require.NoError(t, err)
-        require.NotEmpty(t, hash)
+	t.Run("success", func(t *testing.T) {
+		hash, err := GetHash(password)
+		require.NoError(t, err)
+		require.NotEmpty(t, hash)
 
-        err = CompareHash(hash, password)
-        assert.NoError(t, err)
-    })
+		err = CompareHash(hash, password)
+		assert.NoError(t, err)
+	})
 
-    t.Run("fail", func(t *testing.T) {
-        hash, err := GetHash(password)
-        require.NoError(t, err)
+	t.Run("fail", func(t *testing.T) {
+		hash, err := GetHash(password)
+		require.NoError(t, err)
 
-        err = CompareHash(hash, "wrongpassword")
-        assert.Error(t, err)
-    })
+		err = CompareHash(hash, "wrongpassword")
+		assert.Error(t, err)
+	})
 }
 
 func TestJWTMaker_TokenExpiration(t *testing.T) {
@@ -80,7 +80,7 @@ func TestJWTMaker_TokenExpiration(t *testing.T) {
 	tokenStr, err := jwtMaker.GenerateToken(username)
 	assert.NoError(t, err)
 
-	time.Sleep(ttl + time.Millisecond * 10)
+	time.Sleep(ttl + time.Millisecond*10)
 
 	claims, err := jwtMaker.ParseToken(tokenStr)
 	assert.Error(t, err)

@@ -4,11 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"log/slog"
 
 	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/assert"

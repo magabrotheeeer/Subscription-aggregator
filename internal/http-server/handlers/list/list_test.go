@@ -4,18 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"log/slog"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/list"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/mware"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/list"
 	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
 )
 

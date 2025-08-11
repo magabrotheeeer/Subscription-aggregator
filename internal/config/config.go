@@ -52,7 +52,6 @@ func MustLoad() *Config {
 		log.Fatalf("cannot read config: %s", err)
 	}
 	return &cfg
-
 }
 
 func (c *Config) String() string {

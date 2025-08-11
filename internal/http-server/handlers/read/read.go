@@ -73,6 +73,5 @@ func New(ctx context.Context, log *slog.Logger, readerStorage StorageEntryReader
 		render.JSON(w, r, response.StatusOKWithData(map[string]any{
 			"entries": res,
 		}))
-
 	}
 }
