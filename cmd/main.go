@@ -30,6 +30,7 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/register"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/remove"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/update"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/mware"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/postgresql"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
@@ -67,7 +68,7 @@ func main() {
 		r.Post("/login", login.New(ctx, logger, storage, jwtMaker))
 
 		r.Group(func(r chi.Router) {
-			r.Use(auth.JWTMiddleware(jwtMaker, logger))
+			r.Use(mware.JWTMiddleware(jwtMaker, logger))
 
 			// Основные CRUD операции с подписками
 			r.Post("/subscriptions/", create.New(ctx, logger, storage, cache))
