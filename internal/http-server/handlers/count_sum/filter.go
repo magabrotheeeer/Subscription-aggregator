@@ -10,7 +10,7 @@ type SubscriptionFilterSum struct {
 }
 
 type DummySubscriptionFilterSum struct {
-	ServiceName string `json:"service_name,omitempty" validator:"omitempty"`
-	StartDate   string `json:"start_date"`
-	EndDate     string `json:"end_date,omitempty" validator:"omitempty"`
+	ServiceName string `json:"service_name,omitempty" validate:"omitempty"`
+	StartDate   string `json:"start_date" validate:"required"`
+	EndDate     string `json:"end_date,omitempty" validate:"omitempty"`
 }

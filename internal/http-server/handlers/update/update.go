@@ -75,14 +75,14 @@ func New(ctx context.Context, log *slog.Logger, updaterStorage StorageEntryUpdat
 
 		startDate, err2 := time.Parse("01-2006", dummyReq.StartDate)
 		if err2 != nil {
-			log.Error("failed to convert, field: startdate", sl.Err(err))
+			log.Error("failed to convert, field: startdate", sl.Err(err2))
 			render.JSON(w, r, response.Error("failed to convert, field: startdate"))
 			return
 		}
 		if dummyReq.EndDate != "" {
 			endDate, err2 := time.Parse("01-2006", dummyReq.EndDate)
 			if err2 != nil {
-				log.Error("failed to convert, field: enddate", sl.Err(err))
+				log.Error("failed to convert, field: enddate", sl.Err(err2))
 				render.JSON(w, r, response.Error("failed to convert, field: enddate"))
 				return
 			}
