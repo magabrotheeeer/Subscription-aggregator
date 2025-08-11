@@ -13,8 +13,8 @@ type SubscriptionEntry struct {
 
 // Структура для хранения данных, полученных в формате JSON, для конвертации времени для create
 type DummySubscriptionEntry struct {
-	ServiceName string `json:"service_name" validator:"required,alphanum"`
-	Price       int    `json:"price" validator:"required,numeric"`
-	StartDate   string `json:"start_date" validator:"required,datetime=01-2006"`
-	EndDate     string `json:"end_date,omitempty" validator:"omitempty,datetime=01-2006"`
+	ServiceName string `json:"service_name" validate:"required"`
+	Price       int    `json:"price" validate:"required,gt=0"`
+	StartDate   string `json:"start_date" validate:"required"`
+	EndDate     string `json:"end_date,omitempty" validate:"omitempty"`
 }
