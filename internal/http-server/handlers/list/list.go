@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/auth"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/mware"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
@@ -48,7 +48,7 @@ func New(ctx context.Context, log *slog.Logger, list List) http.HandlerFunc {
 		if err != nil || limit <= 0 {
 			offset = 0
 		}
-		username, ok := r.Context().Value(auth.UserKey).(string)
+		username, ok := r.Context().Value(mware.UserKey).(string)
 		if !ok || username == "" {
 			log.Error("username not found in context")
 			render.JSON(w, r, response.Error("unauthorized"))

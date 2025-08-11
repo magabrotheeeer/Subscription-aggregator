@@ -12,7 +12,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/auth"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/mware"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
@@ -94,7 +94,7 @@ func New(ctx context.Context, log *slog.Logger, updaterStorage StorageEntryUpdat
 		var counter int64
 
 		req.ServiceName = dummyReq.ServiceName
-		req.Username = r.Context().Value(auth.UserKey).(string)
+		req.Username = r.Context().Value(mware.UserKey).(string)
 		req.Price = dummyReq.Price
 		req.StartDate = startDate
 

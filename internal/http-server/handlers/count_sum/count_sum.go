@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/auth"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/mware"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
@@ -82,7 +82,7 @@ func New(ctx context.Context, log *slog.Logger, counterSum CounterSum) http.Hand
 			filter.ServiceName = &filterReq.ServiceName
 		}
 
-		username, ok := r.Context().Value(auth.UserKey).(string)
+		username, ok := r.Context().Value(mware.UserKey).(string)
 		if !ok || username == "" {
 			log.Error("username not found in context")
 			render.JSON(w, r, response.Error("unauthorized"))
