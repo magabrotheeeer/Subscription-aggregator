@@ -47,3 +47,8 @@
 | DELETE | /api/v1/subscriptions/{id}    | Удаление подписки                                      |
 | GET    | /api/v1/subscriptions/list    | Получение списка подписок                              |
 | POST   | /api/v1/subscriptions/sum     | Подсчёт суммы подписок с фильтрами                     |
+
+## TODO
+1. роли
+2. grpc авторизация
+3. платежный шлюх
