@@ -4,7 +4,6 @@
 package mware
 
 import (
-	"context"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -15,13 +14,6 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
-
-// contextKey используется для хранения данных в контексте запроса
-// без риска коллизий ключей от стороннего кода.
-type contextKey string
-
-// UserKey — ключ, под которым в контексте запроса хранится имя пользователя.
-const UserKey contextKey = "username"
 
 // JWTMiddleware возвращает middleware, которое проверяет JWT‑токен в заголовке Authorization.
 // Логика работы:
@@ -50,7 +42,7 @@ func JWTMiddleware(jwtMaker auth.JWTMaker, log *slog.Logger) func(http.Handler) 
 			}
 			tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 
-			claims, err := jwtMaker.ParseToken(tokenStr)
+			_, err := jwtMaker.ParseToken(tokenStr)
 			if err != nil {
 				log.Error("invalid or expired token", sl.Err(err))
 				render.Status(r, http.StatusUnauthorized)
@@ -58,8 +50,7 @@ func JWTMiddleware(jwtMaker auth.JWTMaker, log *slog.Logger) func(http.Handler) 
 
 				return
 			}
-			ctx := context.WithValue(r.Context(), UserKey, claims.Subject)
-			next.ServeHTTP(w, r.WithContext(ctx))
+			next.ServeHTTP(w, r)
 		})
 	}
 }
