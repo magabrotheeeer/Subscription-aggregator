@@ -11,4 +11,5 @@ type User struct {
 	Username     string    // Имя пользователя (уникальное)
 	PasswordHash string    // Хэш пароля пользователя
 	CreatedAt    time.Time // Дата и время создания учётной записи
+	Role         string    // Роль пользователя, admin или user
 }

@@ -58,7 +58,8 @@ func New(storageConnectionString string) (*Storage, error) {
 			id SERIAL PRIMARY KEY,
 			username VARCHAR(255) UNIQUE NOT NULL,
 			password_hash VARCHAR(255) NOT NULL,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			role VARCHAR(50) NOT NULL DEFAULT 'user'
 		);`)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
