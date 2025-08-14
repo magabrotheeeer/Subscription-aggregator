@@ -18,12 +18,12 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/mware"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
-	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
 // StorageEntryUpdater определяет контракт для обновления подписки в хранилище по её ID.
 type StorageEntryUpdater interface {
-	UpdateSubscriptionEntry(ctx context.Context, entry subs.Entry, id int) (int64, error)
+	UpdateSubscriptionEntry(ctx context.Context, entry models.Entry, id int) (int64, error)
 }
 
 // CacheEntryUpdater определяет контракт для сохранения обновлённых данных подписки в кэше.
@@ -47,7 +47,7 @@ type CacheEntryUpdater interface {
 // @Accept json
 // @Produce json
 // @Param id path string true "Уникальный ID подписки"
-// @Param data body subs.DummySubscriptionEntry true "Данные для обновления подписки"
+// @Param data body models.DummySubscriptionEntry true "Данные для обновления подписки"
 // @Success 200 {object} map[string]interface{} "Обновлено записей"
 // @Failure 400 {object} response.Response "Ошибка валидации"
 // @Failure 404 {object} response.Response "Подписка не найдена"
@@ -61,7 +61,7 @@ func New(ctx context.Context, log *slog.Logger, updaterStorage StorageEntryUpdat
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
 
-		var dummyReq subs.DummyEntry
+		var dummyReq models.DummyEntry
 		var err error
 
 		err = render.DecodeJSON(r.Body, &dummyReq)
@@ -87,7 +87,7 @@ func New(ctx context.Context, log *slog.Logger, updaterStorage StorageEntryUpdat
 			return
 		}
 
-		var req subs.Entry
+		var req models.Entry
 
 		startDate, err2 := time.Parse("01-2006", dummyReq.StartDate)
 		if err2 != nil {

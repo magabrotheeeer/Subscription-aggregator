@@ -15,12 +15,12 @@ import (
 	"github.com/go-chi/render"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
-	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
 // StorageEntryReader определяет контракт для чтения подписки по её уникальному ID из хранилища.
 type StorageEntryReader interface {
-	ReadSubscriptionEntry(ctx context.Context, id int) (*subs.Entry, error)
+	ReadSubscriptionEntry(ctx context.Context, id int) (*models.Entry, error)
 }
 
 // CacheEntryReader определяет контракт для получения данных подписки из кэша по ключу.
@@ -40,7 +40,7 @@ type CacheEntryReader interface {
 // @Accept json
 // @Produce json
 // @Param id path string true "Уникальный ID подписки"
-// @Success 200 {object} subs.SubscriptionEntry "Подписка"
+// @Success 200 {object} entry.SubscriptionEntry "Подписка"
 // @Failure 400 {object} response.Response "Неверный ID"
 // @Failure 404 {object} response.Response "Подписка не найдена"
 // @Router /subscriptions/{id} [get]
@@ -60,7 +60,7 @@ func New(ctx context.Context, log *slog.Logger, readerStorage StorageEntryReader
 			return
 		}
 
-		var res *subs.Entry
+		var res *models.Entry
 		cacheKey := fmt.Sprintf("subscription:%d", id)
 
 		found, err := readerCache.Get(cacheKey, &res)

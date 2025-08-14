@@ -8,7 +8,7 @@ import (
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/auth"
 	countsum "github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/count_sum"
-	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -27,7 +27,7 @@ func TestCreateSubscriptionsEntry(t *testing.T) {
 	storage := setupStorage(t)
 
 	end := time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC)
-	entry := subs.Entry{
+	entry := models.Entry{
 		ServiceName: "yandex-plus",
 		Price:       500,
 		Username:    "testuser",
@@ -50,7 +50,7 @@ func TestRemoveSusbscriptionEntry(t *testing.T) {
 	storage := setupStorage(t)
 
 	end := time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC)
-	entry := subs.Entry{
+	entry := models.Entry{
 		ServiceName: "yandex-plus",
 		Price:       500,
 		Username:    "testuser",
@@ -76,7 +76,7 @@ func TestRemoveSusbscriptionEntry(t *testing.T) {
 func TestReadSubscriptionEntry(t *testing.T) {
 	storage := setupStorage(t)
 
-	entry := subs.Entry{
+	entry := models.Entry{
 		ServiceName: "kinopoisk",
 		Price:       500,
 		Username:    "testuser",
@@ -103,14 +103,14 @@ func TestListSubscriptionEntrys(t *testing.T) {
 	storage := setupStorage(t)
 	ctx := context.Background()
 
-	subsToInsert := []subs.Entry{
+	modelsToInsert := []models.Entry{
 		{ServiceName: "netflix", Price: 100, Username: "userA", StartDate: time.Now()},
 		{ServiceName: "spotify", Price: 200, Username: "userA", StartDate: time.Now()},
 		{ServiceName: "youtube", Price: 300, Username: "userA", StartDate: time.Now()},
 		{ServiceName: "kinopoisk", Price: 400, Username: "userB", StartDate: time.Now()},
 	}
 
-	for _, entry := range subsToInsert {
+	for _, entry := range modelsToInsert {
 		_, err := storage.CreateSubscriptionEntry(ctx, entry)
 		require.NoError(t, err)
 	}
@@ -145,7 +145,7 @@ func TestCountSumSubscriptionEntrys(t *testing.T) {
 	storage := setupStorage(t)
 	ctx := context.Background()
 
-	entries := []subs.Entry{
+	entries := []models.Entry{
 		{
 			ServiceName: "kinopoisk",
 			Price:       300,

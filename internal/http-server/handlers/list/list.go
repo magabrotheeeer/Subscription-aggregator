@@ -15,13 +15,13 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/mware"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
-	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
 // List определяет метод для получения списка подписок пользователя
 // с возможностью ограничения количества элементов (limit) и смещения (offset).
 type List interface {
-	ListSubscriptionEntrys(ctx context.Context, username string, limit, offset int) ([]*subs.Entry, error)
+	ListSubscriptionEntrys(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error)
 }
 
 // New возвращает HTTP‑обработчик, который обрабатывает GET‑запрос на получение списка подписок.

@@ -15,14 +15,14 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/list"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/mware"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
-	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
 type mockList struct {
-	ListFunc func(ctx context.Context, username string, limit, offset int) ([]*subs.Entry, error)
+	ListFunc func(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error)
 }
 
-func (m *mockList) ListSubscriptionEntrys(ctx context.Context, username string, limit, offset int) ([]*subs.Entry, error) {
+func (m *mockList) ListSubscriptionEntrys(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error) {
 	return m.ListFunc(ctx, username, limit, offset)
 }
 
@@ -41,13 +41,13 @@ func TestListHandler(t *testing.T) {
 	baseCtx := context.WithValue(context.Background(), mware.UserKey, "testuser")
 
 	t.Run("success", func(t *testing.T) {
-		expected := []*subs.Entry{
+		expected := []*models.Entry{
 			{ServiceName: "Netflix", Price: 1299},
 			{ServiceName: "YouTube Premium", Price: 399},
 		}
 
 		mock := &mockList{
-			ListFunc: func(ctx context.Context, username string, limit, offset int) ([]*subs.Entry, error) {
+			ListFunc: func(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error) {
 				require.Equal(t, "testuser", username)
 				require.Equal(t, 10, limit)
 				require.Equal(t, 0, offset)
@@ -55,7 +55,7 @@ func TestListHandler(t *testing.T) {
 			},
 		}
 
-		req := httptest.NewRequest(http.MethodGet, "/subscriptions/list", nil)
+		req := httptest.NewRequest(http.MethodGet, "/modelscriptions/list", nil)
 		req = req.WithContext(baseCtx)
 		w := httptest.NewRecorder()
 
@@ -75,7 +75,7 @@ func TestListHandler(t *testing.T) {
 
 	t.Run("unauthorized - no username in ctx", func(t *testing.T) {
 		mock := &mockList{
-			ListFunc: func(ctx context.Context, username string, limit, offset int) ([]*subs.Entry, error) {
+			ListFunc: func(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error) {
 				t.Fatal("ListSubscriptionEntrys should not be called when unauthorized")
 				return nil, nil
 			},
@@ -93,7 +93,7 @@ func TestListHandler(t *testing.T) {
 
 	t.Run("storage returns error", func(t *testing.T) {
 		mock := &mockList{
-			ListFunc: func(ctx context.Context, username string, limit, offset int) ([]*subs.Entry, error) {
+			ListFunc: func(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error) {
 				return nil, errors.New("db error")
 			},
 		}

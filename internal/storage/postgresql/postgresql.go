@@ -12,8 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	countsum "github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/count_sum"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/month"
-	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/user"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
 // Storage инкапсулирует соединение с базой данных PostgreSQL
@@ -77,7 +76,7 @@ func New(storageConnectionString string) (*Storage, error) {
 }
 
 // CreateSubscriptionEntry вставляет новую запись подписки и возвращает её ID.
-func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry subs.Entry) (int, error) {
+func (s *Storage) CreateSubscriptionEntry(ctx context.Context, entry models.Entry) (int, error) {
 	const op = "storage.postgresql.CreateSubscriptionEntry"
 	var newID int
 	err := s.Db.QueryRow(ctx, `
@@ -102,13 +101,13 @@ func (s *Storage) RemoveSubscriptionEntry(ctx context.Context, id int) (int64, e
 }
 
 // ReadSubscriptionEntry возвращает данные подписки по её ID.
-func (s *Storage) ReadSubscriptionEntry(ctx context.Context, id int) (*subs.Entry, error) {
+func (s *Storage) ReadSubscriptionEntry(ctx context.Context, id int) (*models.Entry, error) {
 	const op = "storage.postgresql.ReadSubscriptionEntryByUserID"
 	row := s.Db.QueryRow(ctx, `
 		SELECT service_name, price, username, start_date, end_date 
 		FROM subscriptions WHERE id = $1`, id)
 
-	var result subs.Entry
+	var result models.Entry
 	if err := row.Scan(&result.ServiceName, &result.Price, &result.Username, &result.StartDate, &result.EndDate); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -116,7 +115,7 @@ func (s *Storage) ReadSubscriptionEntry(ctx context.Context, id int) (*subs.Entr
 }
 
 // UpdateSubscriptionEntry обновляет данные подписки по её ID и возвращает количество изменённых строк.
-func (s *Storage) UpdateSubscriptionEntry(ctx context.Context, entry subs.Entry, id int) (int64, error) {
+func (s *Storage) UpdateSubscriptionEntry(ctx context.Context, entry models.Entry, id int) (int64, error) {
 	const op = "storage.postgresql.UpdateSubscriptionEntryByServiceNamePrice"
 	commandTag, err := s.Db.Exec(ctx, `
 		UPDATE subscriptions
@@ -134,7 +133,7 @@ func (s *Storage) UpdateSubscriptionEntry(ctx context.Context, entry subs.Entry,
 }
 
 // ListSubscriptionEntrys возвращает список всех подписок пользователя с пагинацией.
-func (s *Storage) ListSubscriptionEntrys(ctx context.Context, username string, limit, offset int) ([]*subs.Entry, error) {
+func (s *Storage) ListSubscriptionEntrys(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error) {
 	const op = "storage.postgresql.ListSubscriptionEntrys"
 	rows, err := s.Db.Query(ctx, `
 		SELECT service_name, price, username, start_date, end_date
@@ -146,9 +145,9 @@ func (s *Storage) ListSubscriptionEntrys(ctx context.Context, username string, l
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	var result []*subs.Entry
+	var result []*models.Entry
 	for rows.Next() {
-		var item subs.Entry
+		var item models.Entry
 		if err := rows.Scan(&item.ServiceName, &item.Price, &item.Username, &item.StartDate, &item.EndDate); err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
@@ -237,9 +236,9 @@ func (s *Storage) RegisterUser(ctx context.Context, username, passwordHash strin
 }
 
 // GetUserByUsername возвращает пользователя по его username.
-func (s *Storage) GetUserByUsername(ctx context.Context, username string) (*user.User, error) {
+func (s *Storage) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
 	const op = "storage.postgresql.GetUserByUsername"
-	u := &user.User{}
+	u := &models.User{}
 	row := s.Db.QueryRow(ctx, `
 		SELECT id, username, password_hash, created_at
 		FROM users

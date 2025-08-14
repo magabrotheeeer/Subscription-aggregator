@@ -15,7 +15,7 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/auth"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/user"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
 // Request содержит данные для авторизации пользователя.
@@ -28,7 +28,7 @@ type Request struct {
 // UserGetter определяет контракт для получения данных пользователя
 // по его имени пользователя (username).
 type UserGetter interface {
-	GetUserByUsername(ctx context.Context, username string) (*user.User, error)
+	GetUserByUsername(ctx context.Context, username string) (*models.User, error)
 }
 
 // New возвращает HTTP‑обработчик, который обрабатывает POST‑запрос на авторизацию пользователя.

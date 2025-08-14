@@ -18,14 +18,14 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/update"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/mware"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
-	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
 type mockStorage struct {
-	UpdateFunc func(context.Context, subs.Entry, int) (int64, error)
+	UpdateFunc func(context.Context, models.Entry, int) (int64, error)
 }
 
-func (m *mockStorage) UpdateSubscriptionEntry(ctx context.Context, entry subs.Entry, id int) (int64, error) {
+func (m *mockStorage) UpdateSubscriptionEntry(ctx context.Context, entry models.Entry, id int) (int64, error) {
 	return m.UpdateFunc(ctx, entry, id)
 }
 
@@ -63,7 +63,7 @@ func TestUpdateHandler(t *testing.T) {
 	username := "testuser"
 
 	t.Run("success", func(t *testing.T) {
-		dummy := subs.DummyEntry{
+		dummy := models.DummyEntry{
 			ServiceName: "Netflix",
 			Price:       999,
 			StartDate:   "08-2025",
@@ -72,7 +72,7 @@ func TestUpdateHandler(t *testing.T) {
 		body, _ := json.Marshal(dummy)
 
 		storage := &mockStorage{
-			UpdateFunc: func(ctx context.Context, entry subs.Entry, id int) (int64, error) {
+			UpdateFunc: func(ctx context.Context, entry models.Entry, id int) (int64, error) {
 				require.Equal(t, "Netflix", entry.ServiceName)
 				require.Equal(t, 42, id)
 				require.Equal(t, username, entry.Username)
@@ -101,7 +101,7 @@ func TestUpdateHandler(t *testing.T) {
 
 	t.Run("invalid JSON", func(t *testing.T) {
 		storage := &mockStorage{
-			UpdateFunc: func(context.Context, subs.Entry, int) (int64, error) {
+			UpdateFunc: func(context.Context, models.Entry, int) (int64, error) {
 				t.Fatal("UpdateSubscriptionEntry should not be called on invalid JSON")
 				return 0, nil
 			},
@@ -123,14 +123,14 @@ func TestUpdateHandler(t *testing.T) {
 	})
 
 	t.Run("validation error", func(t *testing.T) {
-		dummy := subs.DummyEntry{
+		dummy := models.DummyEntry{
 			ServiceName: "", // required!
 			Price:       999,
 			StartDate:   "08-2025",
 		}
 		body, _ := json.Marshal(dummy)
 		storage := &mockStorage{
-			UpdateFunc: func(context.Context, subs.Entry, int) (int64, error) {
+			UpdateFunc: func(context.Context, models.Entry, int) (int64, error) {
 				t.Fatal("Should not be called on validation error")
 				return 0, nil
 			},
@@ -151,7 +151,7 @@ func TestUpdateHandler(t *testing.T) {
 	})
 
 	t.Run("invalid id in url", func(t *testing.T) {
-		body, _ := json.Marshal(subs.DummyEntry{
+		body, _ := json.Marshal(models.DummyEntry{
 			ServiceName: "Test", Price: 1, StartDate: "08-2025",
 		})
 		storage := &mockStorage{}
@@ -165,14 +165,14 @@ func TestUpdateHandler(t *testing.T) {
 	})
 
 	t.Run("startDate parse error", func(t *testing.T) {
-		dummy := subs.DummyEntry{
+		dummy := models.DummyEntry{
 			ServiceName: "Test",
 			Price:       1,
 			StartDate:   "not-a-date",
 		}
 		body, _ := json.Marshal(dummy)
 		storage := &mockStorage{
-			UpdateFunc: func(context.Context, subs.Entry, int) (int64, error) {
+			UpdateFunc: func(context.Context, models.Entry, int) (int64, error) {
 				t.Fatal("Should not be called on invalid startDate")
 				return 0, nil
 			},
@@ -187,7 +187,7 @@ func TestUpdateHandler(t *testing.T) {
 	})
 
 	t.Run("endDate parse error", func(t *testing.T) {
-		dummy := subs.DummyEntry{
+		dummy := models.DummyEntry{
 			ServiceName: "Test",
 			Price:       1,
 			StartDate:   "08-2025",
@@ -195,7 +195,7 @@ func TestUpdateHandler(t *testing.T) {
 		}
 		body, _ := json.Marshal(dummy)
 		storage := &mockStorage{
-			UpdateFunc: func(context.Context, subs.Entry, int) (int64, error) {
+			UpdateFunc: func(context.Context, models.Entry, int) (int64, error) {
 				t.Fatal("Should not be called on invalid endDate")
 				return 0, nil
 			},
@@ -210,14 +210,14 @@ func TestUpdateHandler(t *testing.T) {
 	})
 
 	t.Run("storage update error", func(t *testing.T) {
-		dummy := subs.DummyEntry{
+		dummy := models.DummyEntry{
 			ServiceName: "Netflix",
 			Price:       999,
 			StartDate:   "08-2025",
 		}
 		body, _ := json.Marshal(dummy)
 		storage := &mockStorage{
-			UpdateFunc: func(context.Context, subs.Entry, int) (int64, error) {
+			UpdateFunc: func(context.Context, models.Entry, int) (int64, error) {
 				return 0, errors.New("db error")
 			},
 		}
@@ -231,14 +231,14 @@ func TestUpdateHandler(t *testing.T) {
 	})
 
 	t.Run("cache set error but still success", func(t *testing.T) {
-		dummy := subs.DummyEntry{
+		dummy := models.DummyEntry{
 			ServiceName: "Netflix",
 			Price:       999,
 			StartDate:   "08-2025",
 		}
 		body, _ := json.Marshal(dummy)
 		storage := &mockStorage{
-			UpdateFunc: func(context.Context, subs.Entry, int) (int64, error) {
+			UpdateFunc: func(context.Context, models.Entry, int) (int64, error) {
 				return 2, nil
 			},
 		}

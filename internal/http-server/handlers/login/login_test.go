@@ -17,14 +17,14 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/auth"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/handlers/login"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/user"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
 type mockUserGetter struct {
-	GetFunc func(ctx context.Context, username string) (*user.User, error)
+	GetFunc func(ctx context.Context, username string) (*models.User, error)
 }
 
-func (m *mockUserGetter) GetUserByUsername(ctx context.Context, username string) (*user.User, error) {
+func (m *mockUserGetter) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
 	return m.GetFunc(ctx, username)
 }
 
@@ -66,8 +66,8 @@ func TestLoginHandler(t *testing.T) {
 		})
 
 		userGetter := &mockUserGetter{
-			GetFunc: func(ctx context.Context, username string) (*user.User, error) {
-				return &user.User{
+			GetFunc: func(ctx context.Context, username string) (*models.User, error) {
+				return &models.User{
 					Username:     "validuser",
 					PasswordHash: hash,
 				}, nil
@@ -96,7 +96,7 @@ func TestLoginHandler(t *testing.T) {
 
 	t.Run("invalid JSON", func(t *testing.T) {
 		userGetter := &mockUserGetter{
-			GetFunc: func(ctx context.Context, username string) (*user.User, error) {
+			GetFunc: func(ctx context.Context, username string) (*models.User, error) {
 				t.Fatal("GetUserByUsername should not be called")
 				return nil, nil
 			},
@@ -118,7 +118,7 @@ func TestLoginHandler(t *testing.T) {
 			Password: "",
 		})
 		userGetter := &mockUserGetter{
-			GetFunc: func(ctx context.Context, username string) (*user.User, error) {
+			GetFunc: func(ctx context.Context, username string) (*models.User, error) {
 				t.Fatal("GetUserByUsername should not be called")
 				return nil, nil
 			},
@@ -142,7 +142,7 @@ func TestLoginHandler(t *testing.T) {
 		})
 
 		userGetter := &mockUserGetter{
-			GetFunc: func(ctx context.Context, username string) (*user.User, error) {
+			GetFunc: func(ctx context.Context, username string) (*models.User, error) {
 				return nil, errors.New("not found")
 			},
 		}
@@ -164,8 +164,8 @@ func TestLoginHandler(t *testing.T) {
 		})
 
 		userGetter := &mockUserGetter{
-			GetFunc: func(ctx context.Context, username string) (*user.User, error) {
-				return &user.User{
+			GetFunc: func(ctx context.Context, username string) (*models.User, error) {
+				return &models.User{
 					Username:     "validuser",
 					PasswordHash: hash,
 				}, nil
@@ -189,8 +189,8 @@ func TestLoginHandler(t *testing.T) {
 		})
 
 		userGetter := &mockUserGetter{
-			GetFunc: func(ctx context.Context, username string) (*user.User, error) {
-				return &user.User{Username: "validuser", PasswordHash: hash}, nil
+			GetFunc: func(ctx context.Context, username string) (*models.User, error) {
+				return &models.User{Username: "validuser", PasswordHash: hash}, nil
 			},
 		}
 		jwtMaker := &mockJWTMaker{

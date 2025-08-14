@@ -16,13 +16,13 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/mware"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http-server/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
-	subs "github.com/magabrotheeeer/subscription-aggregator/internal/subscription"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
 // StorageEntryCreater определяет контракт для сохранения новой
 // записи о подписке в хранилище.
 type StorageEntryCreater interface {
-	CreateSubscriptionEntry(ctx context.Context, entry subs.Entry) (int, error)
+	CreateSubscriptionEntry(ctx context.Context, entry models.Entry) (int, error)
 }
 
 // CacheEntryCreator определяет метод для сохранения данных о
@@ -39,7 +39,7 @@ type CacheEntryCreator interface {
 // @Tags subscriptions
 // @Accept json
 // @Produce json
-// @Param data body subs.DummySubscriptionEntry true "Данные новой подписки"
+// @Param data body models.DummySubscriptionEntry true "Данные новой подписки"
 // @Success 201 {object} response.Response "Успешное создание"
 // @Failure 400 {object} response.Response "Ошибка валидации"
 // @Router /subscriptions/ [post]
@@ -52,7 +52,7 @@ func New(ctx context.Context, log *slog.Logger, createrStorage StorageEntryCreat
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
 
-		var dummyReq subs.DummyEntry
+		var dummyReq models.DummyEntry
 		var err error
 
 		err = render.DecodeJSON(r.Body, &dummyReq)
@@ -71,7 +71,7 @@ func New(ctx context.Context, log *slog.Logger, createrStorage StorageEntryCreat
 		}
 		log.Info("all fields are validated")
 
-		var req subs.Entry
+		var req models.Entry
 
 		startDate, err := time.Parse("01-2006", dummyReq.StartDate)
 		if err != nil {
