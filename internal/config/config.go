@@ -13,6 +13,7 @@ import (
 // Config общая структура для хранения настроек
 type Config struct {
 	Env                     string `yaml:"env"`
+	GRPCAuthAddress         string `yaml:"grpc_auth_address"`
 	StorageConnectionString string `yaml:"storage_connection_string"`
 	RedisConnection         `yaml:"redis_connection"`
 	HTTPServer              `yaml:"http_server"`
