@@ -48,15 +48,18 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, response.Error("invalid request body"))
 		return
 	}
+	log.Info("request body decoded", slog.Any("request", req))
 
 	if err := h.validate.Struct(req); err != nil {
 		log.Error("validation failed", sl.Err(err))
 		render.JSON(w, r, response.ValidationError(err.(validator.ValidationErrors)))
 		return
 	}
+	log.Info("all fields are validated")
 
 	if err := h.authClient.Register(r.Context(), req.Username, req.Password); err != nil {
 		log.Error("registration failed", sl.Err(err))
+		w.WriteHeader(http.StatusInternalServerError)
 		render.JSON(w, r, response.Error("failed to register user"))
 		return
 	}
