@@ -7,8 +7,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Копируем исходники сервиса
-COPY ./cmd/auth-service ./cmd/auth-service
-COPY ./config/config.yaml ./config/config.yaml
+COPY . .
 
 # Собираем бинарь
 RUN CGO_ENABLED=0 GOOS=linux go build -o auth-service ./cmd/auth-service/main.go

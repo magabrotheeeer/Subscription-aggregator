@@ -7,11 +7,10 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Копируем исходники сервиса
-COPY ./cmd/subscrition-aggregator ./cmd/subscrition-aggregator
-COPY ./config/config.yaml ./config/config.yaml
+COPY . .
 
 # Собираем бинарь
-RUN CGO_ENABLED=0 GOOS=linux go build -o subscription-aggregator ./cmd/subscrition-aggregator/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o subscription-aggregator ./cmd/subscription-aggregator/main.go
 
 # Final stage
 FROM alpine:latest
