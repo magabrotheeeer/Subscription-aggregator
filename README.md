@@ -48,5 +48,7 @@
 | POST   | /api/v1/subscriptions/sum     | Подсчёт суммы подписок с фильтрами                     |
 
 ## TODO
-1. роли
+1. роли и permissions
 2. платежный шлюз
+3. rabbitmq
+4. миграции
