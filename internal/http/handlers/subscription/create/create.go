@@ -52,13 +52,13 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Info("all fields are validated")
 
-	userName, ok := r.Context().Value(middlewarectx.UserKey).(string)
-	if !ok || userName == "" {
+	username, ok := r.Context().Value(middlewarectx.UserKey).(string)
+	if !ok || username == "" {
 		render.JSON(w, r, response.Error("unauthorized"))
 		return
 	}
 
-	id, err := h.service.Create(r.Context(), userName, req)
+	id, err := h.service.Create(r.Context(), username, req)
 	if err != nil {
 		log.Error("failed to create subscription", sl.Err(err))
 		render.JSON(w, r, response.Error("could not create subscription"))
