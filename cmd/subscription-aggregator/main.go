@@ -27,7 +27,6 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/remove"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/update"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/middlewarectx"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/jwt"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/services"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
 )
@@ -59,8 +58,6 @@ func main() {
 	}
 	defer authClient.Close()
 
-	jwtMaker := jwt.NewJWTMaker(config.JWTSecretKey, config.TokenTTL)
-
 	subscriptionService := services.NewSubscriptionService(storage, cache, logger)
 
 	router := chi.NewRouter()
@@ -76,7 +73,7 @@ func main() {
 		r.Post("/login", login.New(logger, authClient).ServeHTTP)
 
 		r.Group(func(r chi.Router) {
-			r.Use(middlewarectx.JWTMiddleware(jwtMaker, logger))
+			r.Use(middlewarectx.JWTMiddleware(authClient, logger))
 
 			r.Post("/subscriptions", create.New(logger, subscriptionService).ServeHTTP)
 			r.Get("/subscriptions/{id}", read.New(logger, subscriptionService).ServeHTTP)
