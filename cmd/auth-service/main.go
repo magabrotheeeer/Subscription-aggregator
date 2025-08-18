@@ -1,10 +1,11 @@
 package main
 
 import (
-	"log"
 	"log/slog"
 	"net"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"google.golang.org/grpc"
 
@@ -25,7 +26,8 @@ func main() {
 	// Подключаем базу пользователей
 	userRepo, err := storage.New(config.StorageConnectionString)
 	if err != nil {
-		log.Fatalf("failed to init user repo: %v", err)
+		logger.Error("failed to init storage", slog.Any("err", err))
+		os.Exit(1)
 	}
 
 	// JWT Maker
@@ -37,14 +39,22 @@ func main() {
 	// gRPC сервер
 	lis, err := net.Listen("tcp", config.GRPCAuthAddress)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		logger.Error("failed to listen", slog.String("address", config.GRPCAuthAddress))
+		os.Exit(1)
 	}
-
 	grpcServer := grpc.NewServer()
 	authpb.RegisterAuthServiceServer(grpcServer, server.NewAuthServer(authService, logger))
 
-	log.Printf("Auth gRPC service listening on %s", config.GRPCAuthAddress)
+	logger.Info("Auth gRPC service listening on", slog.String("port:", config.GRPCAuthAddress))
 	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		logger.Error("failed to listen port", slog.Any("err", err))
 	}
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+
+	<-stop
+
+	grpcServer.GracefulStop()
+	logger.Info("application stopped")
 }
