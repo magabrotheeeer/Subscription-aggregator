@@ -14,6 +14,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
   redis:
     image: redis:7
     command: ["redis-server", "--requirepass", "test1234"]
@@ -23,18 +24,44 @@ services:
       - /home/papa/docker/redisdata:/data
     restart: always
 
+  auth-service:
+    build:
+      context: .
+      dockerfile: ./cmd/auth-service/Dockerfile
+    environment:
+      - CONFIG_PATH=/config/config.yaml
+      - JWT_SECRET_KEY=aQwerty12345!@#SecretKeyExample67890_+
+      - TOKEN_TTL=24h
+      - STORAGE_CONNECTION_STRING=postgres://papa:1234@db:5432/original_db?sslmode=disable
+      - REDIS_ADDRESS=redis:6379
+      - REDIS_PASSWORD=test1234
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "50051:50051"
+    volumes:
+      - /home/papa/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro
+
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: ./cmd/subscription-aggregator/Dockerfile
     restart: always
     environment:
       - CONFIG_PATH=/config/config.yaml
-      - JWT_SECRET=aQwerty12345!@#SecretKeyExample67890_+ - DB_HOST=db
+      - JWT_SECRET_KEY=aQwerty12345!@#SecretKeyExample67890_+
+      - TOKEN_TTL=24h
+      - DB_HOST=db
       - DB_PORT=5432
       - DB_NAME=original_db
       - DB_USER=papa
       - DB_PASSWORD=1234
       - REDIS_ADDR=redis:6379
       - REDIS_PASSWORD=test1234
+      - GRPC_AUTH_ADDRESS=auth-service:50051
     ports:
       - "8080:8080"
     depends_on:
@@ -42,20 +69,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      auth-service:
+        condition: service_started
     volumes:
       - /home/papa/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro
-  test:
-    build: .
-    environment:
-      - TEST_POSTGRES=postgres://papa:1234@db:5432/test?sslmode=disable
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    command: ["go", "test", "./...", "-v"]
-
-
 
 volumes:
   pgdata:
