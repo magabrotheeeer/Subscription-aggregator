@@ -49,7 +49,7 @@ func (s *AuthService) Login(ctx context.Context, username, rawPassword string) (
 		return "", "", "", err
 	}
 	// проверяем пароль
-	if err := password.CompareHash(rawPassword, user.PasswordHash); err != nil {
+	if err := password.CompareHash(user.PasswordHash, rawPassword); err != nil {
 		return "", "", "", errors.New("invalid credentials")
 	}
 	// генерируем токен с использованием username и role
