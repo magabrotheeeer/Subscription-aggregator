@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/grpc/client"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/response"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/jwt"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
 
@@ -17,7 +17,7 @@ type contextKey string
 
 const UserKey contextKey = "username"
 
-func JWTMiddleware(jwtMaker jwt.JWTMaker, log *slog.Logger) func(http.Handler) http.Handler {
+func JWTMiddleware(authClient *client.AuthClient, log *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
@@ -37,15 +37,14 @@ func JWTMiddleware(jwtMaker jwt.JWTMaker, log *slog.Logger) func(http.Handler) h
 			}
 			tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 
-			claims, err := jwtMaker.ParseToken(tokenStr)
-			if err != nil {
+			resp, err := authClient.ValidateToken(r.Context(), tokenStr)
+			if err != nil || !resp.Valid {
 				log.Error("invalid or expired token", sl.Err(err))
 				render.Status(r, http.StatusUnauthorized)
 				render.JSON(w, r, response.Error("invalid or expired token"))
-
 				return
 			}
-			ctx := context.WithValue(r.Context(), UserKey, claims.Subject)
+			ctx := context.WithValue(r.Context(), UserKey, resp.Username)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
