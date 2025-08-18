@@ -1,4 +1,5 @@
 env: "local"
+grpc_auth_address: ":50051"
 storage_connection_string: "postgres://papa:1234@db:5432/original_db?sslmode=disable"
 redis_connection:
   addressredis: "redis:6379"

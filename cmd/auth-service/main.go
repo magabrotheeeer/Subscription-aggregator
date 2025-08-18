@@ -1,0 +1,60 @@
+package main
+
+import (
+	"log/slog"
+	"net"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"google.golang.org/grpc"
+
+	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
+	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/proto"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/grpc/server"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/jwt"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/services"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
+)
+
+func main() {
+	config := config.MustLoad()
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	logger.Info("starting auth-service", slog.String("env", config.Env))
+	logger.Debug("debug messages are enabled")
+
+	// Подключаем базу пользователей
+	userRepo, err := storage.New(config.StorageConnectionString)
+	if err != nil {
+		logger.Error("failed to init storage", slog.Any("err", err))
+		os.Exit(1)
+	}
+
+	// JWT Maker
+	jwtMaker := jwt.NewJWTMaker(config.JWTSecretKey, config.TokenTTL)
+
+	// Бизнес-логика Auth
+	authService := services.NewAuthService(userRepo, jwtMaker)
+
+	// gRPC сервер
+	lis, err := net.Listen("tcp", config.GRPCAuthAddress)
+	if err != nil {
+		logger.Error("failed to listen", slog.String("address", config.GRPCAuthAddress))
+		os.Exit(1)
+	}
+	grpcServer := grpc.NewServer()
+	authpb.RegisterAuthServiceServer(grpcServer, server.NewAuthServer(authService, logger))
+
+	logger.Info("Auth gRPC service listening on", slog.String("port:", config.GRPCAuthAddress))
+	if err := grpcServer.Serve(lis); err != nil {
+		logger.Error("failed to listen port", slog.Any("err", err))
+	}
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+
+	<-stop
+
+	grpcServer.GracefulStop()
+	logger.Info("application stopped")
+}
