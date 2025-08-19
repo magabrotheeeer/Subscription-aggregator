@@ -5,37 +5,36 @@ package month
 import "time"
 
 // FullMonthsInOverlap считает количество целых месяцев пересечения двух периодов (подписка и фильтр).
-func FullMonthsInOverlap(startSub, endSub, filterStart, filterEnd time.Time) int {
-	start := maxDate(startSub, filterStart)
-	end := minDate(endSub, filterEnd)
-
-	if end.Before(start) || end.Equal(start) {
-		return 0
+func CountMonthsSimple(subStart time.Time, subMonths int, filterStart time.Time) int {
+	if filterStart.Before(subStart) || filterStart.Equal(subStart) {
+		return subMonths
 	}
 
-	yearStart, monthStart, _ := start.Date()
-	yearEnd, monthEnd, _ := end.Date()
+	yearDiff := filterStart.Year() - subStart.Year()
+	monthDiff := int(filterStart.Month()) - int(subStart.Month())
+	monthsDiff := yearDiff*12 + monthDiff
 
-	months := (yearEnd-yearStart)*12 + int(monthEnd) - int(monthStart)
+	// Если фильтр в том же месяце, но день фильтра позже дня начала подписки —
+	// уменьшаем количество месяцев на 1
+	if yearDiff == 0 && monthDiff == 0 && filterStart.Day() > subStart.Day() {
+		monthsDiff = 1
+	}
 
-	// Проверяем, если день конца меньше дня начала — уменьшаем месяц на один
-	if end.Day() < start.Day() {
-		months--
+	remainingMonths := subMonths - monthsDiff
+	if remainingMonths < 0 {
+		remainingMonths = 0
 	}
-	if months < 0 {
-		return 0
-	}
-	return months + 1 // +1 чтобы считать текущий месяц за полный
+	return remainingMonths
 }
 
-func maxDate(a, b time.Time) time.Time {
+func MaxDate(a, b time.Time) time.Time {
 	if a.After(b) {
 		return a
 	}
 	return b
 }
 
-func minDate(a, b time.Time) time.Time {
+func MinDate(a, b time.Time) time.Time {
 	if a.Before(b) {
 		return a
 	}

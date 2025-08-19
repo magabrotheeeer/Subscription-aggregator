@@ -129,9 +129,7 @@ func (s *Storage) List(ctx context.Context, username string, limit, offset int) 
 // CountSumSubscriptionEntrys считает суммарную стоимость подписок пользователя за выбранный период с учётом фильтров.
 func (s *Storage) CountSum(ctx context.Context, entry models.FilterSum) (float64, error) {
     const op = "storage.postgresql.CountSumSubscriptionEntrys"
-
     filterEnd := entry.StartDate.AddDate(0, entry.CounterMonths, 0)
-
     rows, err := s.Db.QueryContext(ctx, `
         SELECT service_name, price, start_date, counter_months
         FROM subscriptions
@@ -151,22 +149,21 @@ func (s *Storage) CountSum(ctx context.Context, entry models.FilterSum) (float64
         var price float64
         var startDate time.Time
         var counterMonths int
-
         if err := rows.Scan(&serviceName, &price, &startDate, &counterMonths); err != nil {
             return 0, fmt.Errorf("%s: %w", op, err)
         }
 
-        subEnd := startDate.AddDate(0, counterMonths, 0)
-
-        months := month.FullMonthsInOverlap(startDate, subEnd, entry.StartDate, filterEnd)
-        total += price * float64(months)
+        remainingMonths := month.CountMonthsSimple(startDate, counterMonths, entry.StartDate)
+        total += price * float64(remainingMonths)
     }
+
     if err := rows.Err(); err != nil {
         return 0, fmt.Errorf("%s: %w", op, err)
     }
 
     return total, nil
 }
+
 
 func (s *Storage) ListAll(ctx context.Context, limit, offset int) ([]*models.Entry, error) {
 	const op = "storage.postgresql.ListSubscriptionEntrys"
