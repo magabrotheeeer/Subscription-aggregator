@@ -6,10 +6,11 @@ package storage
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v5"
+	_ "github.com/jackc/pgx/v5"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/month"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
@@ -17,21 +18,37 @@ import (
 // Storage инкапсулирует соединение с базой данных PostgreSQL
 // и реализует методы работы с подписками и пользователями.
 type Storage struct {
-	Db *pgx.Conn
+	Db *sql.DB
 }
 
 // New создаёт подключение к PostgreSQL и инициализирует необходимые таблицы и индексы.
 func New(storageConnectionString string) (*Storage, error) {
 	const op = "storage.postgresql.New"
 
-	conn, err := pgx.Connect(context.Background(), storageConnectionString)
+	db, err := sql.Open("pgx", storageConnectionString)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	if err = db.PingContext(context.Background()); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	// Таблица пользователей
+	_, err = db.ExecContext(context.Background(), `
+		CREATE TABLE users(
+			id SERIAL PRIMARY KEY,
+			username VARCHAR(255) UNIQUE NOT NULL,
+			password_hash VARCHAR(255) NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			role VARCHAR(50) NOT NULL DEFAULT 'user'
+		);`)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	// Создание таблицы подписок
-	_, err = conn.Exec(context.Background(), `
-		CREATE TABLE IF NOT EXISTS subscriptions(
+	_, err = db.ExecContext(context.Background(), `
+		CREATE TABLE subscriptions(
 			id SERIAL PRIMARY KEY,
 			service_name TEXT NOT NULL,
 			price NUMERIC(10, 2) NOT NULL,
@@ -44,42 +61,21 @@ func New(storageConnectionString string) (*Storage, error) {
 	}
 
 	// Индекс по username для быстрого поиска подписок пользователя
-	_, err = conn.Exec(context.Background(), `
-		CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id 
+	_, err = db.ExecContext(context.Background(), `
+		CREATE INDEX idx_subscriptions_user_id 
 		ON subscriptions (username);`)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	// Таблица пользователей
-	_, err = conn.Exec(context.Background(), `
-		CREATE TABLE IF NOT EXISTS users(
-			id SERIAL PRIMARY KEY,
-			username VARCHAR(255) UNIQUE NOT NULL,
-			password_hash VARCHAR(255) NOT NULL,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			role VARCHAR(50) NOT NULL DEFAULT 'user'
-		);`)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	// Индекс по username для таблицы пользователей
-	_, err = conn.Exec(context.Background(), `
-		CREATE INDEX IF NOT EXISTS idx_users_username
-		ON users (username);`)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	return &Storage{Db: conn}, nil
+	return &Storage{Db: db}, nil
 }
 
 // CreateSubscriptionEntry вставляет новую запись подписки и возвращает её ID.
 func (s *Storage) Create(ctx context.Context, entry models.Entry) (int, error) {
 	const op = "storage.postgresql.CreateSubscriptionEntry"
 	var newID int
-	err := s.Db.QueryRow(ctx, `
+	err := s.Db.QueryRowContext(ctx, `
 			INSERT INTO subscriptions (service_name, price, username, start_date, end_date) 
 			VALUES ($1, $2, $3, $4, $5)
 			RETURNING id`,
@@ -93,17 +89,21 @@ func (s *Storage) Create(ctx context.Context, entry models.Entry) (int, error) {
 // RemoveSubscriptionEntry удаляет подписку по ID и возвращает количество удалённых строк.
 func (s *Storage) Remove(ctx context.Context, id int) (int64, error) {
 	const op = "storage.postgresql.DeleteSubscriptionEntryByUserID"
-	commandTag, err := s.Db.Exec(ctx, `DELETE FROM subscriptions WHERE id = $1`, id)
+	result, err := s.Db.ExecContext(ctx, `DELETE FROM subscriptions WHERE id = $1`, id)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
-	return commandTag.RowsAffected(), nil
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+	return rowsAffected, nil 
 }
 
 // ReadSubscriptionEntry возвращает данные подписки по её ID.
 func (s *Storage) Read(ctx context.Context, id int) (*models.Entry, error) {
 	const op = "storage.postgresql.ReadSubscriptionEntryByUserID"
-	row := s.Db.QueryRow(ctx, `
+	row := s.Db.QueryRowContext(ctx, `
 		SELECT service_name, price, username, start_date, end_date 
 		FROM subscriptions WHERE id = $1`, id)
 
@@ -117,7 +117,7 @@ func (s *Storage) Read(ctx context.Context, id int) (*models.Entry, error) {
 // UpdateSubscriptionEntry обновляет данные подписки по её ID и возвращает количество изменённых строк.
 func (s *Storage) Update(ctx context.Context, entry models.Entry, id int) (int64, error) {
 	const op = "storage.postgresql.UpdateSubscriptionEntryByServiceNamePrice"
-	commandTag, err := s.Db.Exec(ctx, `
+	result, err := s.Db.ExecContext(ctx, `
 		UPDATE subscriptions
 		SET service_name = $1,
 			start_date = $2,
@@ -129,13 +129,18 @@ func (s *Storage) Update(ctx context.Context, entry models.Entry, id int) (int64
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
-	return commandTag.RowsAffected(), nil
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return rowsAffected, nil
 }
 
 // ListSubscriptionEntrys возвращает список всех подписок пользователя с пагинацией.
 func (s *Storage) List(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error) {
 	const op = "storage.postgresql.ListSubscriptionEntrys"
-	rows, err := s.Db.Query(ctx, `
+	rows, err := s.Db.QueryContext(ctx, `
 		SELECT service_name, price, username, start_date, end_date
 		FROM subscriptions
 		WHERE username = $3
@@ -144,6 +149,7 @@ func (s *Storage) List(ctx context.Context, username string, limit, offset int) 
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+	defer rows.Close()
 
 	var result []*models.Entry
 	for rows.Next() {
@@ -160,7 +166,7 @@ func (s *Storage) List(ctx context.Context, username string, limit, offset int) 
 func (s *Storage) CountSum(ctx context.Context, entry models.FilterSum) (float64, error) {
 	const op = "storage.postgresql.CountSumSubscriptionEntrys"
 
-	rows, err := s.Db.Query(ctx, `
+	rows, err := s.Db.QueryContext(ctx, `
 		SELECT service_name, price, start_date, end_date
 		FROM subscriptions
 		WHERE username = $1
@@ -225,7 +231,7 @@ func (s *Storage) CountSum(ctx context.Context, entry models.FilterSum) (float64
 func (s *Storage) RegisterUser(ctx context.Context, user models.User) (int, error) {
 	const op = "storage.postgresql.RegisterUser"
 	var newID int
-	if err := s.Db.QueryRow(ctx, `
+	if err := s.Db.QueryRowContext(ctx, `
 			INSERT INTO users (username, password_hash, role) 
 			VALUES ($1, $2, $3)
 			RETURNING id;`,
@@ -239,7 +245,7 @@ func (s *Storage) RegisterUser(ctx context.Context, user models.User) (int, erro
 func (s *Storage) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
 	const op = "storage.postgresql.GetUserByUsername"
 	u := &models.User{}
-	row := s.Db.QueryRow(ctx, `
+	row := s.Db.QueryRowContext(ctx, `
 		SELECT id, username, password_hash, role, created_at
 		FROM users
 		WHERE username = $1`, username)
