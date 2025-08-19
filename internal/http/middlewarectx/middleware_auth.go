@@ -13,9 +13,10 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
 
-type contextKey string
-
-const UserKey contextKey = "username"
+const (
+	UserKey string = "username"
+	RoleKey string = "role"
+)
 
 func JWTMiddleware(authClient *client.AuthClient, log *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -45,6 +46,7 @@ func JWTMiddleware(authClient *client.AuthClient, log *slog.Logger) func(http.Ha
 				return
 			}
 			ctx := context.WithValue(r.Context(), UserKey, resp.Username)
+			ctx = context.WithValue(ctx, RoleKey, resp.Role)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
