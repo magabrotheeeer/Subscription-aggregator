@@ -137,7 +137,7 @@ func (s *Storage) CountSum(ctx context.Context, entry models.FilterSum) (float64
 			AND ($2::text IS NULL OR service_name = $2)
 			AND start_date <= COALESCE($3, start_date)
 			AND (end_date IS NULL OR end_date > COALESCE($4, end_date))
-`, entry.Username, entry.ServiceName, entry.EndDate, entry.StartDate)
+		`, entry.Username, entry.ServiceName, entry.EndDate, entry.StartDate)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
@@ -189,6 +189,29 @@ func (s *Storage) CountSum(ctx context.Context, entry models.FilterSum) (float64
 	}
 
 	return total, nil
+}
+
+func (s *Storage) ListAll(ctx context.Context, limit, offset int) ([]*models.Entry, error) {
+	const op = "storage.postgresql.ListSubscriptionEntrys"
+	rows, err := s.Db.QueryContext(ctx, `
+		SELECT service_name, price, username, start_date, end_date
+		FROM subscriptions
+		LIMIT $1 OFFSET $2`,
+		limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer rows.Close()
+
+	var result []*models.Entry
+	for rows.Next() {
+		var item models.Entry
+		if err := rows.Scan(&item.ServiceName, &item.Price, &item.Username, &item.StartDate, &item.EndDate); err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		result = append(result, &item)
+	}
+	return result, nil	
 }
 
 // RegisterUser сохраняет нового пользователя в базу данных и возвращает его ID.
