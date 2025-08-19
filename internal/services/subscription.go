@@ -16,6 +16,7 @@ type SubscriptionRepository interface {
 	Update(ctx context.Context, entry models.Entry, id int) (int64, error)
 	List(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error)
 	CountSum(ctx context.Context, entry models.FilterSum) (float64, error)
+	ListAll(ctx context.Context, limit, offset int) ([]*models.Entry, error)
 }
 
 type Cache interface {
@@ -147,8 +148,14 @@ func (s *SubscriptionService) Update(ctx context.Context, req models.DummyEntry,
 	return res, nil
 }
 
-func (s *SubscriptionService) List(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error) {
-	entries, err := s.repo.List(ctx, username, limit, offset)
+func (s *SubscriptionService) List(ctx context.Context, username, role string, limit, offset int) ([]*models.Entry, error) {
+	var err error
+	var entries []*models.Entry
+	if role == "admin" {
+		entries, err = s.repo.ListAll(ctx, limit, offset)
+	}else {
+		entries, err = s.repo.List(ctx, username, limit, offset)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +163,6 @@ func (s *SubscriptionService) List(ctx context.Context, username string, limit, 
 }
 
 func (s *SubscriptionService) CountSumWithFilter(ctx context.Context, username string, req models.DummyFilterSum) (float64, error) {
-	// Преобразуем в FilterSum
 	startDate, err := time.Parse("01-2006", req.StartDate)
 	if err != nil {
 		return 0, fmt.Errorf("invalid start date: %w", err)
@@ -183,6 +189,5 @@ func (s *SubscriptionService) CountSumWithFilter(ctx context.Context, username s
 		EndDate:     endDatePtr,
 	}
 
-	// Обращаемся к репозиторию
 	return s.repo.CountSum(ctx, filter)
 }
