@@ -17,6 +17,7 @@ FROM alpine:latest
 WORKDIR /root/
 COPY --from=builder /app/auth-service .
 COPY --from=builder /app/config/config.yaml ./config.yaml
+COPY --from=builder /app/migrations ./migrations
 
 EXPOSE 50051
 
