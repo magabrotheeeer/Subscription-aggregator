@@ -65,9 +65,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Info("login success", slog.Any("username", req.Username))
 	render.JSON(w, r, response.StatusOKWithData(map[string]any{
 		"token":         grpcResp.Token,
 		"refresh_token": grpcResp.RefreshToken,
 		"role":          grpcResp.Role,
+		"username":      req.Username,
 	}))
 }

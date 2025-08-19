@@ -65,8 +65,10 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Info("register success", slog.Any("username", req.Username), slog.Any("email", req.Email))
 	render.JSON(w, r, response.StatusOKWithData(map[string]any{
-		"username": req.Username,
 		"message":  "user created successfully",
+		"username": req.Username,
+		"email":    req.Email,
 	}))
 }
