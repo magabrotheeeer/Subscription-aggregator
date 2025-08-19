@@ -11,7 +11,7 @@ service AuthService {
 
 // Регистрация нового пользователя
 message RegisterRequest {
-  string email = 1
+  string email = 1;
   string username = 2;
   string password = 3;
 }
