@@ -24,7 +24,7 @@ func main() {
 	logger.Debug("debug messages are enabled")
 
 	// Подключаем базу пользователей
-	userRepo, err := storage.New(config.StorageConnectionString)
+	db, err := storage.New(config.StorageConnectionString)
 	if err != nil {
 		logger.Error("failed to init storage", slog.Any("err", err))
 		os.Exit(1)
@@ -34,7 +34,7 @@ func main() {
 	jwtMaker := jwt.NewJWTMaker(config.JWTSecretKey, config.TokenTTL)
 
 	// Бизнес-логика Auth
-	authService := services.NewAuthService(userRepo, jwtMaker)
+	authService := services.NewAuthService(db, jwtMaker)
 
 	// gRPC сервер
 	lis, err := net.Listen("tcp", config.GRPCAuthAddress)

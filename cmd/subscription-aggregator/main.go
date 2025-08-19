@@ -27,6 +27,7 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/remove"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/update"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/middlewarectx"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/migrations"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/services"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
 )
@@ -40,9 +41,18 @@ func main() {
 	logger.Info("starting subscription-aggregator", slog.String("env", config.Env))
 	logger.Debug("debug messages are enabled")
 
-	storage, err := storage.New(config.StorageConnectionString)
+	db, err := storage.New(config.StorageConnectionString)
 	if err != nil {
 		logger.Error("failed to init storage", slog.Any("err", err))
+		os.Exit(1)
+	}
+	if err = storage.InitializeSchema(db.Db); err != nil {
+		logger.Error("failed to initialize schema", slog.Any("err", err))
+		os.Exit(1)
+	}
+
+	if err = migrations.Run(db.Db, "./migrations"); err != nil {
+		logger.Error("failed to run migrations", slog.Any("err", err))
 		os.Exit(1)
 	}
 	cache, err := cache.InitServer(ctx, config.RedisConnection)
@@ -58,7 +68,7 @@ func main() {
 	}
 	defer authClient.Close()
 
-	subscriptionService := services.NewSubscriptionService(storage, cache, logger)
+	subscriptionService := services.NewSubscriptionService(db, cache, logger)
 
 	router := chi.NewRouter()
 	router.Use(
@@ -115,6 +125,6 @@ func main() {
 		ctxTimeout, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
 		srv.Shutdown(ctxTimeout)
-		storage.Db.Close(ctxTimeout)
+		db.Db.Close()
 	}
 }
