@@ -42,14 +42,15 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deleted, err := h.service.Remove(r.Context(), id)
+	res, err := h.service.Remove(r.Context(), id)
 	if err != nil {
 		log.Error("failed to delete subscription", sl.Err(err))
 		render.JSON(w, r, response.Error("failed to delete subscription"))
 		return
 	}
 
+	log.Info("success to delete subscription", slog.Any("deleted entrys:", res))
 	render.JSON(w, r, response.StatusOKWithData(map[string]any{
-		"deleted_count": deleted,
+		"deleted_count": res,
 	}))
 }

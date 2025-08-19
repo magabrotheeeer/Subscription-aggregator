@@ -49,6 +49,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, response.Error("could not read subscription"))
 		return
 	}
+
+	log.Info("success to read subscriptions", slog.Any("entry", res))
 	render.JSON(w, r, response.StatusOKWithData(map[string]any{
 		"entry": res,
 	}))

@@ -65,6 +65,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Info("succes to create subscriptions", slog.Any("id", id))
 	render.JSON(w, r, response.StatusOKWithData(map[string]any{
 		"last_added_id": id,
 	}))

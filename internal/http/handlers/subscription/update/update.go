@@ -76,6 +76,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Info("success to update subscription", slog.Any("updated count:", counter))
 	render.JSON(w, r, response.StatusOKWithData(map[string]any{
 		"updated_count": counter,
 	}))
