@@ -5,8 +5,9 @@ package models
 
 // User представляет зарегистрированного пользователя системы.
 type User struct {
-	ID           int       // Уникальный идентификатор пользователя
-	Username     string    // Имя пользователя (уникальное)
-	PasswordHash string    // Хэш пароля пользователя
-	Role         string    // Роль пользователя, admin или user
+	ID           int    // Уникальный идентификатор пользователя
+	Email        string // Электронная почта
+	Username     string // Имя пользователя (уникальное)
+	PasswordHash string // Хэш пароля пользователя
+	Role         string // Роль пользователя, admin или user
 }
