@@ -46,10 +46,6 @@ func main() {
 		logger.Error("failed to init storage", slog.Any("err", err))
 		os.Exit(1)
 	}
-	if err = storage.InitializeSchema(db.Db); err != nil {
-		logger.Error("failed to initialize schema", slog.Any("err", err))
-		os.Exit(1)
-	}
 
 	if err = migrations.Run(db.Db, "./migrations"); err != nil {
 		logger.Error("failed to run migrations", slog.Any("err", err))
