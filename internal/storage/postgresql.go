@@ -32,9 +32,13 @@ func New(storageConnectionString string) (*Storage, error) {
 	if err = db.PingContext(context.Background()); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+	return &Storage{Db: db}, nil
+}
 
+func InitializeSchema(db *sql.DB) error {
+	const op = "storage.postgresql.InitializeSchema"
 	// Таблица пользователей
-	_, err = db.ExecContext(context.Background(), `
+	_, err := db.ExecContext(context.Background(), `
 		CREATE TABLE users(
 			id SERIAL PRIMARY KEY,
 			username VARCHAR(255) UNIQUE NOT NULL,
@@ -43,7 +47,7 @@ func New(storageConnectionString string) (*Storage, error) {
 			role VARCHAR(50) NOT NULL DEFAULT 'user'
 		);`)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	// Создание таблицы подписок
@@ -57,18 +61,17 @@ func New(storageConnectionString string) (*Storage, error) {
 			end_date DATE
 		);`)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	// Индекс по username для быстрого поиска подписок пользователя
 	_, err = db.ExecContext(context.Background(), `
-		CREATE INDEX idx_subscriptions_user_id 
-		ON subscriptions (username);`)
+		CREATE INDEX idx_subscriptions_username
+		ON subscriptions(username);`)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
-
-	return &Storage{Db: db}, nil
+	return nil
 }
 
 // CreateSubscriptionEntry вставляет новую запись подписки и возвращает её ID.
@@ -97,7 +100,7 @@ func (s *Storage) Remove(ctx context.Context, id int) (int64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
-	return rowsAffected, nil 
+	return rowsAffected, nil
 }
 
 // ReadSubscriptionEntry возвращает данные подписки по её ID.
