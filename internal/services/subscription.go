@@ -45,17 +45,12 @@ func (s *SubscriptionService) Create(ctx context.Context, userName string, req m
 		return 0, fmt.Errorf("invalid start date: %w", err)
 	}
 
-	endDate, err := time.Parse("02-01-2006", req.EndDate)
-	if err != nil {
-		return 0, fmt.Errorf("invalid end date: %w", err)
-	}
-
 	entry := models.Entry{
-		ServiceName: req.ServiceName,
-		Username:    userName,
-		Price:       req.Price,
-		StartDate:   startDate,
-		EndDate:     endDate,
+		ServiceName:   req.ServiceName,
+		Username:      userName,
+		Price:         req.Price,
+		StartDate:     startDate,
+		CounterMonths: req.CounterMonths,
 	}
 
 	id, err := s.repo.Create(ctx, entry)
@@ -115,16 +110,12 @@ func (s *SubscriptionService) Update(ctx context.Context, req models.DummyEntry,
 		return 0, fmt.Errorf("invalid start date: %w", err)
 	}
 
-	endDate, err := time.Parse("02-01-2006", req.EndDate)
-	if err != nil {
-		return 0, fmt.Errorf("invalid end date: %w", err)
-	}
 	entry := models.Entry{
-		ServiceName: req.ServiceName,
-		Username:    username,
-		Price:       req.Price,
-		StartDate:   startDate,
-		EndDate:     endDate,
+		ServiceName:   req.ServiceName,
+		Username:      username,
+		Price:         req.Price,
+		StartDate:     startDate,
+		CounterMonths: req.CounterMonths,
 	}
 	res, err := s.repo.Update(ctx, entry, id)
 	if err != nil {
@@ -160,21 +151,16 @@ func (s *SubscriptionService) CountSumWithFilter(ctx context.Context, username s
 		return 0, fmt.Errorf("invalid start date: %w", err)
 	}
 
-	endDate, err := time.Parse("02-01-2006", req.EndDate)
-	if err != nil {
-		return 0, fmt.Errorf("invalid end date: %w", err)
-	}
-
 	var serviceNamePtr *string
 	if req.ServiceName != "" {
 		serviceNamePtr = &req.ServiceName
 	}
 
 	filter := models.FilterSum{
-		Username:    username,
-		ServiceName: serviceNamePtr,
-		StartDate:   startDate,
-		EndDate:     endDate,
+		Username:      username,
+		ServiceName:   serviceNamePtr,
+		StartDate:     startDate,
+		CounterMonths: req.CounterMonths,
 	}
 
 	return s.repo.CountSum(ctx, filter)

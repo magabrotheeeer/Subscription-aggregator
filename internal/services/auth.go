@@ -29,12 +29,13 @@ func NewAuthService(users UserRepository, jwtMaker jwt.JWTMaker) *AuthService {
 }
 
 // Register — создание нового пользователя с хэшированием пароля и дефолтной ролью "user"
-func (s *AuthService) Register(ctx context.Context, username, rawPassword string) (int, error) {
+func (s *AuthService) Register(ctx context.Context, email, username, rawPassword string) (int, error) {
 	hashed, err := password.GetHash(rawPassword)
 	if err != nil {
 		return 0, err
 	}
 	user := &models.User{
+		Email:        email,
 		Username:     username,
 		PasswordHash: hashed,
 		Role:         "user", // дефолтная роль при регистрации
