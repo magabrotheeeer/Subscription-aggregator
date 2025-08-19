@@ -53,7 +53,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, response.Error("unauthorized"))
 		return
 	}
-	res, err := h.service.List(r.Context(), username, limit, offset)
+	role, ok := r.Context().Value(middlewarectx.RoleKey).(string)
+	if !ok ||  role == "" {
+		log.Error("role not found in context")
+		render.JSON(w, r, response.Error("unauthorized"))
+	}
+	res, err := h.service.List(r.Context(), username, role, limit, offset)
 	if err != nil {
 		log.Error("failed to list entrys", sl.Err(err))
 		render.JSON(w, r, response.Error("failed to list"))
