@@ -40,10 +40,10 @@ func (s *Storage) Create(ctx context.Context, entry models.Entry) (int, error) {
 	const op = "storage.postgresql.CreateSubscriptionEntry"
 	var newID int
 	err := s.Db.QueryRowContext(ctx, `
-			INSERT INTO subscriptions (service_name, price, username, start_date, end_date) 
+			INSERT INTO subscriptions (service_name, price, username, start_date, counter_months) 
 			VALUES ($1, $2, $3, $4, $5)
 			RETURNING id`,
-		entry.ServiceName, entry.Price, entry.Username, entry.StartDate, entry.EndDate).Scan(&newID)
+		entry.ServiceName, entry.Price, entry.Username, entry.StartDate, entry.CounterMonths).Scan(&newID)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
@@ -68,11 +68,11 @@ func (s *Storage) Remove(ctx context.Context, id int) (int64, error) {
 func (s *Storage) Read(ctx context.Context, id int) (*models.Entry, error) {
 	const op = "storage.postgresql.ReadSubscriptionEntryByUserID"
 	row := s.Db.QueryRowContext(ctx, `
-		SELECT service_name, price, username, start_date, end_date 
+		SELECT service_name, price, username, start_date, counter_months
 		FROM subscriptions WHERE id = $1`, id)
 
 	var result models.Entry
-	if err := row.Scan(&result.ServiceName, &result.Price, &result.Username, &result.StartDate, &result.EndDate); err != nil {
+	if err := row.Scan(&result.ServiceName, &result.Price, &result.Username, &result.StartDate, &result.CounterMonths); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return &result, nil
@@ -85,11 +85,11 @@ func (s *Storage) Update(ctx context.Context, entry models.Entry, id int) (int64
 		UPDATE subscriptions
 		SET service_name = $1,
 			start_date = $2,
-			end_date = $3,
+			counter_months = $3,
 			price = $4,
 			username = $5
 		WHERE id = $6`,
-		entry.ServiceName, entry.StartDate, entry.EndDate, entry.Price, entry.Username, id)
+		entry.ServiceName, entry.StartDate, entry.CounterMonths, entry.Price, entry.Username, id)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
@@ -105,7 +105,7 @@ func (s *Storage) Update(ctx context.Context, entry models.Entry, id int) (int64
 func (s *Storage) List(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error) {
 	const op = "storage.postgresql.ListSubscriptionEntrys"
 	rows, err := s.Db.QueryContext(ctx, `
-		SELECT service_name, price, username, start_date, end_date
+		SELECT service_name, price, username, start_date, counter_months
 		FROM subscriptions
 		WHERE username = $3
 		LIMIT $1 OFFSET $2`,
@@ -118,7 +118,7 @@ func (s *Storage) List(ctx context.Context, username string, limit, offset int) 
 	var result []*models.Entry
 	for rows.Next() {
 		var item models.Entry
-		if err := rows.Scan(&item.ServiceName, &item.Price, &item.Username, &item.StartDate, &item.EndDate); err != nil {
+		if err := rows.Scan(&item.ServiceName, &item.Price, &item.Username, &item.StartDate, &item.CounterMonths); err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		result = append(result, &item)
@@ -130,14 +130,16 @@ func (s *Storage) List(ctx context.Context, username string, limit, offset int) 
 func (s *Storage) CountSum(ctx context.Context, entry models.FilterSum) (float64, error) {
     const op = "storage.postgresql.CountSumSubscriptionEntrys"
 
+    filterEnd := entry.StartDate.AddDate(0, entry.CounterMonths, 0)
+
     rows, err := s.Db.QueryContext(ctx, `
-        SELECT service_name, price, start_date, end_date
+        SELECT service_name, price, start_date, counter_months
         FROM subscriptions
         WHERE username = $1
           AND ($2::text IS NULL OR service_name = $2)
-          AND start_date <= COALESCE($3, start_date)
-          AND end_date > COALESCE($4, end_date)
-    `, entry.Username, entry.ServiceName, entry.EndDate, entry.StartDate)
+          AND start_date <= $3
+          AND (start_date + (counter_months || ' months')::interval) > $4
+    `, entry.Username, entry.ServiceName, filterEnd, entry.StartDate)
     if err != nil {
         return 0, fmt.Errorf("%s: %w", op, err)
     }
@@ -148,14 +150,16 @@ func (s *Storage) CountSum(ctx context.Context, entry models.FilterSum) (float64
         var serviceName string
         var price float64
         var startDate time.Time
-        var endDate time.Time
+        var counterMonths int
 
-        if err := rows.Scan(&serviceName, &price, &startDate, &endDate); err != nil {
+        if err := rows.Scan(&serviceName, &price, &startDate, &counterMonths); err != nil {
             return 0, fmt.Errorf("%s: %w", op, err)
         }
 
-		months := month.FullMonthsInOverlap(startDate, endDate, entry.StartDate, entry.EndDate)
-		total += price * float64(months)
+        subEnd := startDate.AddDate(0, counterMonths, 0)
+
+        months := month.FullMonthsInOverlap(startDate, subEnd, entry.StartDate, filterEnd)
+        total += price * float64(months)
     }
     if err := rows.Err(); err != nil {
         return 0, fmt.Errorf("%s: %w", op, err)
@@ -167,7 +171,7 @@ func (s *Storage) CountSum(ctx context.Context, entry models.FilterSum) (float64
 func (s *Storage) ListAll(ctx context.Context, limit, offset int) ([]*models.Entry, error) {
 	const op = "storage.postgresql.ListSubscriptionEntrys"
 	rows, err := s.Db.QueryContext(ctx, `
-		SELECT service_name, price, username, start_date, end_date
+		SELECT service_name, price, username, start_date, counter_months
 		FROM subscriptions
 		LIMIT $1 OFFSET $2`,
 		limit, offset)
@@ -179,12 +183,12 @@ func (s *Storage) ListAll(ctx context.Context, limit, offset int) ([]*models.Ent
 	var result []*models.Entry
 	for rows.Next() {
 		var item models.Entry
-		if err := rows.Scan(&item.ServiceName, &item.Price, &item.Username, &item.StartDate, &item.EndDate); err != nil {
+		if err := rows.Scan(&item.ServiceName, &item.Price, &item.Username, &item.StartDate, &item.CounterMonths); err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		result = append(result, &item)
 	}
-	return result, nil	
+	return result, nil
 }
 
 // RegisterUser сохраняет нового пользователя в базу данных и возвращает его ID.
@@ -192,10 +196,10 @@ func (s *Storage) RegisterUser(ctx context.Context, user models.User) (int, erro
 	const op = "storage.postgresql.RegisterUser"
 	var newID int
 	if err := s.Db.QueryRowContext(ctx, `
-			INSERT INTO users (username, password_hash, role) 
-			VALUES ($1, $2, $3)
+			INSERT INTO users (email, username, password_hash, role) 
+			VALUES ($1, $2, $3, $4)
 			RETURNING id;`,
-		user.Username, user.PasswordHash, user.Role).Scan(&newID); err != nil {
+		user.Email, user.Username, user.PasswordHash, user.Role).Scan(&newID); err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 	return newID, nil
@@ -206,11 +210,11 @@ func (s *Storage) GetUserByUsername(ctx context.Context, username string) (*mode
 	const op = "storage.postgresql.GetUserByUsername"
 	u := &models.User{}
 	row := s.Db.QueryRowContext(ctx, `
-		SELECT id, username, password_hash, role
+		SELECT id, email, username, password_hash, role
 		FROM users
 		WHERE username = $1`, username)
 
-	if err := row.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.Role); err != nil {
+	if err := row.Scan(&u.ID, &u.Email, &u.Username, &u.PasswordHash, &u.Role); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return u, nil
