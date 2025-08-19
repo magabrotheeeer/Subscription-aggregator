@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/jackc/pgx/v5"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/month"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
@@ -33,45 +33,6 @@ func New(storageConnectionString string) (*Storage, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return &Storage{Db: db}, nil
-}
-
-func InitializeSchema(db *sql.DB) error {
-	const op = "storage.postgresql.InitializeSchema"
-	// Таблица пользователей
-	_, err := db.ExecContext(context.Background(), `
-		CREATE TABLE users(
-			id SERIAL PRIMARY KEY,
-			username VARCHAR(255) UNIQUE NOT NULL,
-			password_hash VARCHAR(255) NOT NULL,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			role VARCHAR(50) NOT NULL DEFAULT 'user'
-		);`)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-
-	// Создание таблицы подписок
-	_, err = db.ExecContext(context.Background(), `
-		CREATE TABLE subscriptions(
-			id SERIAL PRIMARY KEY,
-			service_name TEXT NOT NULL,
-			price NUMERIC(10, 2) NOT NULL,
-			username VARCHAR(255) NOT NULL,
-			start_date DATE NOT NULL,
-			end_date DATE
-		);`)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-
-	// Индекс по username для быстрого поиска подписок пользователя
-	_, err = db.ExecContext(context.Background(), `
-		CREATE INDEX idx_subscriptions_username
-		ON subscriptions(username);`)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	return nil
 }
 
 // CreateSubscriptionEntry вставляет новую запись подписки и возвращает её ID.
