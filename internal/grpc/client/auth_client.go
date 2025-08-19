@@ -28,15 +28,16 @@ func (a *AuthClient) Close() error {
 	return a.conn.Close()
 }
 
-func (a *AuthClient) Login(ctx context.Context, username, password string) (*authpb.LoginResponse, error) {
+func (a *AuthClient) Login(ctx context.Context, email, username, password string) (*authpb.LoginResponse, error) {
 	return a.client.Login(ctx, &authpb.LoginRequest{
 		Username: username,
 		Password: password,
 	})
 }
 
-func (a *AuthClient) Register(ctx context.Context, username, password string) error {
+func (a *AuthClient) Register(ctx context.Context, email, username, password string) error {
 	_, err := a.client.Register(ctx, &authpb.RegisterRequest{
+		Email: email,
 		Username: username,
 		Password: password,
 	})

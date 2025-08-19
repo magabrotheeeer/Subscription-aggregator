@@ -28,7 +28,7 @@ func NewAuthServer(authService *services.AuthService, logger *slog.Logger) *Auth
 func (s *AuthServer) Register(ctx context.Context, req *authpb.RegisterRequest) (*authpb.RegisterResponse, error) {
 	s.log.Info("Register request", slog.String("username", req.Username))
 
-	_, err := s.authService.Register(ctx, req.Username, req.Password)
+	_, err := s.authService.Register(ctx, req.Email, req.Username, req.Password)
 	if err != nil {
 		s.log.Error("Register failed",
 			slog.String("username", req.Username),
