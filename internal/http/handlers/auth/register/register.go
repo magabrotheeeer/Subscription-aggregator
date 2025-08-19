@@ -58,7 +58,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Info("all fields are validated")
 
-	if err := h.authClient.Register(r.Context(), req.Username, req.Password, req.Email); err != nil {
+	if err := h.authClient.Register(r.Context(), req.Email, req.Username, req.Password); err != nil {
 		log.Error("registration failed", sl.Err(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		render.JSON(w, r, response.Error("failed to register user"))
