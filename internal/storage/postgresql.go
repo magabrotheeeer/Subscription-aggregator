@@ -128,67 +128,40 @@ func (s *Storage) List(ctx context.Context, username string, limit, offset int) 
 
 // CountSumSubscriptionEntrys считает суммарную стоимость подписок пользователя за выбранный период с учётом фильтров.
 func (s *Storage) CountSum(ctx context.Context, entry models.FilterSum) (float64, error) {
-	const op = "storage.postgresql.CountSumSubscriptionEntrys"
+    const op = "storage.postgresql.CountSumSubscriptionEntrys"
 
-	rows, err := s.Db.QueryContext(ctx, `
-		SELECT service_name, price, start_date, end_date
-		FROM subscriptions
-		WHERE username = $1
-			AND ($2::text IS NULL OR service_name = $2)
-			AND start_date <= COALESCE($3, start_date)
-			AND (end_date IS NULL OR end_date > COALESCE($4, end_date))
-		`, entry.Username, entry.ServiceName, entry.EndDate, entry.StartDate)
-	if err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
-	}
-	defer rows.Close()
+    rows, err := s.Db.QueryContext(ctx, `
+        SELECT service_name, price, start_date, end_date
+        FROM subscriptions
+        WHERE username = $1
+          AND ($2::text IS NULL OR service_name = $2)
+          AND start_date <= COALESCE($3, start_date)
+          AND end_date > COALESCE($4, end_date)
+    `, entry.Username, entry.ServiceName, entry.EndDate, entry.StartDate)
+    if err != nil {
+        return 0, fmt.Errorf("%s: %w", op, err)
+    }
+    defer rows.Close()
 
-	var total float64
-	for rows.Next() {
-		var serviceName string
-		var price float64
-		var startDate time.Time
-		var endDate *time.Time
+    var total float64
+    for rows.Next() {
+        var serviceName string
+        var price float64
+        var startDate time.Time
+        var endDate time.Time
 
-		if err := rows.Scan(&serviceName, &price, &startDate, &endDate); err != nil {
-			return 0, fmt.Errorf("%s: %w", op, err)
-		}
+        if err := rows.Scan(&serviceName, &price, &startDate, &endDate); err != nil {
+            return 0, fmt.Errorf("%s: %w", op, err)
+        }
 
-		// Начало периода активности
-		activeStart := month.MaxDate(startDate, entry.StartDate)
+		months := month.FullMonthsInOverlap(startDate, endDate, entry.StartDate, entry.EndDate)
+		total += price * float64(months)
+    }
+    if err := rows.Err(); err != nil {
+        return 0, fmt.Errorf("%s: %w", op, err)
+    }
 
-		// Конец фильтра
-		filterEnd := time.Date(9999, 12, 31, 0, 0, 0, 0, time.UTC)
-		if entry.EndDate != nil {
-			filterEnd = *entry.EndDate
-		}
-
-		// Коррекция даты окончания подписки (-1 день)
-		var adjustedEndDate *time.Time
-		if endDate != nil {
-			newEnd := endDate.AddDate(0, 0, -1)
-			adjustedEndDate = &newEnd
-		}
-
-		// Определяем финальную дату окончания активности
-		var activeEnd time.Time
-		if adjustedEndDate != nil && adjustedEndDate.Before(filterEnd) {
-			activeEnd = *adjustedEndDate
-		} else {
-			activeEnd = filterEnd
-		}
-
-		// Если период валиден — считаем стоимость
-		if !activeEnd.Before(activeStart) {
-			months := month.MonthsBetween(activeStart, activeEnd)
-			total += price * float64(months)
-		}
-	}
-	if err := rows.Err(); err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
-	}
-
-	return total, nil
+    return total, nil
 }
 
 func (s *Storage) ListAll(ctx context.Context, limit, offset int) ([]*models.Entry, error) {

@@ -40,18 +40,14 @@ func NewSubscriptionService(repo SubscriptionRepository, cache Cache, log *slog.
 }
 
 func (s *SubscriptionService) Create(ctx context.Context, userName string, req models.DummyEntry) (int, error) {
-	startDate, err := time.Parse("01-2006", req.StartDate)
+	startDate, err := time.Parse("02-01-2006", req.StartDate)
 	if err != nil {
 		return 0, fmt.Errorf("invalid start date: %w", err)
 	}
 
-	var endDatePtr *time.Time
-	if req.EndDate != "" {
-		endDate, err := time.Parse("01-2006", req.EndDate)
-		if err != nil {
-			return 0, fmt.Errorf("invalid end date: %w", err)
-		}
-		endDatePtr = &endDate
+	endDate, err := time.Parse("02-01-2006", req.EndDate)
+	if err != nil {
+		return 0, fmt.Errorf("invalid end date: %w", err)
 	}
 
 	entry := models.Entry{
@@ -59,7 +55,7 @@ func (s *SubscriptionService) Create(ctx context.Context, userName string, req m
 		Username:    userName,
 		Price:       req.Price,
 		StartDate:   startDate,
-		EndDate:     endDatePtr,
+		EndDate:     endDate,
 	}
 
 	id, err := s.repo.Create(ctx, entry)
@@ -114,25 +110,21 @@ func (s *SubscriptionService) Read(ctx context.Context, id int) (*models.Entry, 
 	return result, nil
 }
 func (s *SubscriptionService) Update(ctx context.Context, req models.DummyEntry, id int, username string) (int64, error) {
-	startDate, err := time.Parse("01-2006", req.StartDate)
+	startDate, err := time.Parse("02-01-2006", req.StartDate)
 	if err != nil {
 		return 0, fmt.Errorf("invalid start date: %w", err)
 	}
 
-	var endDatePtr *time.Time
-	if req.EndDate != "" {
-		endDate, err := time.Parse("01-2006", req.EndDate)
-		if err != nil {
-			return 0, fmt.Errorf("invalid end date: %w", err)
-		}
-		endDatePtr = &endDate
+	endDate, err := time.Parse("02-01-2006", req.EndDate)
+	if err != nil {
+		return 0, fmt.Errorf("invalid end date: %w", err)
 	}
 	entry := models.Entry{
 		ServiceName: req.ServiceName,
 		Username:    username,
 		Price:       req.Price,
 		StartDate:   startDate,
-		EndDate:     endDatePtr,
+		EndDate:     endDate,
 	}
 	res, err := s.repo.Update(ctx, entry, id)
 	if err != nil {
@@ -153,7 +145,7 @@ func (s *SubscriptionService) List(ctx context.Context, username, role string, l
 	var entries []*models.Entry
 	if role == "admin" {
 		entries, err = s.repo.ListAll(ctx, limit, offset)
-	}else {
+	} else {
 		entries, err = s.repo.List(ctx, username, limit, offset)
 	}
 	if err != nil {
@@ -163,18 +155,14 @@ func (s *SubscriptionService) List(ctx context.Context, username, role string, l
 }
 
 func (s *SubscriptionService) CountSumWithFilter(ctx context.Context, username string, req models.DummyFilterSum) (float64, error) {
-	startDate, err := time.Parse("01-2006", req.StartDate)
+	startDate, err := time.Parse("02-01-2006", req.StartDate)
 	if err != nil {
 		return 0, fmt.Errorf("invalid start date: %w", err)
 	}
 
-	var endDatePtr *time.Time
-	if req.EndDate != "" {
-		endDate, err := time.Parse("01-2006", req.EndDate)
-		if err != nil {
-			return 0, fmt.Errorf("invalid end date: %w", err)
-		}
-		endDatePtr = &endDate
+	endDate, err := time.Parse("02-01-2006", req.EndDate)
+	if err != nil {
+		return 0, fmt.Errorf("invalid end date: %w", err)
 	}
 
 	var serviceNamePtr *string
@@ -186,7 +174,7 @@ func (s *SubscriptionService) CountSumWithFilter(ctx context.Context, username s
 		Username:    username,
 		ServiceName: serviceNamePtr,
 		StartDate:   startDate,
-		EndDate:     endDatePtr,
+		EndDate:     endDate,
 	}
 
 	return s.repo.CountSum(ctx, filter)

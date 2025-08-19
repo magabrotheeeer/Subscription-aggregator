@@ -11,5 +11,5 @@ CREATE TABLE subscriptions (
     price NUMERIC(10, 2) NOT NULL,
     username TEXT NOT NULL,
     start_date DATE NOT NULL,
-    end_date DATE
+    end_date DATE NOT NULL
 );
