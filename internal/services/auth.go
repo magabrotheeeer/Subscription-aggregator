@@ -9,13 +9,11 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
-// Интерфейс репозитория пользователей
 type UserRepository interface {
 	RegisterUser(ctx context.Context, user models.User) (int, error)
 	GetUserByUsername(ctx context.Context, username string) (*models.User, error)
 }
 
-// AuthService реализует бизнес-логику авторизации и аутентификации
 type AuthService struct {
 	users    UserRepository
 	jwtMaker jwt.JWTMaker
@@ -49,16 +47,13 @@ func (s *AuthService) Login(ctx context.Context, username, rawPassword string) (
 	if err != nil {
 		return "", "", "", err
 	}
-	// проверяем пароль
 	if err := password.CompareHash(user.PasswordHash, rawPassword); err != nil {
 		return "", "", "", errors.New("invalid credentials")
 	}
-	// генерируем токен с использованием username и role
 	token, err = s.jwtMaker.GenerateToken(user.Username, user.Role)
 	if err != nil {
 		return "", "", "", err
 	}
-	// пока refresh-токен можно сделать простым заглушечным
 	refresh = "refresh-token-placeholder"
 	return token, refresh, user.Role, nil
 }
