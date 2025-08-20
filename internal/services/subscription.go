@@ -98,12 +98,15 @@ func (s *SubscriptionService) Read(ctx context.Context, id int) (*models.Entry, 
 		return nil, err
 	}
 
-	if err := s.cache.Set(cacheKey, result, time.Hour); err != nil {
-		s.log.Warn("failed to add to cache", slog.String("key", cacheKey),
-			slog.Any("err", err))
+	if result != nil {
+		if err := s.cache.Set(cacheKey, result, time.Hour); err != nil {
+			s.log.Warn("failed to add to cache", slog.String("key", cacheKey),
+				slog.Any("err", err))
+		}
 	}
 	return result, nil
 }
+
 func (s *SubscriptionService) Update(ctx context.Context, req models.DummyEntry, id int, username string) (int, error) {
 	startDate, err := time.Parse("02-01-2006", req.StartDate)
 	if err != nil {
