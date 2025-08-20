@@ -13,12 +13,14 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
 
+type Key string
+
 const (
-	UserKey string = "username"
-	RoleKey string = "role"
+	User Key = "username"
+	Role Key = "role"
 )
 
-func JWTMiddleware(authClient *client.AuthClient, log *slog.Logger) func(http.Handler) http.Handler {
+func JWTMiddleware(authClient client.AuthClientInterface, log *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
@@ -45,8 +47,8 @@ func JWTMiddleware(authClient *client.AuthClient, log *slog.Logger) func(http.Ha
 				render.JSON(w, r, response.Error("invalid or expired token"))
 				return
 			}
-			ctx := context.WithValue(r.Context(), UserKey, resp.Username)
-			ctx = context.WithValue(ctx, RoleKey, resp.Role)
+			ctx := context.WithValue(r.Context(), User, resp.Username)
+			ctx = context.WithValue(ctx, Role, resp.Role)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
