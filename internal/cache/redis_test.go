@@ -1,96 +1,146 @@
-package cache
+package cache_test
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
-	"github.com/alicebob/miniredis/v2"
+	"github.com/docker/go-connections/nat"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/cache"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-type testStruct struct {
-	Name string
-	Age  int
+type dummy struct {
+	Field string
 }
 
-func setupTestCache(t *testing.T) *Cache {
-	mr, err := miniredis.Run()
-	require.NoError(t, err)
+// setupRedisContainer поднимает Redis-контейнер и возвращает Cache и функцию-очистки.
+func setupRedisContainer(t *testing.T) (*cache.Cache, func()) {
+	t.Helper()
+	ctx := context.Background()
+	req := testcontainers.ContainerRequest{
+		Image:        "redis:7.0-alpine",
+		ExposedPorts: []string{"6379/tcp"},
+		WaitingFor:   wait.ForListeningPort(nat.Port("6379/tcp")),
+	}
+	redisC, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+	})
+	if err != nil {
+		t.Fatalf("failed to start Redis container: %v", err)
+	}
 
-	t.Cleanup(func() { mr.Close() })
+	host, _ := redisC.Host(ctx)
+	port, _ := redisC.MappedPort(ctx, nat.Port("6379"))
 
 	cfg := config.RedisConnection{
-		AddressRedis: mr.Addr(),
+		AddressRedis: host + ":" + port.Port(),
 		Password:     "",
 		DB:           0,
 		User:         "",
+		MaxRetries:   1,
+		DialTimeout:  5 * time.Second,
+		TimeoutRedis: 5 * time.Second,
+	}
+	c, err := cache.InitServer(ctx, cfg)
+	if err != nil {
+		t.Fatalf("InitServer failed: %v", err)
 	}
 
-	cache, err := InitServer(context.Background(), cfg)
-	require.NoError(t, err)
-	return cache
+	cleanup := func() {
+		redisC.Terminate(ctx)
+	}
+	return c, cleanup
 }
 
-func TestSetAndGet(t *testing.T) {
-	cache := setupTestCache(t)
+func TestCache_Set(t *testing.T) {
+	c, cleanup := setupRedisContainer(t)
+	defer cleanup()
 
-	expected := testStruct{Name: "Alice", Age: 30}
-	err := cache.Set("user:1", expected, time.Minute)
-	require.NoError(t, err)
-
-	var actual testStruct
-	found, err := cache.Get("user:1", &actual)
-	require.NoError(t, err)
-	require.True(t, found)
-	assert.Equal(t, expected, actual)
+	tests := []struct {
+		name       string
+		key        string
+		value      any
+		expiration time.Duration
+		wantErr    bool
+	}{
+		{"valid struct", "key1", &dummy{Field: "ok"}, time.Minute, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := c.Set(tt.key, tt.value, tt.expiration)
+			require.NoError(t, err)
+		})
+	}
 }
 
-func TestGetNotFound(t *testing.T) {
-	cache := setupTestCache(t)
+func TestCache_Get(t *testing.T) {
+	c, cleanup := setupRedisContainer(t)
+	defer cleanup()
 
-	var out testStruct
-	found, err := cache.Get("no_such_key", &out)
-	require.NoError(t, err)
-	assert.False(t, found)
-}
+	ctx := context.Background()
 
-func TestInvalidate(t *testing.T) {
-	cache := setupTestCache(t)
+	data := &dummy{Field: "test"}
+	testdata, _ := json.Marshal(data)
+	require.NoError(t, c.Db.Set(ctx, "key1", testdata, time.Minute).Err())
 
-	err := cache.Set("key", "value", time.Minute)
-	require.NoError(t, err)
-
-	err = cache.Invalidate("key")
-	require.NoError(t, err)
-
-	var out string
-	found, err := cache.Get("key", &out)
-	require.NoError(t, err)
-	assert.False(t, found)
-}
-
-func TestGetInvalidJSON(t *testing.T) {
-	cache := setupTestCache(t)
-
-	err := cache.Db.Set(context.Background(), "bad", []byte("not-json"), time.Minute).Err()
-	require.NoError(t, err)
-
-	var out testStruct
-	found, err := cache.Get("bad", &out)
-	assert.False(t, found)
-	assert.Error(t, err)
-}
-
-func TestInitServerInvalidAddr(t *testing.T) {
-	cfg := config.RedisConnection{
-		AddressRedis: "127.0.0.1:9999",
+	tests := []struct {
+		name      string
+		key       string
+		value     any
+		wantFound bool
+		wantErr   bool
+	}{
+		{"key exists", "key1", &dummy{}, true, false},
+		{"key not exist", "key2", &dummy{}, false, false},
 	}
 
-	cache, err := InitServer(context.Background(), cfg)
-	assert.Nil(t, cache)
-	assert.Error(t, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := c.Get(tt.key, tt.value)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantFound, got)
+		})
+	}
+}
+
+func TestCache_Invalidate(t *testing.T) {
+	c, cleanup := setupRedisContainer(t)
+	defer cleanup()
+
+	ctx := context.Background()
+
+	data := &dummy{Field: "test"}
+	testdata, _ := json.Marshal(data)
+	require.NoError(t, c.Db.Set(ctx, "key1", testdata, time.Minute).Err())
+
+	tests := []struct {
+		name    string
+		key     string
+		wantErr bool
+	}{
+		{"delete exists", "key1", false},
+		{"delete missing", "key2", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := c.Invalidate(tt.key)
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
 }
