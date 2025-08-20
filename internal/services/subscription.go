@@ -11,9 +11,9 @@ import (
 
 type SubscriptionRepository interface {
 	Create(ctx context.Context, sub models.Entry) (int, error)
-	Remove(ctx context.Context, id int) (int64, error)
+	Remove(ctx context.Context, id int) (int, error)
 	Read(ctx context.Context, id int) (*models.Entry, error)
-	Update(ctx context.Context, entry models.Entry, id int) (int64, error)
+	Update(ctx context.Context, entry models.Entry, id int) (int, error)
 	List(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error)
 	CountSum(ctx context.Context, entry models.FilterSum) (float64, error)
 	ListAll(ctx context.Context, limit, offset int) ([]*models.Entry, error)
@@ -69,7 +69,7 @@ func (s *SubscriptionService) Create(ctx context.Context, userName string, req m
 	return id, nil
 }
 
-func (s *SubscriptionService) Remove(ctx context.Context, id int) (int64, error) {
+func (s *SubscriptionService) Remove(ctx context.Context, id int) (int, error) {
 	cacheKey := fmt.Sprintf("subscription:%d", id)
 	if err := s.cache.Invalidate(cacheKey); err != nil {
 		s.log.Warn("failed to remove from cache", slog.String("key", cacheKey), slog.Any("err", err))
@@ -104,7 +104,7 @@ func (s *SubscriptionService) Read(ctx context.Context, id int) (*models.Entry, 
 	}
 	return result, nil
 }
-func (s *SubscriptionService) Update(ctx context.Context, req models.DummyEntry, id int, username string) (int64, error) {
+func (s *SubscriptionService) Update(ctx context.Context, req models.DummyEntry, id int, username string) (int, error) {
 	startDate, err := time.Parse("02-01-2006", req.StartDate)
 	if err != nil {
 		return 0, fmt.Errorf("invalid start date: %w", err)
