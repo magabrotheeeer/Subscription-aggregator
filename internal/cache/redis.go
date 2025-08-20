@@ -76,5 +76,12 @@ func (c *Cache) Set(key string, value any, expiration time.Duration) error {
 // Invalidate удаляет значение из Redis по указанному ключу key.
 // Возвращает ошибку, если операция удаления не удалась.
 func (c *Cache) Invalidate(key string) error {
-	return c.Db.Del(context.Background(), key).Err()
+	res, err := c.Db.Del(context.Background(), key).Result()
+	if err != nil {
+		return err
+	}
+	if res == 0 {
+		return fmt.Errorf("key %q not found", key)
+	}
+	return nil
 }
