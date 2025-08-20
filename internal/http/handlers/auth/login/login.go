@@ -22,11 +22,11 @@ type Request struct {
 
 type Handler struct {
 	log        *slog.Logger
-	authClient *client.AuthClient
+	authClient client.AuthClientInterface
 	validate   *validator.Validate
 }
 
-func New(log *slog.Logger, authClient *client.AuthClient) *Handler {
+func New(log *slog.Logger, authClient client.AuthClientInterface) *Handler {
 	return &Handler{
 		log:        log,
 		authClient: authClient,
