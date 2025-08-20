@@ -1,1 +1,1 @@
-DROP INDEX idx_susbcriptions_username;
+DROP INDEX idx_subscriptions_username;
