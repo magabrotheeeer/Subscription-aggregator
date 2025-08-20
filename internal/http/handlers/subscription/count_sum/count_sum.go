@@ -51,7 +51,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username, ok := r.Context().Value(middlewarectx.UserKey).(string)
+	username, ok := r.Context().Value(middlewarectx.User).(string)
 	if !ok || username == "" {
 		render.JSON(w, r, response.Error("unauthorized"))
 		return

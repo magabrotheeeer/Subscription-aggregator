@@ -47,14 +47,14 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil || limit <= 0 {
 		offset = 0
 	}
-	username, ok := r.Context().Value(middlewarectx.UserKey).(string)
+	username, ok := r.Context().Value(middlewarectx.User).(string)
 	if !ok || username == "" {
 		log.Error("username not found in context")
 		render.JSON(w, r, response.Error("unauthorized"))
 		return
 	}
-	role, ok := r.Context().Value(middlewarectx.RoleKey).(string)
-	if !ok ||  role == "" {
+	role, ok := r.Context().Value(middlewarectx.Role).(string)
+	if !ok || role == "" {
 		log.Error("role not found in context")
 		render.JSON(w, r, response.Error("unauthorized"))
 	}
