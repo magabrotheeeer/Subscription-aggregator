@@ -9,7 +9,7 @@ CREATE TABLE users (
 CREATE TABLE subscriptions (
     id SERIAL PRIMARY KEY,
     service_name TEXT NOT NULL,
-    price NUMERIC(10, 2) NOT NULL,
+    price INT NOT NULL,
     username TEXT NOT NULL,
     start_date DATE NOT NULL,
     counter_months INT NOT NULL
