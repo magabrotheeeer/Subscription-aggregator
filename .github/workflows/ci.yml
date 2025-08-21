@@ -38,7 +38,7 @@ jobs:
         run: go mod download
 
       - name: Run tests
-        run: go test ./... -timeout 60s -coverprofile=coverage.out
+        run: go test ./... -timeout 120s -coverprofile=coverage.out
 
       - name: Show coverage
         if: success() && runner.os == 'Linux'
