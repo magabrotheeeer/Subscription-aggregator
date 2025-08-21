@@ -1,6 +1,7 @@
 package remove
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -11,15 +12,18 @@ import (
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/services"
 )
 
 type Handler struct {
 	log     *slog.Logger
-	service *services.SubscriptionService
+	service Service
 }
 
-func New(log *slog.Logger, service *services.SubscriptionService) *Handler {
+type Service interface {
+	Remove(ctx context.Context, id int) (int, error)
+}
+
+func New(log *slog.Logger, service Service) *Handler {
 	return &Handler{
 		log:     log,
 		service: service,
@@ -45,6 +49,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	res, err := h.service.Remove(r.Context(), id)
 	if err != nil {
 		log.Error("failed to delete subscription", sl.Err(err))
+		w.WriteHeader(http.StatusInternalServerError)
 		render.JSON(w, r, response.Error("failed to delete subscription"))
 		return
 	}

@@ -1,6 +1,7 @@
 package list
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -11,16 +12,20 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/middlewarectx"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/services"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
 type Handler struct {
 	log      *slog.Logger
-	service  *services.SubscriptionService
+	service  Service
 	validate *validator.Validate
 }
 
-func New(log *slog.Logger, service *services.SubscriptionService) *Handler {
+type Service interface {
+	List(ctx context.Context, username, role string, limit, offset int) ([]*models.Entry, error)
+}
+
+func New(log *slog.Logger, service Service) *Handler {
 	return &Handler{
 		log:      log,
 		service:  service,
@@ -50,17 +55,21 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	username, ok := r.Context().Value(middlewarectx.User).(string)
 	if !ok || username == "" {
 		log.Error("username not found in context")
+		w.WriteHeader(http.StatusUnauthorized)
 		render.JSON(w, r, response.Error("unauthorized"))
 		return
 	}
 	role, ok := r.Context().Value(middlewarectx.Role).(string)
 	if !ok || role == "" {
 		log.Error("role not found in context")
+		w.WriteHeader(http.StatusUnauthorized)
 		render.JSON(w, r, response.Error("unauthorized"))
+		return
 	}
 	res, err := h.service.List(r.Context(), username, role, limit, offset)
 	if err != nil {
 		log.Error("failed to list entrys", sl.Err(err))
+		w.WriteHeader(http.StatusInternalServerError)
 		render.JSON(w, r, response.Error("failed to list"))
 		return
 	}

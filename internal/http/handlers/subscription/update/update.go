@@ -1,6 +1,7 @@
 package update
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -13,16 +14,19 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/services"
 )
 
 type Handler struct {
 	log      *slog.Logger
-	service  *services.SubscriptionService
+	service  Service
 	validate *validator.Validate
 }
 
-func New(log *slog.Logger, service *services.SubscriptionService) *Handler {
+type Service interface {
+	Update(ctx context.Context, req models.DummyEntry, id int, username string) (int, error)
+}
+
+func New(log *slog.Logger, service Service) *Handler {
 	return &Handler{
 		log:      log,
 		service:  service,
@@ -44,6 +48,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err = render.DecodeJSON(r.Body, &req)
 	if err != nil {
 		log.Error("failed to decode request body", sl.Err(err))
+		w.WriteHeader(http.StatusBadRequest)
 		render.JSON(w, r, response.Error("failed to decode request"))
 		return
 	}
@@ -51,6 +56,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if err = h.validate.Struct(req); err != nil {
 		log.Error("validation failed", sl.Err(err))
+		w.WriteHeader(http.StatusBadRequest)
 		render.JSON(w, r, response.ValidationError(err.(validator.ValidationErrors)))
 		return
 	}
@@ -58,6 +64,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	username, ok := r.Context().Value(middlewarectx.User).(string)
 	if !ok || username == "" {
+		log.Error("username not found in context")
+		w.WriteHeader(http.StatusUnauthorized)
 		render.JSON(w, r, response.Error("unauthorized"))
 		return
 	}
@@ -72,6 +80,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	counter, err := h.service.Update(r.Context(), req, id, username)
 	if err != nil {
 		log.Error("failed to update subscription", sl.Err(err))
+		w.WriteHeader(http.StatusInternalServerError)
 		render.JSON(w, r, response.Error("could not update subscription"))
 		return
 	}
