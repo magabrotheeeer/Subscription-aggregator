@@ -1,3 +1,9 @@
+// Package countsum реализует HTTP-обработчик для подсчёта общей суммы подписок пользователя.
+//
+// Handler принимает JSON-запрос с фильтром, валидирует его, извлекает имя пользователя из контекста,
+// вызывает бизнес-логику подсчёта суммы через сервис и возвращает результат в JSON-формате.
+//
+// В случае ошибок формируются соответствующие HTTP-ответы с описанием проблемы.
 package countsum
 
 import (
@@ -16,16 +22,21 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
+// Handler управляет HTTP-запросами на подсчёт суммы подписок.
+//
+// Использует логгер для журналирования, сервис для бизнес-логики и валидатор для проверки структуры запроса.
 type Handler struct {
-	log      *slog.Logger
-	service  Service
-	validate *validator.Validate
+	log      *slog.Logger        // Логгер для записи информации и ошибок
+	service  Service             // Сервис бизнес-логики для подсчёта суммы с фильтрами
+	validate *validator.Validate // Валидатор структуры входящих данных
 }
 
+// Service описывает интерфейс бизнес-логики подсчёта суммы подписок с фильтрами.
 type Service interface {
 	CountSumWithFilter(ctx context.Context, username string, req models.DummyFilterSum) (float64, error)
 }
 
+// New создаёт новый Handler с переданным логгером и сервисом подсчёта.
 func New(log *slog.Logger, service Service) *Handler {
 	return &Handler{
 		log:      log,
@@ -34,6 +45,14 @@ func New(log *slog.Logger, service Service) *Handler {
 	}
 }
 
+// ServeHTTP обрабатывает HTTP-запрос к эндпоинту подсчёта суммы подписок.
+//
+// Выполняет:
+// - Декодирование JSON с фильтром из тела запроса.
+// - Валидацию фильтра.
+// - Извлечение имени пользователя из контекста запроса.
+// - Вызов сервиса подсчёта суммы.
+// - Возврат результата или ошибочного ответа в формате JSON.
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	const op = "handlers.subscription.countsum"
 

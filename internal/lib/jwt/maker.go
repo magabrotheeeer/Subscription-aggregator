@@ -1,3 +1,8 @@
+// Package jwt реализует генерацию и парсинг JWT токенов с пользовательскими claim полями.
+//
+// CustomClaims расширяет стандартные claims JWT, добавляя username и роль пользователя.
+//
+// Методы GenerateToken и ParseToken реализуют создание и валидацию JWT токена с заданными claims.
 package jwt
 
 import (
@@ -7,13 +12,17 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// CustomClaims описывает пользовательские данные, хранящиеся в JWT.
 type CustomClaims struct {
-	Username string `json:"username"`
-	Role     string `json:"role"`
-	jwt.RegisteredClaims
+	Username             string `json:"username"` // Имя пользователя
+	Role                 string `json:"role"`     // Роль пользователя
+	jwt.RegisteredClaims        // Встроенные стандартные claims JWT (ExpiresAt, IssuedAt и пр.)
 }
 
-func (j *JWTMakerImpl) GenerateToken(username, role string) (string, error) {
+// GenerateToken создает JWT токен с заданными username и role, подписывая его секретным ключом.
+//
+// Время жизни токена определяется полем tokenTTL.
+func (j *MakerImpl) GenerateToken(username, role string) (string, error) {
 	claims := CustomClaims{
 		Username: username,
 		Role:     role,
@@ -26,9 +35,11 @@ func (j *JWTMakerImpl) GenerateToken(username, role string) (string, error) {
 	return token.SignedString([]byte(j.secretKey))
 }
 
-func (j *JWTMakerImpl) ParseToken(tokenStr string) (*CustomClaims, error) {
+// ParseToken парсит JWT токен, проверяет его подпись и валидность,
+// возвращает CustomClaims с данными, если токен корректен.
+func (j *MakerImpl) ParseToken(tokenStr string) (*CustomClaims, error) {
 	const op = "jwt.ParseToken"
-	token, err := jwt.ParseWithClaims(tokenStr, &CustomClaims{}, func(token *jwt.Token) (any, error) {
+	token, err := jwt.ParseWithClaims(tokenStr, &CustomClaims{}, func(_ *jwt.Token) (any, error) {
 		return []byte(j.secretKey), nil
 	})
 	if err != nil {

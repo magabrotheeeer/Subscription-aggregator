@@ -1,3 +1,9 @@
+// Package remove реализует HTTP-обработчик для удаления подписки пользователя по ID.
+//
+// Handler извлекает ID из URL-параметров, вызывает бизнес-логику удаления через сервис
+// и возвращает количество удалённых записей в JSON-формате.
+//
+// В случае ошибок формирует соответствующие HTTP-ответы с описанием проблемы.
 package remove
 
 import (
@@ -14,15 +20,18 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
 
+// Handler обрабатывает HTTP-запросы на удаление подписки по идентификатору.
 type Handler struct {
-	log     *slog.Logger
-	service Service
+	log     *slog.Logger // Логгер для записи информации и ошибок
+	service Service      // Сервис бизнес-логики для удаления подписки
 }
 
+// Service описывает интерфейс бизнес-логики удаления подписки.
 type Service interface {
 	Remove(ctx context.Context, id int) (int, error)
 }
 
+// New создает новый Handler с переданным логгером и сервисом.
 func New(log *slog.Logger, service Service) *Handler {
 	return &Handler{
 		log:     log,
@@ -30,6 +39,12 @@ func New(log *slog.Logger, service Service) *Handler {
 	}
 }
 
+// ServeHTTP обрабатывает HTTP-запрос на удаление подписки.
+//
+// Выполняет:
+// - Парсинг ID из URL.
+// - Вызов бизнес-логики удаления записи по ID.
+// - Формирование JSON-ответа с количеством удалённых записей или ошибкой.
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	const op = "handlers.subscription.remove"
 
@@ -54,7 +69,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Info("success to delete subscription", slog.Any("deleted entrys:", res))
+	log.Info("success to delete subscription", slog.Any("deleted entries", res))
 	render.JSON(w, r, response.StatusOKWithData(map[string]any{
 		"deleted_count": res,
 	}))

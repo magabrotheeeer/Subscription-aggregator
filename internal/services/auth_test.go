@@ -52,7 +52,6 @@ func (m *JwtMakerMock) ParseToken(token string) (*customjwt.CustomClaims, error)
 }
 
 func TestAuthService_Register(t *testing.T) {
-
 	tests := []struct {
 		name       string
 		email      string
@@ -162,7 +161,7 @@ func TestAuthService_Login(t *testing.T) {
 			name:     "user not found",
 			username: "nonexistent",
 			password: "password",
-			setupMocks: func(r *UserRepoMock, j *JwtMakerMock) {
+			setupMocks: func(r *UserRepoMock, _ *JwtMakerMock) {
 				r.On("GetUserByUsername", mock.Anything, "nonexistent").Return(nil, errors.New("user not found")).Once()
 			},
 			wantToken:   "",
@@ -175,7 +174,7 @@ func TestAuthService_Login(t *testing.T) {
 			name:     "wrong password",
 			username: "testuser",
 			password: "wrongpassword", // Неправильный пароль
-			setupMocks: func(r *UserRepoMock, j *JwtMakerMock) {
+			setupMocks: func(r *UserRepoMock, _ *JwtMakerMock) {
 				r.On("GetUserByUsername", mock.Anything, "testuser").Return(testUser, nil).Once()
 			},
 			wantToken:   "",

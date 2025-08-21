@@ -1,3 +1,5 @@
+// Package main инициализирует и запускает HTTP-сервер subscription-aggregator,
+// включая конфигурацию, подключение к базе данных и кэшу, регистрацию путей API и graceful shutdown.
 package main
 
 import (
@@ -62,7 +64,10 @@ func main() {
 		logger.Error("failed to connect auth grpc", slog.Any("err", err))
 		os.Exit(1)
 	}
-	defer authClient.Close()
+
+	defer func() {
+		_ = authClient.Close()
+	}()
 
 	subscriptionService := services.NewSubscriptionService(db, cache, logger)
 
@@ -74,10 +79,13 @@ func main() {
 		middleware.URLFormat,
 	)
 
+	// Регистрация роутов API версии v1
 	router.Route("/api/v1", func(r chi.Router) {
+		// Открытые эндпоинты регистрации и логина
 		r.Post("/register", register.New(logger, authClient).ServeHTTP)
 		r.Post("/login", login.New(logger, authClient).ServeHTTP)
 
+		// Группа роутов с JWT Middleware (требуют авторизации)
 		r.Group(func(r chi.Router) {
 			r.Use(middlewarectx.JWTMiddleware(authClient, logger))
 
@@ -120,7 +128,7 @@ func main() {
 		logger.Info("shutting down gracefully...")
 		ctxTimeout, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
-		srv.Shutdown(ctxTimeout)
-		db.Db.Close()
+		_ = srv.Shutdown(ctxTimeout)
+		_ = db.Db.Close()
 	}
 }

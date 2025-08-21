@@ -1,3 +1,9 @@
+// Package read реализует HTTP-обработчик для получения конкретной подписки по ID.
+//
+// Handler извлекает ID из URL-параметров, вызывает бизнес-логику для чтения подписки по идентификатору
+// и возвращает данные подписки в JSON-формате.
+//
+// В случае ошибок формирует соответствующие HTTP-ответы с описанием проблемы.
 package read
 
 import (
@@ -15,16 +21,19 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
+// Handler обрабатывает запросы на получение подписки по уникальному идентификатору.
 type Handler struct {
-	log      *slog.Logger
-	service  Service
-	validate *validator.Validate
+	log      *slog.Logger        // Логгер для записи информации и ошибок
+	service  Service             // Сервис бизнес-логики для получения подписки по ID
+	validate *validator.Validate // Валидатор (в текущей реализации не используется)
 }
 
+// Service описывает интерфейс бизнес-логики чтения подписки.
 type Service interface {
 	Read(ctx context.Context, id int) (*models.Entry, error)
 }
 
+// New создает новый Handler с переданным логгером и сервисом.
 func New(log *slog.Logger, service Service) *Handler {
 	return &Handler{
 		log:      log,
@@ -33,6 +42,12 @@ func New(log *slog.Logger, service Service) *Handler {
 	}
 }
 
+// ServeHTTP обрабатывает HTTP-запрос на получение подписки по ID.
+//
+// Выполняет:
+// - Парсинг ID из URL.
+// - Вызов бизнес-логики для чтения подписки.
+// - Формирование JSON-ответа с данными или ошибкой.
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	const op = "handlers.read.New"
 

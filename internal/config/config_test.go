@@ -96,17 +96,25 @@ jwttoken:
 
 	tmpFile, err := os.CreateTemp("", "test_config_*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		err = os.Remove(tmpFile.Name())
+		require.NoError(t, err)
+	}()
 
 	_, err = tmpFile.WriteString(configContent)
 	require.NoError(t, err)
-	tmpFile.Close()
+	err = tmpFile.Close()
+	require.NoError(t, err)
 
 	// Устанавливаем переменную окружения
 	originalPath := os.Getenv("CONFIG_PATH")
-	defer os.Setenv("CONFIG_PATH", originalPath)
+	defer func() {
+		err = os.Setenv("CONFIG_PATH", originalPath)
+		require.NoError(t, err)
+	}()
 
-	os.Setenv("CONFIG_PATH", tmpFile.Name())
+	err = os.Setenv("CONFIG_PATH", tmpFile.Name())
+	require.NoError(t, err)
 
 	// Не должно быть ошибок
 	output, panicked := captureOutput(func() {
@@ -149,17 +157,25 @@ jwttoken:
 
 	tmpFile, err := os.CreateTemp("", "minimal_config_*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		err = os.Remove(tmpFile.Name())
+		require.NoError(t, err)
+	}()
 
 	_, err = tmpFile.WriteString(configContent)
 	require.NoError(t, err)
-	tmpFile.Close()
+	err = tmpFile.Close()
+	require.NoError(t, err)
 
 	// Устанавливаем переменную окружения
 	originalPath := os.Getenv("CONFIG_PATH")
-	defer os.Setenv("CONFIG_PATH", originalPath)
+	defer func() {
+		err = os.Setenv("CONFIG_PATH", originalPath)
+		require.NoError(t, err)
+	}()
 
-	os.Setenv("CONFIG_PATH", tmpFile.Name())
+	err = os.Setenv("CONFIG_PATH", tmpFile.Name())
+	require.NoError(t, err)
 
 	output, panicked := captureOutput(func() {
 		cfg := MustLoad()

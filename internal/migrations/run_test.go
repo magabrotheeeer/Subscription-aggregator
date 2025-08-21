@@ -38,7 +38,8 @@ func getTestDB(t *testing.T) (*sql.DB, func()) {
 	require.NoError(t, err)
 
 	cleanup := func() {
-		db.Close()
+		err = db.Close()
+		require.NoError(t, err)
 		if err := pgContainer.Terminate(ctx); err != nil {
 			t.Logf("failed to terminate container: %s", err)
 		}

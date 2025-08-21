@@ -1,3 +1,10 @@
+// Package update реализует HTTP-обработчик для обновления данных подписки пользователя по ID.
+//
+// Handler принимает JSON-запрос с обновлёнными данными подписки, валидирует их,
+// извлекает имя пользователя и ID из контекста и URL-параметров,
+// вызывает бизнес-логику обновления через сервис и возвращает количество обновлённых записей в формате JSON.
+//
+// В случае ошибок формирует соответствующие HTTP-ответы с описанием проблемы.
 package update
 
 import (
@@ -16,16 +23,19 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
+// Handler отвечает за обработку запросов на обновление подписки.
 type Handler struct {
-	log      *slog.Logger
-	service  Service
-	validate *validator.Validate
+	log      *slog.Logger        // Логгер для ведения журналов и ошибок
+	service  Service             // Сервис бизнес-логики обновления подписок
+	validate *validator.Validate // Валидатор для проверки входных данных
 }
 
+// Service описывает интерфейс бизнес-логики обновления подписки.
 type Service interface {
 	Update(ctx context.Context, req models.DummyEntry, id int, username string) (int, error)
 }
 
+// New создает новый Handler с переданными логгером и сервисом.
 func New(log *slog.Logger, service Service) *Handler {
 	return &Handler{
 		log:      log,
@@ -34,6 +44,14 @@ func New(log *slog.Logger, service Service) *Handler {
 	}
 }
 
+// ServeHTTP обрабатывает HTTP-запрос на обновление подписки.
+//
+// Выполняет:
+// - Декодирование JSON с обновлёнными данными подписки из тела запроса.
+// - Валидацию данных.
+// - Получение username из контекста и id из URL.
+// - Вызов бизнес-логики обновления.
+// - Формирование JSON-ответа с количеством обновлённых записей или ошибкой.
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	const op = "handlers.update.New"
 
@@ -85,7 +103,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Info("success to update subscription", slog.Any("updated count:", counter))
+	log.Info("success to update subscription", slog.Any("updated count", counter))
 	render.JSON(w, r, response.StatusOKWithData(map[string]any{
 		"updated_count": counter,
 	}))

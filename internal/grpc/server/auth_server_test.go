@@ -28,7 +28,10 @@ import (
 func runMigrations(t *testing.T, connStr string) {
 	db, err := sql.Open("pgx", connStr)
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() {
+		err = db.Close()
+		require.NoError(t, err)
+	}()
 
 	migrations := []string{
 		`CREATE TABLE IF NOT EXISTS users (
@@ -89,7 +92,7 @@ func setupTestGRPCServer(t *testing.T) (authpb.AuthServiceClient, func()) {
 	authService := services.NewAuthService(storage, jwtMaker)
 
 	// Запускаем gRPC сервер
-	lis, err := net.Listen("tcp", ":0")
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
@@ -118,10 +121,13 @@ func setupTestGRPCServer(t *testing.T) (authpb.AuthServiceClient, func()) {
 
 	// Функция cleanup
 	cleanup := func() {
-		conn.Close()
+		err = conn.Close()
+		require.NoError(t, err)
 		grpcServer.Stop()
-		storage.Db.Close()
-		pgContainer.Terminate(ctx)
+		err = storage.Db.Close()
+		require.NoError(t, err)
+		err = pgContainer.Terminate(ctx)
+		require.NoError(t, err)
 	}
 
 	return client, cleanup

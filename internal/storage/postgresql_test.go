@@ -65,8 +65,10 @@ func setupTestDb(t *testing.T) (*Storage, func()) {
 	require.NoError(t, err, "Failed to create user table")
 
 	cleanup := func() {
-		storage.Db.Close()
-		postgresContainer.Terminate(ctx)
+		err = storage.Db.Close()
+		require.NoError(t, err)
+		err = postgresContainer.Terminate(ctx)
+		require.NoError(t, err)
 	}
 
 	return storage, cleanup
@@ -234,7 +236,7 @@ func TestStorage_Read(t *testing.T) {
 			},
 			want:    nil,
 			wantErr: true,
-			setup:   func(s *Storage) {},
+			setup:   func(_ *Storage) {},
 		},
 	}
 
@@ -405,7 +407,7 @@ func TestStorage_RegisterUser(t *testing.T) {
 					"test@example.com", "testuser", "hashedpassword", "user")
 				require.NoError(t, err)
 			},
-			verify: func(t *testing.T, s *Storage, id int) {},
+			verify: func(_ *testing.T, _ *Storage, _ int) {},
 		},
 	}
 
@@ -477,7 +479,7 @@ func TestStorage_GetUserByUsername(t *testing.T) {
 			},
 			want:    nil,
 			wantErr: true,
-			setup:   func(s *Storage) {},
+			setup:   func(_ *Storage) {},
 		},
 	}
 

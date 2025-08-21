@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"time"
 
+	// Регистрация драйвера pgx для использования с database/sql.
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/month"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
@@ -35,7 +36,7 @@ func New(storageConnectionString string) (*Storage, error) {
 	return &Storage{Db: db}, nil
 }
 
-// CreateSubscriptionEntry вставляет новую запись подписки и возвращает её ID.
+// Create вставляет новую запись подписки и возвращает её ID.
 func (s *Storage) Create(ctx context.Context, entry models.Entry) (int, error) {
 	const op = "storage.postgresql.Create"
 	var newID int
@@ -50,7 +51,7 @@ func (s *Storage) Create(ctx context.Context, entry models.Entry) (int, error) {
 	return newID, nil
 }
 
-// RemoveSubscriptionEntry удаляет подписку по ID и возвращает количество удалённых строк.
+// Remove удаляет подписку по ID и возвращает количество удалённых строк.
 func (s *Storage) Remove(ctx context.Context, id int) (int, error) {
 	const op = "storage.postgresql.Remove"
 	result, err := s.Db.ExecContext(ctx, `DELETE FROM subscriptions WHERE id = $1`, id)
@@ -64,7 +65,7 @@ func (s *Storage) Remove(ctx context.Context, id int) (int, error) {
 	return int(rowsAffected), nil
 }
 
-// ReadSubscriptionEntry возвращает данные подписки по её ID.
+// Read возвращает данные подписки по её ID.
 func (s *Storage) Read(ctx context.Context, id int) (*models.Entry, error) {
 	const op = "storage.postgresql.Read"
 	row := s.Db.QueryRowContext(ctx, `
@@ -78,7 +79,7 @@ func (s *Storage) Read(ctx context.Context, id int) (*models.Entry, error) {
 	return &result, nil
 }
 
-// UpdateSubscriptionEntry обновляет данные подписки по её ID и возвращает количество изменённых строк.
+// Update обновляет данные подписки по её ID и возвращает количество изменённых строк.
 func (s *Storage) Update(ctx context.Context, entry models.Entry, id int) (int, error) {
 	const op = "storage.postgresql.Update"
 	result, err := s.Db.ExecContext(ctx, `
@@ -101,7 +102,7 @@ func (s *Storage) Update(ctx context.Context, entry models.Entry, id int) (int, 
 	return int(rowsAffected), nil
 }
 
-// ListSubscriptionEntrys возвращает список всех подписок пользователя с пагинацией.
+// List возвращает список всех подписок пользователя с пагинацией.
 func (s *Storage) List(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error) {
 	const op = "storage.postgresql.List"
 	rows, err := s.Db.QueryContext(ctx, `
@@ -113,7 +114,6 @@ func (s *Storage) List(ctx context.Context, username string, limit, offset int) 
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	defer rows.Close()
 
 	var result []*models.Entry
 	for rows.Next() {
@@ -123,10 +123,14 @@ func (s *Storage) List(ctx context.Context, username string, limit, offset int) 
 		}
 		result = append(result, &item)
 	}
+	err = rows.Close()
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 	return result, nil
 }
 
-// CountSumSubscriptionEntrys считает суммарную стоимость подписок пользователя за выбранный период с учётом фильтров.
+// CountSum подсчитывает суммарную стоимость подписок пользователя за выбранный период с учётом фильтров.
 func (s *Storage) CountSum(ctx context.Context, entry models.FilterSum) (float64, error) {
 	const op = "storage.postgresql.CountSum"
 	filterEnd := entry.StartDate.AddDate(0, entry.CounterMonths, 0)
@@ -143,7 +147,6 @@ func (s *Storage) CountSum(ctx context.Context, entry models.FilterSum) (float64
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
-	defer rows.Close()
 
 	var total float64
 	for rows.Next() {
@@ -156,7 +159,6 @@ func (s *Storage) CountSum(ctx context.Context, entry models.FilterSum) (float64
 			return 0, fmt.Errorf("%s: %w", op, err)
 		}
 
-		// Используем исправленную функцию
 		remainingMonths := month.CountMonths(startDate, counterMonths, entry.StartDate)
 		total += price * float64(remainingMonths)
 	}
@@ -164,10 +166,15 @@ func (s *Storage) CountSum(ctx context.Context, entry models.FilterSum) (float64
 	if err := rows.Err(); err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
+	err = rows.Close()
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
 
 	return total, nil
 }
 
+// ListAll возвращает список всех подписок с пагинацией.
 func (s *Storage) ListAll(ctx context.Context, limit, offset int) ([]*models.Entry, error) {
 	const op = "storage.postgresql.ListAll"
 	rows, err := s.Db.QueryContext(ctx, `
@@ -178,7 +185,6 @@ func (s *Storage) ListAll(ctx context.Context, limit, offset int) ([]*models.Ent
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	defer rows.Close()
 
 	var result []*models.Entry
 	for rows.Next() {
@@ -188,6 +194,12 @@ func (s *Storage) ListAll(ctx context.Context, limit, offset int) ([]*models.Ent
 		}
 		result = append(result, &item)
 	}
+
+	err = rows.Close()
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
 	return result, nil
 }
 

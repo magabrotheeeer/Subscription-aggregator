@@ -1,3 +1,9 @@
+// Package create реализует HTTP-обработчик для создания новых подписок пользователя.
+//
+// Handler принимает JSON-запрос с данными подписки, валидирует их, извлекает имя пользователя из контекста,
+// вызывает бизнес-логику создания подписки через сервис и возвращает ID созданной записи в JSON-формате.
+//
+// В случае ошибок формируются соответствующие HTTP-ответы с описанием проблемы.
 package create
 
 import (
@@ -16,16 +22,23 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
+// Handler управляет HTTP-запросами на создание новых подписок.
+//
+// Использует логгер для записи операций и ошибок,
+// сервис бизнес-логики для создания подписки,
+// а также валидатор для проверки структуры входных данных.
 type Handler struct {
-	log      *slog.Logger
-	service  Service
-	validate *validator.Validate
+	log      *slog.Logger        // Логгер для записи информации и ошибок
+	service  Service             // Сервис бизнес-логики для создания подписок
+	validate *validator.Validate // Валидатор структуры входящих данных
 }
 
+// Service описывает интерфейс бизнес-логики создания подписки.
 type Service interface {
 	Create(ctx context.Context, userName string, req models.DummyEntry) (int, error)
 }
 
+// New создает новый Handler с переданными логгером и сервисом.
 func New(log *slog.Logger, service Service) *Handler {
 	return &Handler{
 		log:      log,
@@ -34,6 +47,14 @@ func New(log *slog.Logger, service Service) *Handler {
 	}
 }
 
+// ServeHTTP обрабатывает HTTP-запрос для создания подписки.
+//
+// Выполняет:
+// - Декодирование JSON из тела запроса.
+// - Валидацию структуры запроса.
+// - Извлечение имени пользователя из контекста запроса.
+// - Вызов бизнес-логики создания подписки.
+// - Возврат ID созданной подписки или ошибочного ответа в формате JSON.
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	const op = "handlers.subscription.create"
 	log := h.log.With(

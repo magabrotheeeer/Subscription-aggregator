@@ -1,3 +1,7 @@
+// Package server реализует gRPC-сервер для авторизационного сервиса.
+//
+// AuthServer обрабатывает gRPC-запросы регистрации, входа и валидации JWT токенов.
+// Логирует операции и ошибки, делегирует бизнес-логику объекту AuthService.
 package server
 
 import (
@@ -17,6 +21,7 @@ type AuthServer struct {
 	log         *slog.Logger
 }
 
+// NewAuthServer создает новый экземпляр AuthServer с указанным сервисом аутентификации и логгером.
 func NewAuthServer(authService *services.AuthService, logger *slog.Logger) *AuthServer {
 	return &AuthServer{
 		authService: authService,

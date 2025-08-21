@@ -54,7 +54,7 @@ func setupRedisContainer(t *testing.T) (*cache.Cache, func()) {
 	}
 
 	cleanup := func() {
-		redisC.Terminate(ctx)
+		_ = redisC.Terminate(ctx)
 	}
 	return c, cleanup
 }

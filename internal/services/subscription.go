@@ -1,3 +1,4 @@
+// Package services содержит бизнес-логику для управления подписками и кешированием.
 package services
 
 import (
@@ -9,28 +10,42 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
+// SubscriptionRepository определяет методы для работы с подписками в хранилище.
 type SubscriptionRepository interface {
+	// Create добавляет новую подписку и возвращает её ID.
 	Create(ctx context.Context, sub models.Entry) (int, error)
+	// Remove удаляет подписку по ID и возвращает количество удалённых записей.
 	Remove(ctx context.Context, id int) (int, error)
+	// Read возвращает подписку по ID.
 	Read(ctx context.Context, id int) (*models.Entry, error)
+	// Update обновляет данные подписки по ID.
 	Update(ctx context.Context, entry models.Entry, id int) (int, error)
+	// List возвращает список подписок для пользователя с пагинацией.
 	List(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error)
+	// CountSum подсчитывает сумму по фильтру.
 	CountSum(ctx context.Context, entry models.FilterSum) (float64, error)
+	// ListAll возвращает список всех подписок с пагинацией.
 	ListAll(ctx context.Context, limit, offset int) ([]*models.Entry, error)
 }
 
+// Cache описывает методы для кэширования данных.
 type Cache interface {
+	// Get пытается получить значение из кеша по ключу.
 	Get(key string, result any) (bool, error)
+	// Set сохраняет значение в кеш с временем жизни.
 	Set(key string, value any, expiration time.Duration) error
+	// Invalidate удаляет значение из кеша по ключу.
 	Invalidate(key string) error
 }
 
+// SubscriptionService реализует бизнес-логику работы с подписками, включая кеширование.
 type SubscriptionService struct {
 	repo  SubscriptionRepository
 	cache Cache
 	log   *slog.Logger
 }
 
+// NewSubscriptionService создает новый экземпляр SubscriptionService.
 func NewSubscriptionService(repo SubscriptionRepository, cache Cache, log *slog.Logger) *SubscriptionService {
 	return &SubscriptionService{
 		repo:  repo,
@@ -39,6 +54,7 @@ func NewSubscriptionService(repo SubscriptionRepository, cache Cache, log *slog.
 	}
 }
 
+// Create создает новую подписку для пользователя, кеширует её и возвращает ID.
 func (s *SubscriptionService) Create(ctx context.Context, userName string, req models.DummyEntry) (int, error) {
 	startDate, err := time.Parse("02-01-2006", req.StartDate)
 	if err != nil {
@@ -64,11 +80,12 @@ func (s *SubscriptionService) Create(ctx context.Context, userName string, req m
 	if err := s.cache.Set(cacheKey, entry, time.Hour); err != nil {
 		s.log.Warn("failed to cache subscription", slog.String("key", cacheKey), slog.Any("err", err))
 	}
-	s.log.Info("created new susbcription in cache")
+	s.log.Info("created new subscription in cache")
 
 	return id, nil
 }
 
+// Remove удаляет подписку по ID и инвалидирует кеш.
 func (s *SubscriptionService) Remove(ctx context.Context, id int) (int, error) {
 	cacheKey := fmt.Sprintf("subscription:%d", id)
 	if err := s.cache.Invalidate(cacheKey); err != nil {
@@ -83,6 +100,7 @@ func (s *SubscriptionService) Remove(ctx context.Context, id int) (int, error) {
 	return count, nil
 }
 
+// Read возвращает подписку по ID, используя кеш или репозиторий.
 func (s *SubscriptionService) Read(ctx context.Context, id int) (*models.Entry, error) {
 	var result *models.Entry
 	cacheKey := fmt.Sprintf("subscription:%d", id)
@@ -107,6 +125,7 @@ func (s *SubscriptionService) Read(ctx context.Context, id int) (*models.Entry, 
 	return result, nil
 }
 
+// Update обновляет подписку и обновляет кеш.
 func (s *SubscriptionService) Update(ctx context.Context, req models.DummyEntry, id int, username string) (int, error) {
 	startDate, err := time.Parse("02-01-2006", req.StartDate)
 	if err != nil {
@@ -134,6 +153,7 @@ func (s *SubscriptionService) Update(ctx context.Context, req models.DummyEntry,
 	return res, nil
 }
 
+// List возвращает список подписок в зависимости от роли пользователя.
 func (s *SubscriptionService) List(ctx context.Context, username, role string, limit, offset int) ([]*models.Entry, error) {
 	var err error
 	var entries []*models.Entry
@@ -148,6 +168,7 @@ func (s *SubscriptionService) List(ctx context.Context, username, role string, l
 	return entries, nil
 }
 
+// CountSumWithFilter считает сумму подписок по заданным фильтрам.
 func (s *SubscriptionService) CountSumWithFilter(ctx context.Context, username string, req models.DummyFilterSum) (float64, error) {
 	startDate, err := time.Parse("02-01-2006", req.StartDate)
 	if err != nil {

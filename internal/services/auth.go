@@ -1,3 +1,4 @@
+// Package services содержит логику бизнес-уровня для работы с пользователями и аутентификацией.
 package services
 
 import (
@@ -9,24 +10,30 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
+// UserRepository описывает контракт для работы с пользователями в базе данных.
 type UserRepository interface {
+	// RegisterUser сохраняет нового пользователя и возвращает его ID.
 	RegisterUser(ctx context.Context, user models.User) (int, error)
+
+	// GetUserByUsername возвращает пользователя по имени или ошибку, если не найден.
 	GetUserByUsername(ctx context.Context, username string) (*models.User, error)
 }
 
+// AuthService отвечает за регистрацию, авторизацию и валидацию JWT.
 type AuthService struct {
 	users    UserRepository
-	jwtMaker jwt.JWTMaker
+	jwtMaker jwt.Maker
 }
 
-func NewAuthService(users UserRepository, jwtMaker jwt.JWTMaker) *AuthService {
+// NewAuthService создает новый экземпляр AuthService.
+func NewAuthService(users UserRepository, jwtMaker jwt.Maker) *AuthService {
 	return &AuthService{
 		users:    users,
 		jwtMaker: jwtMaker,
 	}
 }
 
-// Register — создание нового пользователя с хэшированием пароля и дефолтной ролью "user"
+// Register создает нового пользователя с хэшированием пароля и дефолтной ролью "user".
 func (s *AuthService) Register(ctx context.Context, email, username, rawPassword string) (int, error) {
 	hashed, err := password.GetHash(rawPassword)
 	if err != nil {
@@ -41,7 +48,7 @@ func (s *AuthService) Register(ctx context.Context, email, username, rawPassword
 	return s.users.RegisterUser(ctx, *user)
 }
 
-// Login — проверка пароля и генерация JWT с username и role
+// Login проверяет пароль пользователя и генерирует JWT (доступ + refresh token).
 func (s *AuthService) Login(ctx context.Context, username, rawPassword string) (token, refresh, role string, err error) {
 	user, err := s.users.GetUserByUsername(ctx, username)
 	if err != nil {
@@ -58,8 +65,8 @@ func (s *AuthService) Login(ctx context.Context, username, rawPassword string) (
 	return token, refresh, user.Role, nil
 }
 
-// ValidateToken — проверка JWT и возврат username, роли и статуса валидности
-func (s *AuthService) ValidateToken(ctx context.Context, token string) (*models.User, string, bool, error) {
+// ValidateToken проверяет JWT и возвращает информацию о пользователе, роль и признак валидности.
+func (s *AuthService) ValidateToken(_ context.Context, token string) (*models.User, string, bool, error) {
 	claims, err := s.jwtMaker.ParseToken(token)
 	if err != nil {
 		return nil, "", false, err

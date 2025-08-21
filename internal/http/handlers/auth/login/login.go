@@ -1,3 +1,9 @@
+// Package login реализует HTTP-обработчик для запросов аутентификации пользователей.
+//
+// В нём определяется структура Request для входных данных, выполняется декодирование JSON,
+// проверка и валидация полей, а также делегирование операции входа (login) клиенту gRPC Service.
+// При успешной аутентификации возвращается JSON с JWT и refresh-токеном;
+// в случае ошибок формируются соответствующие HTTP-ответы.
 package login
 
 import (
@@ -15,22 +21,31 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
 
-// Request — структура входных данных для авторизации
+// Request — структура входных данных для авторизации.
+//
+// Username должен быть строкой длиной от 3 до 50 символов, пароль — минимум 6 символов.
 type Request struct {
 	Username string `json:"username" validate:"required,min=3,max=50"`
 	Password string `json:"password" validate:"required,min=6"`
 }
 
+// Handler обрабатывает HTTP-запросы для авторизации.
 type Handler struct {
-	log        *slog.Logger
-	authClient Service
-	validate   *validator.Validate
+	log        *slog.Logger      // Логгер для записи операций и ошибок
+	authClient Service           // Клиент для вызова gRPC-сервиса аутентификации
+	validate   *validator.Validate // Валидатор для проверки входных данных
 }
 
+// Service описывает интерфейс бизнес-логики аутентификации.
+//
+// Включает метод Login для входа пользователя по username и password.
 type Service interface {
 	Login(ctx context.Context, username, password string) (*authpb.LoginResponse, error)
 }
 
+// New создает новый экземпляр Handler с указанными логгером и клиентом аутентификации.
+//
+// Инициализирует валидатор для проверки структур.
 func New(log *slog.Logger, authClient Service) *Handler {
 	return &Handler{
 		log:        log,
@@ -39,6 +54,13 @@ func New(log *slog.Logger, authClient Service) *Handler {
 	}
 }
 
+// ServeHTTP обрабатывает HTTP-запрос на вход пользователя.
+//
+// Выполняет:
+// - Декодирование JSON тела запроса в структуру Request.
+// - Валидацию данных.
+// - Вызов gRPC метода Login через authClient.
+// - Формирует JSON-ответ с JWT токенами или ошибкой.
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	const op = "handlers.auth.login"
 

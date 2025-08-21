@@ -43,3 +43,12 @@ jobs:
       - name: Show coverage
         if: success() && runner.os == 'Linux'
         run: go tool cover -func=coverage.out
+      - name: Run linters
+        run: golangci-lint run --config .golangci.yml
+
+      - name: Run tests
+        run: go test ./... -timeout 120s -coverprofile=coverage.out
+
+      - name: Show coverage
+        if: success() && runner.os == 'Linux'
+        run: go tool cover -func=coverage.out

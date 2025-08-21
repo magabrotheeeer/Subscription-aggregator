@@ -1,3 +1,4 @@
+// Package register реализует HTTP-обработчик для регистрации новых пользователей.
 package register
 
 import (
@@ -21,16 +22,27 @@ type Request struct {
 	Email    string `json:"email" validate:"required"`
 }
 
+// Handler обрабатывает HTTP-запросы входа пользователей.
+//
+// Включает логгер для записи операций, клиент для вызова gRPC-сервиса аутентификации
+// и валидатор для проверки входящих данных.
 type Handler struct {
 	log        *slog.Logger
 	authClient Service
 	validate   *validator.Validate
 }
 
+// Service определяет методы бизнес-логики для работы с пользователями.
+//
+// В данном случае включает регистрацию пользователя с учётом
+// email, имени пользователя и пароля.
 type Service interface {
 	Register(ctx context.Context, email, username, password string) error
 }
 
+// New создает новый экземпляр Handler с заданным логгером и клиентом аутентификации.
+//
+// Инициализирует валидатор для проверки входных данных запросов.
 func New(log *slog.Logger, authClient Service) *Handler {
 	return &Handler{
 		log:        log,

@@ -27,7 +27,10 @@ import (
 func runMigrations(t *testing.T, connStr string) {
 	db, err := sql.Open("pgx", connStr)
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() {
+		err = db.Close()
+		require.NoError(t, err)
+	}()
 
 	migrations := []string{
 		`CREATE TABLE IF NOT EXISTS users (
@@ -70,7 +73,10 @@ func TestAuthGRPCIntegration(t *testing.T) {
 				WithStartupTimeout(30*time.Second)),
 	)
 	require.NoError(t, err)
-	defer pgContainer.Terminate(ctx)
+	defer func() {
+		err = pgContainer.Terminate(ctx)
+		require.NoError(t, err)
+	}()
 
 	connStr, err := pgContainer.ConnectionString(ctx)
 	require.NoError(t, err)
@@ -79,7 +85,11 @@ func TestAuthGRPCIntegration(t *testing.T) {
 
 	storage, err := storage.New(connStr)
 	require.NoError(t, err)
-	defer storage.Db.Close()
+
+	defer func() {
+		err = storage.Db.Close()
+		require.NoError(t, err)
+	}()
 
 	jwtMaker := jwt.NewJWTMaker("test_secret_key", 24*time.Hour)
 	authService := services.NewAuthService(storage, jwtMaker)
@@ -89,7 +99,10 @@ func TestAuthGRPCIntegration(t *testing.T) {
 
 	client, err := NewAuthClient(addr)
 	require.NoError(t, err)
-	defer client.Close()
+	defer func() {
+		err = client.Close()
+		require.NoError(t, err)
+	}()
 
 	t.Run("Register and Login", func(t *testing.T) {
 		err := client.Register(ctx, "test@example.com", "testuser", "password123")
@@ -129,7 +142,7 @@ func startGRPCServer(t *testing.T, authService *services.AuthService) (*grpc.Ser
 		Level: slog.LevelError,
 	}))
 
-	lis, err := net.Listen("tcp", ":0")
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 
 	grpcServer := grpc.NewServer()

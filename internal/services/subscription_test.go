@@ -116,7 +116,7 @@ func TestSubscriptionService_Create(t *testing.T) {
 		},
 		{
 			name: "invalid date",
-			setupMocks: func(r *RepoMock, c *CacheMock) {
+			setupMocks: func(_ *RepoMock, _ *CacheMock) {
 			},
 			req: models.DummyEntry{
 				ServiceName:   "Netflix",
@@ -209,7 +209,7 @@ func TestSubscriptionService_Update(t *testing.T) {
 		},
 		{
 			name: "invalid date",
-			setupMocks: func(r *RepoMock, c *CacheMock) {
+			setupMocks: func(_ *RepoMock, _ *CacheMock) {
 			},
 			req: models.DummyEntry{
 				ServiceName:   "Netflix",
@@ -602,7 +602,7 @@ func TestSubscriptionService_CountSumWithFilter(t *testing.T) {
 				StartDate:     "invalid-date",
 				CounterMonths: 5,
 			},
-			setupMocks: func(r *RepoMock) {},
+			setupMocks: func(_ *RepoMock) {},
 			wantSum:    0,
 			wantErr:    true,
 			errMsg:     "invalid start date",
