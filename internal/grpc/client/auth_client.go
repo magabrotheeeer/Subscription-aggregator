@@ -9,12 +9,6 @@ import (
 	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/proto"
 )
 
-type AuthClientInterface interface {
-	ValidateToken(ctx context.Context, token string) (*authpb.ValidateTokenResponse, error)
-	Register(ctx context.Context, email, username, password string) error
-	Login(ctx context.Context, username, password string) (*authpb.LoginResponse, error)
-}
-
 type AuthClient struct {
 	conn   *grpc.ClientConn
 	client authpb.AuthServiceClient

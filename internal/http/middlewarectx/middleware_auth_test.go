@@ -29,17 +29,6 @@ func (m *AuthClientMock) ValidateToken(ctx context.Context, token string) (*auth
 	return resp, args.Error(1)
 }
 
-func (m *AuthClientMock) Login(ctx context.Context, username, password string) (*authpb.LoginResponse, error) {
-	args := m.Called(ctx, username, password)
-	resp, _ := args.Get(0).(*authpb.LoginResponse)
-	return resp, args.Error(1)
-}
-
-func (m *AuthClientMock) Register(ctx context.Context, email, username, password string) error {
-	args := m.Called(ctx, email, username, password)
-	return args.Error(0)
-}
-
 func newNoopLogger() *slog.Logger {
 	h := slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})
 	return slog.New(h)

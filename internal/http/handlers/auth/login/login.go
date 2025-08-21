@@ -9,7 +9,6 @@ import (
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator"
 
-	"github.com/magabrotheeeer/subscription-aggregator/internal/grpc/client"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
@@ -22,11 +21,11 @@ type Request struct {
 
 type Handler struct {
 	log        *slog.Logger
-	authClient client.AuthClientInterface
+	authClient Service
 	validate   *validator.Validate
 }
 
-func New(log *slog.Logger, authClient client.AuthClientInterface) *Handler {
+func New(log *slog.Logger, authClient Service) *Handler {
 	return &Handler{
 		log:        log,
 		authClient: authClient,

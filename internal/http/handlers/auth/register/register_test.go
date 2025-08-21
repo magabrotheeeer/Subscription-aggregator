@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/middleware"
-	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/proto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -25,18 +24,6 @@ type AuthClientMock struct {
 func (m *AuthClientMock) Register(ctx context.Context, email, username, password string) error {
 	args := m.Called(ctx, email, username, password)
 	return args.Error(0)
-}
-
-func (m *AuthClientMock) Login(ctx context.Context, username, password string) (*authpb.LoginResponse, error) {
-	args := m.Called(ctx, username, password)
-	resp, _ := args.Get(0).(*authpb.LoginResponse)
-	return resp, args.Error(1)
-}
-
-func (m *AuthClientMock) ValidateToken(ctx context.Context, token string) (*authpb.ValidateTokenResponse, error) {
-	args := m.Called(ctx, token)
-	resp, _ := args.Get(0).(*authpb.ValidateTokenResponse)
-	return resp, args.Error(1)
 }
 
 func newNoopLogger() *slog.Logger {

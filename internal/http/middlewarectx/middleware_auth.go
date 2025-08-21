@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/grpc/client"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
@@ -20,7 +19,7 @@ const (
 	Role Key = "role"
 )
 
-func JWTMiddleware(authClient client.AuthClientInterface, log *slog.Logger) func(http.Handler) http.Handler {
+func JWTMiddleware(authClient Service, log *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
