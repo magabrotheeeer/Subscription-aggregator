@@ -1,4 +1,4 @@
-package services_test
+package services
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -144,7 +143,7 @@ func TestSubscriptionService_Create(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := new(RepoMock)
 			cache := new(CacheMock)
-			svc := services.NewSubscriptionService(repo, cache, newNoopLogger())
+			svc := NewSubscriptionService(repo, cache, newNoopLogger())
 
 			tt.setupMocks(repo, cache)
 
@@ -241,7 +240,7 @@ func TestSubscriptionService_Update(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := new(RepoMock)
 			cache := new(CacheMock)
-			svc := services.NewSubscriptionService(repo, cache, newNoopLogger())
+			svc := NewSubscriptionService(repo, cache, newNoopLogger())
 
 			tt.setupMocks(repo, cache)
 
@@ -303,7 +302,7 @@ func TestSubscriptionService_Remove(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := new(RepoMock)
 			cache := new(CacheMock)
-			svc := services.NewSubscriptionService(repo, cache, newNoopLogger())
+			svc := NewSubscriptionService(repo, cache, newNoopLogger())
 
 			tt.setupMocks(repo, cache)
 
@@ -406,7 +405,7 @@ func TestSubscriptionService_List(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := new(RepoMock)
 			cache := new(CacheMock)
-			svc := services.NewSubscriptionService(repo, cache, newNoopLogger())
+			svc := NewSubscriptionService(repo, cache, newNoopLogger())
 
 			tt.setupMocks(repo)
 
@@ -505,7 +504,7 @@ func TestSubscriptionService_Read(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := new(RepoMock)
 			cache := new(CacheMock)
-			svc := services.NewSubscriptionService(repo, cache, newNoopLogger())
+			svc := NewSubscriptionService(repo, cache, newNoopLogger())
 
 			cacheKey := fmt.Sprintf("subscription:%d", tt.id)
 
@@ -645,7 +644,7 @@ func TestSubscriptionService_CountSumWithFilter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := new(RepoMock)
 			cache := new(CacheMock)
-			svc := services.NewSubscriptionService(repo, cache, newNoopLogger())
+			svc := NewSubscriptionService(repo, cache, newNoopLogger())
 
 			tt.setupMocks(repo)
 
