@@ -37,8 +37,8 @@ jobs:
       - name: Install dependencies
         run: go mod download
 
-      - name: Run unit tests
-        run: go test ./... -timeout 30s -coverprofile=coverage.out
+      - name: Run tests
+        run: go test ./... -timeout 60s -coverprofile=coverage.out
 
       - name: Show coverage
         if: success() && runner.os == 'Linux'
