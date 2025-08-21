@@ -24,14 +24,14 @@ func InitServer(ctx context.Context, cfg config.RedisConnection) (*Cache, error)
 	const op = "cache.InitServer"
 
 	db := redis.NewClient(&redis.Options{
-		Addr:         cfg.AddressRedis,
-		Password:     cfg.Password,
-		DB:           cfg.DB,
-		Username:     cfg.User,
-		MaxRetries:   cfg.MaxRetries,
-		DialTimeout:  cfg.DialTimeout,
-		ReadTimeout:  cfg.TimeoutRedis,
-		WriteTimeout: cfg.TimeoutRedis,
+		Addr:         cfg.RedisAddress,
+		Password:     cfg.RedisPassword,
+		DB:           cfg.RedisDB,
+		Username:     cfg.RedisUser,
+		MaxRetries:   cfg.RedisMaxRetries,
+		DialTimeout:  cfg.RedisDialTimeout,
+		ReadTimeout:  cfg.RedisTimeoutRedis,
+		WriteTimeout: cfg.RedisTimeoutRedis,
 	})
 
 	if err := db.Ping(ctx).Err(); err != nil {

@@ -18,6 +18,21 @@ type Config struct {
 	RedisConnection         `yaml:"redis_connection"`
 	HTTPServer              `yaml:"http_server"`
 	JWTToken                `yaml:"jwttoken"`
+	SMTP                    `yaml:"smtp"`
+	RabbitMQ                `yaml:"rabbitmq"`
+}
+
+type RabbitMQ struct {
+	RabbitMQURL        string        `yaml:"rabbitmq_url"`
+	RabbitMQMaxRetries int           `yaml:"rabbitmq_maxretries"`
+	RabbitMQRetryDelay time.Duration `yaml:"rabbitmq_retry_delay"`
+}
+
+type SMTP struct {
+	SMTPHost string `yaml:"smtp_host"`
+	SMTPPort int    `yaml:"smtp_port"`
+	SMTPUser string `yaml:"smtp_user"`
+	SMTPPass string `yaml:"smtp_pass"`
 }
 
 // HTTPServer структура для настройки сервера
@@ -29,13 +44,13 @@ type HTTPServer struct {
 
 // RedisConnection структура для настройки подключения к redis
 type RedisConnection struct {
-	AddressRedis string        `yaml:"addressredis"`
-	Password     string        `yaml:"password"`
-	User         string        `yaml:"user"`
-	DB           int           `yaml:"db"`
-	MaxRetries   int           `yaml:"max_retries"`
-	DialTimeout  time.Duration `yaml:"dial_timeout"`
-	TimeoutRedis time.Duration `yaml:"timeoutredis"`
+	RedisAddress      string        `yaml:"addressredis"`
+	RedisPassword     string        `yaml:"password"`
+	RedisUser         string        `yaml:"user"`
+	RedisDB           int           `yaml:"db"`
+	RedisMaxRetries   int           `yaml:"max_retries"`
+	RedisDialTimeout  time.Duration `yaml:"dial_timeout"`
+	RedisTimeoutRedis time.Duration `yaml:"timeoutredis"`
 }
 
 // JWTToken структура для работы с jwt-токеном
@@ -79,20 +94,27 @@ func (c *Config) String() string {
 			"  IdleTimeout: %s\n"+
 			"JWTToken:\n"+
 			"  JWTSecretKey: %s\n"+
-			"  TokenTTL: %s\n",
+			"  TokenTTL: %s\n"+
+			"RabbitMQ:\n"+
+			"  URL: %s\n"+
+			"  MaxRetries: %d\n"+
+			"  RetryDelay: %s\n",
 		c.Env,
 		c.StorageConnectionString,
-		c.AddressRedis,
-		c.Password,
-		c.User,
-		c.DB,
-		c.MaxRetries,
-		c.DialTimeout,
-		c.TimeoutRedis,
+		c.RedisAddress,
+		c.RedisPassword,
+		c.RedisUser,
+		c.RedisDB,
+		c.RedisMaxRetries,
+		c.RedisDialTimeout,
+		c.RedisTimeoutRedis,
 		c.AddressHTTP,
 		c.TimeoutHTTP,
 		c.IdleTimeout,
 		c.JWTSecretKey,
 		c.TokenTTL,
+		c.RabbitMQURL,
+		c.RabbitMQMaxRetries,
+		c.RabbitMQRetryDelay,
 	)
 }

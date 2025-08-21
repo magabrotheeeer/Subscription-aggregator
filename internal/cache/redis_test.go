@@ -40,13 +40,13 @@ func setupRedisContainer(t *testing.T) (*cache.Cache, func()) {
 	port, _ := redisC.MappedPort(ctx, nat.Port("6379"))
 
 	cfg := config.RedisConnection{
-		AddressRedis: host + ":" + port.Port(),
-		Password:     "",
-		DB:           0,
-		User:         "",
-		MaxRetries:   1,
-		DialTimeout:  5 * time.Second,
-		TimeoutRedis: 5 * time.Second,
+		RedisAddress: host + ":" + port.Port(),
+		RedisPassword:     "",
+		RedisDB:           0,
+		RedisUser:         "",
+		RedisMaxRetries:   1,
+		RedisDialTimeout:  5 * time.Second,
+		RedisTimeoutRedis: 5 * time.Second,
 	}
 	c, err := cache.InitServer(ctx, cfg)
 	if err != nil {

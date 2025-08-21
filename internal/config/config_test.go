@@ -41,13 +41,13 @@ func TestConfig_String(t *testing.T) {
 		GRPCAuthAddress:         "localhost:50051",
 		StorageConnectionString: "postgres://user:pass@localhost:5432/db",
 		RedisConnection: RedisConnection{
-			AddressRedis: "localhost:6379",
-			Password:     "redis_pass",
-			User:         "redis_user",
-			DB:           1,
-			MaxRetries:   3,
-			DialTimeout:  5 * time.Second,
-			TimeoutRedis: 10 * time.Second,
+			RedisAddress: "localhost:6379",
+			RedisPassword:     "redis_pass",
+			RedisUser:         "redis_user",
+			RedisDB:           1,
+			RedisMaxRetries:   3,
+			RedisDialTimeout:  5 * time.Second,
+			RedisTimeoutRedis: 10 * time.Second,
 		},
 		HTTPServer: HTTPServer{
 			AddressHTTP: ":8080",
@@ -123,13 +123,13 @@ jwttoken:
 		assert.Equal(t, "test", cfg.Env)
 		assert.Equal(t, "localhost:50051", cfg.GRPCAuthAddress)
 		assert.Equal(t, "postgres://user:pass@localhost:5432/test", cfg.StorageConnectionString)
-		assert.Equal(t, "localhost:6379", cfg.AddressRedis)
-		assert.Equal(t, "redis_pass", cfg.Password)
-		assert.Equal(t, "redis_user", cfg.User)
-		assert.Equal(t, 1, cfg.DB)
-		assert.Equal(t, 3, cfg.MaxRetries)
-		assert.Equal(t, 5*time.Second, cfg.DialTimeout)
-		assert.Equal(t, 10*time.Second, cfg.TimeoutRedis)
+		assert.Equal(t, "localhost:6379", cfg.RedisAddress)
+		assert.Equal(t, "redis_pass", cfg.RedisPassword)
+		assert.Equal(t, "redis_user", cfg.RedisUser)
+		assert.Equal(t, 1, cfg.RedisDB)
+		assert.Equal(t, 3, cfg.RedisMaxRetries)
+		assert.Equal(t, 5*time.Second, cfg.RedisDialTimeout)
+		assert.Equal(t, 10*time.Second, cfg.RedisTimeoutRedis)
 		assert.Equal(t, ":8080", cfg.AddressHTTP)
 		assert.Equal(t, 30*time.Second, cfg.TimeoutHTTP)
 		assert.Equal(t, 60*time.Second, cfg.IdleTimeout)
@@ -183,17 +183,17 @@ jwttoken:
 		// Проверяем что обязательные поля установлены
 		assert.Equal(t, "test", cfg.Env)
 		assert.Equal(t, "localhost:50051", cfg.GRPCAuthAddress)
-		assert.Equal(t, "localhost:6379", cfg.AddressRedis)
+		assert.Equal(t, "localhost:6379", cfg.RedisAddress)
 		assert.Equal(t, ":8080", cfg.AddressHTTP)
 		assert.Equal(t, "test_secret", cfg.JWTSecretKey)
 
 		// Проверяем значения по умолчанию для необязательных полей
-		assert.Equal(t, "", cfg.Password)
-		assert.Equal(t, "", cfg.User)
-		assert.Equal(t, 0, cfg.DB)
-		assert.Equal(t, 0, cfg.MaxRetries)
-		assert.Equal(t, time.Duration(0), cfg.DialTimeout)
-		assert.Equal(t, time.Duration(0), cfg.TimeoutRedis)
+		assert.Equal(t, "", cfg.RedisPassword)
+		assert.Equal(t, "", cfg.RedisUser)
+		assert.Equal(t, 0, cfg.RedisDB)
+		assert.Equal(t, 0, cfg.RedisMaxRetries)
+		assert.Equal(t, time.Duration(0), cfg.RedisDialTimeout)
+		assert.Equal(t, time.Duration(0), cfg.RedisTimeoutRedis)
 		assert.Equal(t, time.Duration(0), cfg.TimeoutHTTP)
 		assert.Equal(t, time.Duration(0), cfg.IdleTimeout)
 		assert.Equal(t, time.Duration(0), cfg.TokenTTL)
