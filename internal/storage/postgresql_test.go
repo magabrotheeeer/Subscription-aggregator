@@ -24,7 +24,10 @@ func setupTestDb(t *testing.T) (*Storage, func()) {
 			"POSTGRES_USER":     "testuser",
 			"POSTGRES_PASSWORD": "testpass",
 		},
-		WaitingFor: wait.ForListeningPort("5432/tcp").WithStartupTimeout(2 * time.Minute),
+		WaitingFor: wait.ForAll(
+			wait.ForListeningPort("5432/tcp"),
+			wait.ForLog("database system is ready to accept connections"),
+		).WithDeadline(3 * time.Minute),
 	}
 
 	postgresContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
@@ -33,42 +36,63 @@ func setupTestDb(t *testing.T) (*Storage, func()) {
 	})
 	require.NoError(t, err, "failed to start container")
 
+	// Добавляем задержку для полной инициализации PostgreSQL
+	time.Sleep(3 * time.Second)
+
 	port, err := postgresContainer.MappedPort(ctx, "5432")
 	require.NoError(t, err, "Failed to get port")
 
 	connStr := fmt.Sprintf("postgres://testuser:testpass@localhost:%s/testdb?sslmode=disable", port.Port())
 
-	storage, err := New(connStr)
-	require.NoError(t, err, "Failed to create storage")
+	// Пробуем подключиться несколько раз с ретраями
+	var storage *Storage
+	for i := 0; i < 10; i++ {
+		storage, err = New(connStr)
+		if err == nil {
+			// Проверяем, что подключение действительно работает
+			err = storage.Db.Ping()
+			if err == nil {
+				break
+			}
+		}
+		time.Sleep(1 * time.Second)
+	}
+	require.NoError(t, err, "Failed to create storage after retries")
 
+	// Создаем таблицы
 	_, err = storage.Db.Exec(`
-		CREATE TABLE subscriptions (
-			id SERIAL PRIMARY KEY,
-			service_name TEXT NOT NULL,
-			price INT NOT NULL,
-			username TEXT NOT NULL,
-			start_date DATE NOT NULL,
-			counter_months INT NOT NULL
-		);
-	`)
+        DROP TABLE IF EXISTS subscriptions CASCADE;
+        DROP TABLE IF EXISTS users CASCADE;
+        
+        CREATE TABLE subscriptions (
+            id SERIAL PRIMARY KEY,
+            service_name TEXT NOT NULL,
+            price INT NOT NULL,
+            username TEXT NOT NULL,
+            start_date DATE NOT NULL,
+            counter_months INT NOT NULL
+        );
+    `)
 	require.NoError(t, err, "Failed to create subscription table")
 
 	_, err = storage.Db.Exec(`
-		CREATE TABLE users (
-			id SERIAL PRIMARY KEY,
-			username TEXT NOT NULL UNIQUE,
-			email TEXT NOT NULL UNIQUE,
-			password_hash TEXT NOT NULL,
-			role TEXT NOT NULL DEFAULT 'user'
-		);	
-	`)
+        CREATE TABLE users (
+            id SERIAL PRIMARY KEY,
+            username TEXT NOT NULL UNIQUE,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'user'
+        );	
+    `)
 	require.NoError(t, err, "Failed to create user table")
 
 	cleanup := func() {
-		err = storage.Db.Close()
-		require.NoError(t, err)
-		err = postgresContainer.Terminate(ctx)
-		require.NoError(t, err)
+		if storage != nil && storage.Db != nil {
+			storage.Db.Close()
+		}
+		if postgresContainer != nil {
+			postgresContainer.Terminate(ctx)
+		}
 	}
 
 	return storage, cleanup
