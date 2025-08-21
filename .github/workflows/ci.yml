@@ -52,6 +52,12 @@ jobs:
       - name: Install dependencies
         run: go mod download
 
+      - name: Install golangci-lint
+        run: |
+          # Устанавливаем golangci-lint
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.59.1
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
       - name: Install PostgreSQL client
         run: sudo apt-get install -y postgresql-client
 
@@ -97,4 +103,4 @@ jobs:
         run: go tool cover -func=coverage.out
 
       - name: Run linters
-        run: golangci-lint run --config .golangci.yml
+        run: golangci-lint run --config .golangci.yml --timeout 5m

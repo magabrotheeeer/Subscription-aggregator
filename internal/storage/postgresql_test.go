@@ -88,10 +88,10 @@ func setupTestDb(t *testing.T) (*Storage, func()) {
 
 	cleanup := func() {
 		if storage != nil && storage.Db != nil {
-			storage.Db.Close()
+			_ = storage.Db.Close()
 		}
 		if postgresContainer != nil {
-			postgresContainer.Terminate(ctx)
+			_ = postgresContainer.Terminate(ctx)
 		}
 	}
 
