@@ -29,6 +29,7 @@ services:
       context: .
       dockerfile: ./cmd/auth-service/Dockerfile
     environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
       - CONFIG_PATH=/config/config.yaml
       - JWT_SECRET_KEY=aQwerty12345!@#SecretKeyExample67890_+
       - TOKEN_TTL=24h
@@ -40,6 +41,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      rabbitmq:
+        condition: service_healthy
     ports:
       - "50051:50051"
     volumes:
@@ -51,6 +54,7 @@ services:
       dockerfile: ./cmd/subscription-aggregator/Dockerfile
     restart: always
     environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
       - CONFIG_PATH=/config/config.yaml
       - JWT_SECRET_KEY=aQwerty12345!@#SecretKeyExample67890_+
       - TOKEN_TTL=24h
@@ -71,8 +75,51 @@ services:
         condition: service_started
       auth-service:
         condition: service_started
+      rabbitmq:
+        condition: service_healthy
     volumes:
       - /home/papa/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"      
+      - "15672:15672"    
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  notification-scheduler:
+    build:
+      context: .
+      dockerfile: ./cmd/notification-scheduler/Dockerfile
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - CONFIG_PATH=/config/config.yaml
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - /home/papa/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro
+
+  notification-sender:
+    build:
+      context: .
+      dockerfile: ./cmd/notification-sender/Dockerfile
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - CONFIG_PATH=/config/config.yaml
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - /home/papa/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro
+
+
 
 volumes:
   pgdata:

@@ -3,6 +3,7 @@ package main
 import (
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
@@ -32,13 +33,13 @@ func main() {
 	defer func() {
 		_ = ch.Close()
 	}()
+	// TODO: подключение к Postgresql
 
-	// ticker := time.NewTicker(1 * time.Hour)
-	// defer ticker.Stop()
-	// for {
-	// 	select {
-	// 	case <-ticker.C:
-	// 		logger.Info("запускаем поиск подписок и публикацию сообщений")
-	// 	}
-	// }
+	ticker := time.NewTicker(1 * time.Hour)
+	defer ticker.Stop()
+	for range ticker.C {
+		logger.Info("запускаем поиск подписок и публикацию сообщений")
+		// TODO: поиска в бд
+		// TODO: публикация сообщений в rabbitmq
+	}
 }

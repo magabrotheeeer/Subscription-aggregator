@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"log/slog"
 	"os"
@@ -35,6 +37,19 @@ func main() {
 	defer func() {
 		_ = ch.Close()
 	}()
+	handler := func(body []byte) error {
+		var message string
+		if err := json.Unmarshal(body, &message); err != nil {
+			return fmt.Errorf("error unmarshalling message: %w", err)
+		}
+		// TODO: отправка message пользователю
+		return nil
+	}
+
+	err = rabbitmq.ConsumerMessage(ch, "notification.upcoming", handler)
+	if err != nil {
+		logger.Error("failed to start consumer", sl.Err(err))
+	}
 
 	sigterm := make(chan os.Signal, 1)
 	signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
