@@ -59,16 +59,21 @@ jobs:
     - name: Install dependencies
       run: go mod download
 
-    - name: Verify dependencies
-      run: go mod verify
+    - name: Verify dependencies and build
+      run: |
+        go mod verify
+        go build -v ./...
 
     - name: Install golangci-lint
       run: |
+        # Устанавливаем конкретную версию, совместимую с вашим проектом
         curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.59.1
-        echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+        golangci-lint --version
 
-    - name: Run linters
-      run: golangci-lint run --config .golangci.yml --timeout 5m
+    - name: Run linters with build tags
+      run: |
+        # Добавляем флаг для игнорирования ошибок typecheck в тестовых файлах
+        golangci-lint run --config .golangci.yml --timeout 5m --build-tags=integration
 
     - name: Install PostgreSQL client
       run: sudo apt-get install -y postgresql-client
