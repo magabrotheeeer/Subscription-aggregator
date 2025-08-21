@@ -1,6 +1,7 @@
 package register
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -24,6 +25,10 @@ type Handler struct {
 	log        *slog.Logger
 	authClient Service
 	validate   *validator.Validate
+}
+
+type Service interface {
+	Register(ctx context.Context, email, username, password string) error
 }
 
 func New(log *slog.Logger, authClient Service) *Handler {

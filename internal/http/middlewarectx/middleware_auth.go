@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
+	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/proto"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
@@ -18,6 +19,10 @@ const (
 	User Key = "username"
 	Role Key = "role"
 )
+
+type Service interface {
+	ValidateToken(ctx context.Context, token string) (*authpb.ValidateTokenResponse, error)
+}
 
 func JWTMiddleware(authClient Service, log *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {

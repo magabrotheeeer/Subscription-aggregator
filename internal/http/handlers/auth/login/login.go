@@ -1,6 +1,7 @@
 package login
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator"
 
+	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/proto"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
@@ -23,6 +25,10 @@ type Handler struct {
 	log        *slog.Logger
 	authClient Service
 	validate   *validator.Validate
+}
+
+type Service interface {
+	Login(ctx context.Context, username, password string) (*authpb.LoginResponse, error)
 }
 
 func New(log *slog.Logger, authClient Service) *Handler {
