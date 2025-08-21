@@ -23,6 +23,7 @@ import (
 	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/proto"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/grpc/server"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/jwt"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/services"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
 )
@@ -36,7 +37,7 @@ func main() {
 	// Подключаем базу пользователей
 	db, err := storage.New(config.StorageConnectionString)
 	if err != nil {
-		logger.Error("failed to init storage", slog.Any("err", err))
+		logger.Error("failed to init storage", sl.Err(err))
 		os.Exit(1)
 	}
 
@@ -57,7 +58,7 @@ func main() {
 
 	logger.Info("Auth gRPC service listening on", slog.String("port:", config.GRPCAuthAddress))
 	if err := grpcServer.Serve(lis); err != nil {
-		logger.Error("failed to listen port", slog.Any("err", err))
+		logger.Error("failed to listen port", sl.Err(err))
 	}
 
 	stop := make(chan os.Signal, 1)

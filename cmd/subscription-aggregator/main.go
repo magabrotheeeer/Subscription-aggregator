@@ -29,6 +29,7 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/remove"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/update"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/middlewarectx"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/migrations"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/services"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
@@ -45,7 +46,7 @@ func main() {
 
 	db, err := storage.New(config.StorageConnectionString)
 	if err != nil {
-		logger.Error("failed to init storage", slog.Any("err", err))
+		logger.Error("failed to init storage", sl.Err(err))
 		os.Exit(1)
 	}
 
@@ -55,13 +56,13 @@ func main() {
 	}
 	cache, err := cache.InitServer(ctx, config.RedisConnection)
 	if err != nil {
-		logger.Error("failed to init cache redis", slog.Any("err", err))
+		logger.Error("failed to init cache redis", sl.Err(err))
 		os.Exit(1)
 	}
 
 	authClient, err := client.NewAuthClient(config.GRPCAuthAddress)
 	if err != nil {
-		logger.Error("failed to connect auth grpc", slog.Any("err", err))
+		logger.Error("failed to connect auth grpc", sl.Err(err))
 		os.Exit(1)
 	}
 
@@ -123,7 +124,7 @@ func main() {
 
 	select {
 	case err := <-serverError:
-		logger.Error("server error", slog.Any("err", err))
+		logger.Error("server error", sl.Err(err))
 	case <-stop:
 		logger.Info("shutting down gracefully...")
 		ctxTimeout, cancel := context.WithTimeout(context.Background(), 15*time.Second)
