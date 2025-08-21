@@ -144,7 +144,7 @@ func createTokenWithWrongSecret(t *testing.T) string {
 
 func TestJWTMaker_TokenExpiration(t *testing.T) {
 	secretKey := "test_secret_key"
-	shortTTL := 500 * time.Millisecond
+	shortTTL := 1 * time.Second
 	maker := NewJWTMaker(secretKey, shortTTL)
 
 	token, err := maker.GenerateToken("testuser", "user")
@@ -154,7 +154,7 @@ func TestJWTMaker_TokenExpiration(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, claims)
 
-	time.Sleep(150 * time.Millisecond)
+	time.Sleep(1 * time.Second)
 
 	claims, err = maker.ParseToken(token)
 	assert.Error(t, err)
