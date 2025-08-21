@@ -16,6 +16,21 @@ jobs:
       matrix:
         go-version: [1.23]
 
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: testdb
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -37,18 +52,27 @@ jobs:
       - name: Install dependencies
         run: go mod download
 
+      - name: Wait for PostgreSQL
+        run: |
+          for i in {1..10}; do
+            if nc -z localhost 5432; then
+              echo "PostgreSQL is ready"
+              exit 0
+            fi
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+          echo "PostgreSQL failed to start"
+          exit 1
+
       - name: Run tests
-        run: go test ./... -timeout 300s -coverprofile=coverage.out
+        env:
+          TEST_DB_URL: "postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable"
+        run: go test ./... -timeout 300s -coverprofile=coverage.out -v
 
       - name: Show coverage
         if: success() && runner.os == 'Linux'
         run: go tool cover -func=coverage.out
+
       - name: Run linters
         run: golangci-lint run --config .golangci.yml
-
-      - name: Run tests
-        run: go test ./... -timeout 120s -coverprofile=coverage.out
-
-      - name: Show coverage
-        if: success() && runner.os == 'Linux'
-        run: go tool cover -func=coverage.out
