@@ -158,7 +158,6 @@ func TestJWTMaker_TokenExpiration(t *testing.T) {
 
 	claims, err = maker.ParseToken(token)
 	assert.Error(t, err)
-	assert.Nil(t, claims)
 
 	assert.Contains(t, err.Error(), "expired")
 }

@@ -19,7 +19,6 @@ func TestErr_ReturnsCorrectAttr(t *testing.T) {
 }
 
 func TestErr_NilError(t *testing.T) {
-	assert.Panics(t, func() {
-		_ = sl.Err(nil)
-	})
+	attr := sl.Err(nil)
+	assert.Equal(t, slog.Attr{}, attr)
 }
