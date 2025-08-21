@@ -1,6 +1,6 @@
 env: "local"
 grpc_auth_address: "auth-service:50051"
-storage_connection_string: "postgres://papa:1234@db:5432/original_db?sslmode=disable"
+storage_connection_string: "postgres://akhilgovmb:testpostgres@db:5432/original_db?sslmode=disable"
 redis_connection:
   addressredis: "redis:6379"
   password: "test1234"
@@ -16,3 +16,12 @@ http_server:
 jwttoken:
   jwt_secret_key: "aQwerty12345!@#SecretKeyExample67890_+"
   token_ttl: 24h
+smtp:
+  smtp_host:
+  smtp_port:
+  smtp_user:
+  smtp_pass:
+rabbitmq:
+  rabbitmq_url:
+  rabbitmq_maxretries:
+  rabbitmq_retry_delay:
