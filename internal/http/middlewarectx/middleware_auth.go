@@ -15,7 +15,7 @@ import (
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
-	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/proto"
+	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/gen"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
