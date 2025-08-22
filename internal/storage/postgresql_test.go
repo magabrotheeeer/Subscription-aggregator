@@ -66,7 +66,7 @@ func setupTestDb(t *testing.T) (*Storage, func()) {
         DROP TABLE IF EXISTS users CASCADE;
         
         CREATE TABLE subscriptions (
-            id SERIAL PRIMARY KEY,
+			id SERIAL PRIMARY KEY,
             service_name TEXT NOT NULL,
             price INT NOT NULL,
             username TEXT NOT NULL,
@@ -77,8 +77,9 @@ func setupTestDb(t *testing.T) (*Storage, func()) {
 	require.NoError(t, err, "Failed to create subscription table")
 
 	_, err = storage.Db.Exec(`
+		CREATE EXTENSION IF NOT EXISTS "pgcrypto";
         CREATE TABLE users (
-            id SERIAL PRIMARY KEY,
+            uid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             username TEXT NOT NULL UNIQUE,
             email TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
@@ -467,7 +468,7 @@ func TestStorage_GetUserByUsername(t *testing.T) {
 		username string
 	}
 	uuid := uuid.New()
-	uuidString := uuid.String() 
+	uuidString := uuid.String()
 
 	tests := []struct {
 		name    string
@@ -483,7 +484,7 @@ func TestStorage_GetUserByUsername(t *testing.T) {
 				username: "testuser",
 			},
 			want: &models.User{
-				UUID:          uuidString,
+				UUID:         uuidString,
 				Email:        "test@example.com",
 				Username:     "testuser",
 				PasswordHash: "hashedpassword",
@@ -528,7 +529,6 @@ func TestStorage_GetUserByUsername(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, got)
 
-			assert.Equal(t, tt.want.UUID, got.UUID)
 			assert.Equal(t, tt.want.Email, got.Email)
 			assert.Equal(t, tt.want.Username, got.Username)
 			assert.Equal(t, tt.want.PasswordHash, got.PasswordHash)
