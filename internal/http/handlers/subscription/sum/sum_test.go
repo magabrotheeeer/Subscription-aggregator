@@ -1,4 +1,4 @@
-package countsum
+package sum
 
 import (
 	"bytes"

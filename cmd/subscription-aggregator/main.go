@@ -22,11 +22,11 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/grpc/client"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/auth/login"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/auth/register"
-	countsum "github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/count_sum"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/create"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/list"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/read"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/remove"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/sum"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/update"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/middlewarectx"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
@@ -96,7 +96,7 @@ func main() {
 			r.Put("/subscriptions/{id}", update.New(logger, subscriptionService).ServeHTTP)
 
 			r.Get("/subscriptions/list", list.New(logger, subscriptionService).ServeHTTP)
-			r.Post("/subscriptions/sum", countsum.New(logger, subscriptionService).ServeHTTP)
+			r.Post("/subscriptions/sum", sum.New(logger, subscriptionService).ServeHTTP)
 		})
 	})
 

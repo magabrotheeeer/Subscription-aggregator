@@ -19,7 +19,7 @@ func main() {
 	cfg := config.MustLoad()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	logger.Info("starting notification-sender", slog.String("env", cfg.Env))
-	conn, err := rabbitmq.Connect(*cfg)
+	conn, err := rabbitmq.Connect(cfg.RabbitMQURL, cfg.RabbitMQMaxRetries, cfg.RabbitMQRetryDelay)
 	if err != nil {
 		logger.Error("failed to connect to RabbitMQ", sl.Err(err))
 		os.Exit(1)

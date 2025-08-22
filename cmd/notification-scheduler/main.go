@@ -17,7 +17,7 @@ func main() {
 	ctx := context.Background()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	logger.Info("starting notification-scheduler", slog.String("env", cfg.Env))
-	conn, err := rabbitmq.Connect(*cfg)
+	conn, err := rabbitmq.Connect(cfg.RabbitMQURL, cfg.RabbitMQMaxRetries, cfg.RabbitMQRetryDelay)
 	if err != nil {
 		logger.Error("failed to connect to RabbitMQ", sl.Err(err))
 		os.Exit(1)
@@ -53,7 +53,7 @@ func main() {
 		if err != nil {
 			logger.Error("failed to find entries", sl.Err(err))
 		}
-		for _, entryInfo := range entriesInfo{
+		for _, entryInfo := range entriesInfo {
 			err = rabbitmq.PublishMessage(ch, "notifications", "upcoming", entryInfo)
 			if err != nil {
 				logger.Error("failed to publish message", sl.Err(err))
