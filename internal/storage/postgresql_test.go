@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -465,6 +466,8 @@ func TestStorage_GetUserByUsername(t *testing.T) {
 		ctx      context.Context
 		username string
 	}
+	uuid := uuid.New()
+	uuidString := uuid.String() 
 
 	tests := []struct {
 		name    string
@@ -480,7 +483,7 @@ func TestStorage_GetUserByUsername(t *testing.T) {
 				username: "testuser",
 			},
 			want: &models.User{
-				ID:           1,
+				UUID:          uuidString,
 				Email:        "test@example.com",
 				Username:     "testuser",
 				PasswordHash: "hashedpassword",
@@ -525,7 +528,7 @@ func TestStorage_GetUserByUsername(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, got)
 
-			assert.Equal(t, tt.want.ID, got.ID)
+			assert.Equal(t, tt.want.UUID, got.UUID)
 			assert.Equal(t, tt.want.Email, got.Email)
 			assert.Equal(t, tt.want.Username, got.Username)
 			assert.Equal(t, tt.want.PasswordHash, got.PasswordHash)

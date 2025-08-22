@@ -222,11 +222,11 @@ func (s *Storage) GetUserByUsername(ctx context.Context, username string) (*mode
 	const op = "storage.postgresql.GetUserByUsername"
 	u := &models.User{}
 	row := s.Db.QueryRowContext(ctx, `
-		SELECT id, email, username, password_hash, role
+		SELECT uid, email, username, password_hash, role
 		FROM users
 		WHERE username = $1`, username)
 
-	if err := row.Scan(&u.ID, &u.Email, &u.Username, &u.PasswordHash, &u.Role); err != nil {
+	if err := row.Scan(&u.UUID, &u.Email, &u.Username, &u.PasswordHash, &u.Role); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return u, nil
