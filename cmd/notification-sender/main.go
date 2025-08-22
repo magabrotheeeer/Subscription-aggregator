@@ -11,6 +11,7 @@ import (
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/rabbitmq"
 )
 
@@ -38,11 +39,10 @@ func main() {
 		_ = ch.Close()
 	}()
 	handler := func(body []byte) error {
-		var message string
+		var message models.EntryInfo
 		if err := json.Unmarshal(body, &message); err != nil {
 			return fmt.Errorf("error unmarshalling message: %w", err)
 		}
-		// TODO: отправка message пользователю
 		return nil
 	}
 
