@@ -1,6 +1,6 @@
 syntax = "proto3";
 package auth;
-option go_package = "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/proto;authpb";
+option go_package = "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/gen;authpb";
 
 // gRPC Auth-сервис
 service AuthService {
