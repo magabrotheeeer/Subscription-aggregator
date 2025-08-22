@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/proto"
+	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/gen"
 )
 
 type AuthClientMock struct {

@@ -17,7 +17,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 	"google.golang.org/grpc"
 
-	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/proto"
+	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/gen"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/grpc/server"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/jwt"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/services"

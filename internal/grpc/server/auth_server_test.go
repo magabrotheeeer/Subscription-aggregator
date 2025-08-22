@@ -18,7 +18,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/proto"
+	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/gen"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/jwt"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/services"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"

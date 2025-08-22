@@ -8,7 +8,7 @@ import (
 	"context"
 	"log/slog"
 
-	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/proto"
+	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/gen"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/services"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

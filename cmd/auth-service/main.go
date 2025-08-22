@@ -20,7 +20,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
-	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/proto"
+	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/gen"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/grpc/server"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/jwt"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
