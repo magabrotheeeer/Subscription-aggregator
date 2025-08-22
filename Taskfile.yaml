@@ -1,9 +1,15 @@
 version: "3"
 
 tasks:
-  generate:
+  generate_auth:
     aliases:
       - gen
     desc: "Generate code from proto files"
     cmds:
-      - protoc -I internal/grpc/proto internal/grpc/proto/auth.proto --go_out=internal/grpc/proto --go_opt=paths=source_relative --go-grpc_out=internal/grpc/proto/ --go-grpc_opt=paths=source_relative
+      - protoc -I internal/grpc/proto internal/grpc/proto/auth.proto --go_out=internal/grpc/gen --go_opt=paths=source_relative --go-grpc_out=internal/grpc/gen/ --go-grpc_opt=paths=source_relative
+  generate_subs:
+    aliases:
+      - gen
+    desc: "Generate code from proto files"
+    cmds:
+      - protoc -I internal/grpc/proto internal/grpc/proto/subs.proto --go_out=internal/grpc/gen --go_opt=paths=source_relative --go-grpc_out=internal/grpc/gen/ --go-grpc_opt=paths=source_relative
