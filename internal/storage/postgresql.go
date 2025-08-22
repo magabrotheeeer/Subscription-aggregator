@@ -231,3 +231,38 @@ func (s *Storage) GetUserByUsername(ctx context.Context, username string) (*mode
 	}
 	return u, nil
 }
+
+func (s *Storage) FindSubscriptionExpiringTomorrow(ctx context.Context) ([]*models.EntryInfo, error) {
+	const op = "storage.postgresql.FindSubscriptionExpiringTomorrow"
+	rows, err := s.Db.QueryContext(ctx, `
+		SELECT
+			u.email,
+			s.username,
+			s.service_name,
+			(s.start_date + (s.counter_months || ' months')::INTERVAL)::DATE AS end_date,
+			s.price
+		FROM subscriptions s
+		JOIN users u ON s.username = u.username
+		WHERE (s.start_date + (s.counter_months || ' months')::INTERVAL)::DATE = CURRENT_DATE + INTERVAL '1 day';
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	var result []*models.EntryInfo
+	for rows.Next() {
+		var si models.EntryInfo
+		if err = rows.Scan(&si.Email, &si.Username, &si.ServiceName,
+			&si.EndDate, &si.Price); err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		result = append(result, &si)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return result, nil
+}
