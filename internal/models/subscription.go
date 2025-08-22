@@ -25,3 +25,11 @@ type DummyEntry struct {
 	StartDate     string `json:"start_date" validate:"required"`     // Дата начала в формате 01-2006
 	CounterMonths int    `json:"counter_months" validate:"required"` // Количество месяцев
 }
+
+type EntryInfo struct {
+	Email       string
+	Username    string
+	ServiceName string
+	EndDate     time.Time
+	Price       int
+}
