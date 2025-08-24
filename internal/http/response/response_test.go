@@ -10,10 +10,9 @@ import (
 
 func TestStatusOKWithData(t *testing.T) {
 	data := map[string]string{"key": "value"}
-	resp := StatusOKWithData(data)
+	resp := OKWithData(data)
 
 	assert.Equal(t, StatusOK, resp.Status)
-	assert.Empty(t, resp.Error)
 	assert.Equal(t, data, resp.Data)
 }
 

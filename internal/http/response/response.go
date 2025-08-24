@@ -10,13 +10,19 @@ import (
 	"github.com/go-playground/validator"
 )
 
+const (
+	// StatusOK — значение статуса для успешного ответа.
+	StatusOK = "OK"
+	// StatusError — значение статуса для ответа с ошибкой.
+	StatusError = "Error"
+)
+
 // Response описывает стандартную структуру JSON‑ответа сервера.
 // Поле Status — статус запроса ("OK" или "Error").
 // Поле Error — текст ошибки (опционально, при неуспехе).
 // Поле Data — данные ответа (опционально, при успехе).
-type Response struct {
+type OKResponse struct {
 	Status string `json:"status"`
-	Error  string `json:"error,omitempty"`
 	Data   any    `json:"data,omitempty"`
 }
 
@@ -27,22 +33,13 @@ type ErrorResponse struct {
 	Error  string `json:"error" example:"invalid request body"`
 }
 
-const (
-	// StatusOK — значение статуса для успешного ответа.
-	StatusOK = "OK"
-	// StatusError — значение статуса для ответа с ошибкой.
-	StatusError = "Error"
-)
-
-// StatusOKWithData возвращает успешный Response с переданными данными.
-func StatusOKWithData(data any) Response {
-	return Response{
+// OKWithData возвращает успешный Response с переданными данными.
+func OKWithData(data any) OKResponse {
+	return OKResponse{
 		Status: StatusOK,
 		Data:   data,
 	}
 }
-
-// TODO: сделать корректные статусы возвратов
 
 // Error возвращает Response с ошибкой и переданным сообщением.
 func Error(msg string) ErrorResponse {
@@ -54,7 +51,7 @@ func Error(msg string) ErrorResponse {
 
 // ValidationError формирует Response со статусом Error на основе ошибок валидации.
 // Каждое нарушение формируется в человеко‑читаемый текст, объединённый через запятую.
-func ValidationError(errs validator.ValidationErrors) Response {
+func ValidationError(errs validator.ValidationErrors) ErrorResponse {
 	var errsMsgs []string
 
 	for _, err := range errs {
@@ -73,7 +70,7 @@ func ValidationError(errs validator.ValidationErrors) Response {
 			errsMsgs = append(errsMsgs, fmt.Sprintf("field %s is not a valid", err.Field()))
 		}
 	}
-	return Response{
+	return ErrorResponse{
 		Status: StatusError,
 		Error:  strings.Join(errsMsgs, ", "),
 	}
