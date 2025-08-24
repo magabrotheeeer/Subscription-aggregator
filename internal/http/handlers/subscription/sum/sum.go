@@ -98,7 +98,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Info("success to calculate sum", slog.Any("sum", sum))
-	render.JSON(w, r, response.StatusOKWithData(map[string]any{
+	render.JSON(w, r, response.OKWithData(map[string]any{
 		"sum_of_subscriptions": sum,
 	}))
 }

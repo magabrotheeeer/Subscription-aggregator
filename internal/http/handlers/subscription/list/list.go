@@ -100,7 +100,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Info("list entries", "count", len(res))
-	render.JSON(w, r, response.StatusOKWithData(map[string]any{
+	render.JSON(w, r, response.OKWithData(map[string]any{
 		"list_count": len(res),
 		"entries":    res,
 	}))

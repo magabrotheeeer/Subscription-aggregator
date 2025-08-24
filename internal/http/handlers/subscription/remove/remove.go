@@ -77,7 +77,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Info("success to delete subscription", slog.Any("deleted entries", res))
-	render.JSON(w, r, response.StatusOKWithData(map[string]any{
+	render.JSON(w, r, response.OKWithData(map[string]any{
 		"deleted_count": res,
 	}))
 }
