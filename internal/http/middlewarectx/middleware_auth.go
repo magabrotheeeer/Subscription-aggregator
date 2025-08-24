@@ -52,7 +52,7 @@ func JWTMiddleware(authClient Service, log *slog.Logger) func(http.Handler) http
 
 			if !strings.HasPrefix(authHeader, "Bearer ") {
 				log.Error("missing or invalid authorization header")
-				render.Status(r, http.StatusUnauthorized)
+				w.WriteHeader(http.StatusUnauthorized)
 				render.JSON(w, r, response.Error("missing or invalid authorization header"))
 				return
 			}
@@ -61,7 +61,7 @@ func JWTMiddleware(authClient Service, log *slog.Logger) func(http.Handler) http
 			resp, err := authClient.ValidateToken(r.Context(), tokenStr)
 			if err != nil || !resp.Valid {
 				log.Error("invalid or expired token", sl.Err(err))
-				render.Status(r, http.StatusUnauthorized)
+				w.WriteHeader(http.StatusUnauthorized)
 				render.JSON(w, r, response.Error("invalid or expired token"))
 				return
 			}
