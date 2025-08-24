@@ -47,14 +47,19 @@ func New(log *slog.Logger, service Service) *Handler {
 	}
 }
 
-// ServeHTTP обрабатывает HTTP-запрос для создания подписки.
-//
-// Выполняет:
-// - Декодирование JSON из тела запроса.
-// - Валидацию структуры запроса.
-// - Извлечение имени пользователя из контекста запроса.
-// - Вызов бизнес-логики создания подписки.
-// - Возврат ID созданной подписки или ошибочного ответа в формате JSON.
+// ServeHTTP godoc
+// @Summary Создать новую подписку
+// @Description Создает новую подписку для текущего пользователя. Возвращает ID созданной записи.
+// @Tags Subscriptions
+// @Accept  json
+// @Produce  json
+// @Param request body models.DummyEntry true "Данные новой подписки"
+// @Success 200 {object} map[string]any "Успешное создание подписки"
+// @Failure 400 {object} response.ErrorResponse "Некорректный JSON"
+// @Failure 401 {object} response.ErrorResponse "Пользователь не авторизован"
+// @Failure 422 {object} response.ErrorResponse "Ошибка валидации"
+// @Failure 500 {object} response.ErrorResponse "Ошибка сервера при создании подписки"
+// @Router /subscriptions [post]
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	const op = "handlers.subscription.create"
 	log := h.log.With(
@@ -73,7 +78,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.validate.Struct(req); err != nil {
 		log.Error("validation failed", sl.Err(err))
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusUnprocessableEntity)
 		render.JSON(w, r, response.ValidationError(err.(validator.ValidationErrors)))
 		return
 	}

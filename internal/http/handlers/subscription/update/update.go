@@ -44,14 +44,21 @@ func New(log *slog.Logger, service Service) *Handler {
 	}
 }
 
-// ServeHTTP обрабатывает HTTP-запрос на обновление подписки.
-//
-// Выполняет:
-// - Декодирование JSON с обновлёнными данными подписки из тела запроса.
-// - Валидацию данных.
-// - Получение username из контекста и id из URL.
-// - Вызов бизнес-логики обновления.
-// - Формирование JSON-ответа с количеством обновлённых записей или ошибкой.
+// ServeHTTP godoc
+// @Summary Обновить подписку по ID
+// @Description Обновляет данные существующей подписки пользователя по идентификатору.
+// @Tags Subscriptions
+// @Accept  json
+// @Produce  json
+// @Param id path int true "ID подписки"
+// @Param request body models.DummyEntry true "Обновлённые данные подписки"
+// @Success 200 {object} map[string]any "Успешное обновление"
+// @Failure 400 {object} response.ErrorResponse "Некорректный ID или JSON"
+// @Failure 401 {object} response.ErrorResponse "Пользователь не авторизован"
+// @Failure 422 {object} response.ErrorResponse "Ошибка валидации"
+// @Failure 404 {object} response.ErrorResponse "Подписка не найдена"
+// @Failure 500 {object} response.ErrorResponse "Ошибка сервера при обновлении"
+// @Router /subscriptions/{id} [put]
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	const op = "handlers.update.New"
 
@@ -74,7 +81,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if err = h.validate.Struct(req); err != nil {
 		log.Error("validation failed", sl.Err(err))
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusUnprocessableEntity)
 		render.JSON(w, r, response.ValidationError(err.(validator.ValidationErrors)))
 		return
 	}
@@ -91,6 +98,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		log.Error("failed to decode id from url", sl.Err(err))
+		w.WriteHeader(http.StatusBadRequest)
 		render.JSON(w, r, response.Error("failed to decode id from url"))
 		return
 	}

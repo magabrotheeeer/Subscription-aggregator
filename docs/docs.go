@@ -9,7 +9,15 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "contact": {},
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "email": "support@example.com"
+        },
+        "license": {
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT"
+        },
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -17,6 +25,7 @@ const docTemplate = `{
     "paths": {
         "/login": {
             "post": {
+                "description": "Аутентифицирует пользователя по имени и паролю. Возвращает JWT и refresh-токен.",
                 "consumes": [
                     "application/json"
                 ],
@@ -24,46 +33,50 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "Auth"
                 ],
-                "summary": "Авторизация пользователя (логин)",
+                "summary": "Авторизация пользователя",
                 "parameters": [
                     {
-                        "description": "Данные для входа (username, password)",
-                        "name": "loginRequest",
+                        "description": "Учетные данные пользователя",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_http-server_handlers_login.LoginRequest"
+                            "$ref": "#/definitions/login.Request"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "JWT токен в поле token",
+                        "description": "Успешная авторизация",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Ошибка валидации или некорректный запрос",
+                        "description": "Некорректный JSON",
                         "schema": {
-                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Некорректный пользователь или пароль",
+                        "description": "Неверные учетные данные",
                         "schema": {
-                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Ошибка валидации",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -71,6 +84,7 @@ const docTemplate = `{
         },
         "/register": {
             "post": {
+                "description": "Создает нового пользователя по email, username и password",
                 "consumes": [
                     "application/json"
                 ],
@@ -78,84 +92,52 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "Auth"
                 ],
                 "summary": "Регистрация нового пользователя",
                 "parameters": [
                     {
-                        "description": "Данные для регистрации (username, password)",
-                        "name": "registerRequest",
+                        "description": "Данные нового пользователя",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_http-server_handlers_register.RegisterRequest"
+                            "$ref": "#/definitions/register.Request"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Пользователь успешно создан",
+                        "description": "Успешная регистрация",
                         "schema": {
-                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Ошибка валидации или некорректный запрос",
+                        "description": "Некорректный JSON",
                         "schema": {
-                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Ошибка валидации данных",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Внутренняя ошибка сервера",
+                        "description": "Ошибка сервера при регистрации",
                         "schema": {
-                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/subscriptions/": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "subscriptions"
-                ],
-                "summary": "Создать подписку",
-                "parameters": [
-                    {
-                        "description": "Данные новой подписки",
-                        "name": "data",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_subscription.DummySubscriptionEntry"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Успешное создание",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Ошибка валидации",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/subscriptions/list": {
+        "/subscriptions": {
             "get": {
-                "description": "Возвращает список подписок с поддержкой пагинации",
+                "description": "Возвращает список подписок пользователя с учетом пагинации (limit и offset).",
                 "consumes": [
                     "application/json"
                 ],
@@ -163,45 +145,51 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "subscriptions"
+                    "Subscriptions"
                 ],
-                "summary": "Получить список всех подписок",
+                "summary": "Получить список подписок пользователя",
                 "parameters": [
                     {
+                        "minimum": 1,
                         "type": "integer",
-                        "default": 10,
-                        "description": "Количество элементов на странице",
+                        "example": 10,
+                        "description": "Максимальное количество записей (по умолчанию 10)",
                         "name": "limit",
                         "in": "query"
                     },
                     {
+                        "minimum": 0,
                         "type": "integer",
-                        "default": 0,
-                        "description": "Смещение от начала списка",
+                        "example": 0,
+                        "description": "Смещение для пагинации (по умолчанию 0)",
                         "name": "offset",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Количество и список подписок",
+                        "description": "Список подписок",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
-                    "500": {
-                        "description": "Ошибка сервера",
+                    "401": {
+                        "description": "Пользователь не авторизован",
                         "schema": {
-                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка при получении списка",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
-            }
-        },
-        "/subscriptions/sum/{id}": {
+            },
             "post": {
-                "description": "Подсчитывает суммарную стоимость подписок по фильтрам из тела запроса",
+                "description": "Создает новую подписку для текущего пользователя. Возвращает ID созданной записи.",
                 "consumes": [
                     "application/json"
                 ],
@@ -209,45 +197,109 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "subscriptions"
+                    "Subscriptions"
                 ],
-                "summary": "Подсчитать сумму подписок за период для пользователя",
+                "summary": "Создать новую подписку",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Идентификатор пользователя (UUID)",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Фильтры и даты для подсчёта суммы подписок",
-                        "name": "data",
+                        "description": "Данные новой подписки",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_subscription.DummySubscriptionEntry"
+                            "$ref": "#/definitions/models.DummyEntry"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Сумма подписок",
+                        "description": "Успешное создание подписки",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "400": {
+                        "description": "Некорректный JSON",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "422": {
                         "description": "Ошибка валидации",
                         "schema": {
-                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Ошибка сервера",
+                        "description": "Ошибка сервера при создании подписки",
                         "schema": {
-                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/subscriptions/sum": {
+            "post": {
+                "description": "Подсчитывает общую сумму подписок пользователя с возможностью фильтрации.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Subscriptions"
+                ],
+                "summary": "Подсчёт суммы подписок",
+                "parameters": [
+                    {
+                        "description": "Фильтры для подсчёта суммы",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.DummyFilterSum"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешный расчёт суммы",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный JSON",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Ошибка валидации фильтра",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка сервера при вычислении суммы",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -255,6 +307,7 @@ const docTemplate = `{
         },
         "/subscriptions/{id}": {
             "get": {
+                "description": "Возвращает подписку по её уникальному идентификатору.",
                 "consumes": [
                     "application/json"
                 ],
@@ -262,13 +315,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "subscriptions"
+                    "Subscriptions"
                 ],
                 "summary": "Получить подписку по ID",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Уникальный ID подписки",
+                        "type": "integer",
+                        "description": "ID подписки",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -276,26 +329,34 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Подписка",
+                        "description": "Успешный ответ с данными",
                         "schema": {
-                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_subscription.SubscriptionEntry"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Неверный ID",
+                        "description": "Некорректный ID",
                         "schema": {
-                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Подписка не найдена",
                         "schema": {
-                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
             },
             "put": {
+                "description": "Обновляет данные существующей подписки пользователя по идентификатору.",
                 "consumes": [
                     "application/json"
                 ],
@@ -303,50 +364,69 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "subscriptions"
+                    "Subscriptions"
                 ],
                 "summary": "Обновить подписку по ID",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Уникальный ID подписки",
+                        "type": "integer",
+                        "description": "ID подписки",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Данные для обновления подписки",
-                        "name": "data",
+                        "description": "Обновлённые данные подписки",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_subscription.DummySubscriptionEntry"
+                            "$ref": "#/definitions/models.DummyEntry"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Обновлено записей",
+                        "description": "Успешное обновление",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Ошибка валидации",
+                        "description": "Некорректный ID или JSON",
                         "schema": {
-                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Подписка не найдена",
                         "schema": {
-                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Ошибка валидации",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка сервера при обновлении",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
             },
             "delete": {
+                "description": "Удаляет подписку пользователя по её идентификатору. Возвращает количество удалённых записей.",
                 "consumes": [
                     "application/json"
                 ],
@@ -354,13 +434,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "subscriptions"
+                    "Subscriptions"
                 ],
                 "summary": "Удалить подписку по ID",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Уникальный ID подписки",
+                        "type": "integer",
+                        "description": "ID подписки",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -368,22 +448,28 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Количество удалённых записей",
+                        "description": "Подписка успешно удалена",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Ошибка валидации",
+                        "description": "Некорректный ID",
                         "schema": {
-                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Подписка не найдена",
                         "schema": {
-                            "$ref": "#/definitions/github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response"
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка при удалении",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     }
                 }
@@ -391,91 +477,104 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_magabrotheeeer_subscription-aggregator_internal_http-server_response.Response": {
+        "login.Request": {
+            "type": "object",
+            "required": [
+                "password",
+                "username"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string",
+                    "minLength": 6
+                },
+                "username": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 3
+                }
+            }
+        },
+        "models.DummyEntry": {
+            "type": "object",
+            "required": [
+                "counter_months",
+                "price",
+                "service_name",
+                "start_date"
+            ],
+            "properties": {
+                "counter_months": {
+                    "description": "Количество месяцев",
+                    "type": "integer"
+                },
+                "price": {
+                    "description": "Цена (\u003e0)",
+                    "type": "integer"
+                },
+                "service_name": {
+                    "description": "Название сервиса",
+                    "type": "string"
+                },
+                "start_date": {
+                    "description": "Дата начала в формате 01-2006",
+                    "type": "string"
+                }
+            }
+        },
+        "models.DummyFilterSum": {
+            "type": "object",
+            "required": [
+                "counter_months",
+                "start_date"
+            ],
+            "properties": {
+                "counter_months": {
+                    "description": "Количество месяцев подписки",
+                    "type": "integer"
+                },
+                "service_name": {
+                    "description": "Название сервиса (опционально)",
+                    "type": "string"
+                },
+                "start_date": {
+                    "description": "Дата начала периода",
+                    "type": "string"
+                }
+            }
+        },
+        "register.Request": {
+            "type": "object",
+            "required": [
+                "email",
+                "password",
+                "username"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 6
+                },
+                "username": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 3
+                }
+            }
+        },
+        "response.ErrorResponse": {
             "type": "object",
             "properties": {
-                "data": {},
                 "error": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "invalid request body"
                 },
                 "status": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_magabrotheeeer_subscription-aggregator_internal_subscription.DummySubscriptionEntry": {
-            "type": "object",
-            "properties": {
-                "end_date": {
-                    "type": "string"
-                },
-                "price": {
-                    "type": "integer"
-                },
-                "service_name": {
-                    "type": "string"
-                },
-                "start_date": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_magabrotheeeer_subscription-aggregator_internal_subscription.SubscriptionEntry": {
-            "type": "object",
-            "properties": {
-                "end_date": {
-                    "type": "string"
-                },
-                "price": {
-                    "type": "integer"
-                },
-                "service_name": {
-                    "type": "string"
-                },
-                "start_date": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_http-server_handlers_login.LoginRequest": {
-            "type": "object",
-            "required": [
-                "password",
-                "username"
-            ],
-            "properties": {
-                "password": {
                     "type": "string",
-                    "minLength": 6
-                },
-                "username": {
-                    "type": "string",
-                    "maxLength": 50,
-                    "minLength": 6
-                }
-            }
-        },
-        "internal_http-server_handlers_register.RegisterRequest": {
-            "type": "object",
-            "required": [
-                "password",
-                "username"
-            ],
-            "properties": {
-                "password": {
-                    "type": "string",
-                    "minLength": 6
-                },
-                "username": {
-                    "type": "string",
-                    "maxLength": 50,
-                    "minLength": 6
+                    "example": "Error"
                 }
             }
         }
@@ -488,8 +587,8 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:8080",
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
-	Title:            "Subscription API",
-	Description:      "Сервис учёта подписок",
+	Title:            "Subscription Aggregator API",
+	Description:      "REST API сервис для работы с подписками (создание, удаление, обновление, получение, суммарный расчёт).",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 }

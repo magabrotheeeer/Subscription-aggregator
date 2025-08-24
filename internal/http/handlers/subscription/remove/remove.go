@@ -39,12 +39,18 @@ func New(log *slog.Logger, service Service) *Handler {
 	}
 }
 
-// ServeHTTP обрабатывает HTTP-запрос на удаление подписки.
-//
-// Выполняет:
-// - Парсинг ID из URL.
-// - Вызов бизнес-логики удаления записи по ID.
-// - Формирование JSON-ответа с количеством удалённых записей или ошибкой.
+// ServeHTTP godoc
+// @Summary Удалить подписку по ID
+// @Description Удаляет подписку пользователя по её идентификатору. Возвращает количество удалённых записей.
+// @Tags Subscriptions
+// @Accept  json
+// @Produce  json
+// @Param id path int true "ID подписки"
+// @Success 200 {object} map[string]any "Подписка успешно удалена"
+// @Failure 400 {object} response.ErrorResponse "Некорректный ID"
+// @Failure 404 {object} response.ErrorResponse "Подписка не найдена"
+// @Failure 500 {object} response.ErrorResponse "Ошибка при удалении"
+// @Router /subscriptions/{id} [delete]
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	const op = "handlers.subscription.remove"
 
@@ -57,6 +63,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		log.Error("invalid id format", sl.Err(err))
+		w.WriteHeader(http.StatusBadRequest)
 		render.JSON(w, r, response.Error("invalid id"))
 		return
 	}

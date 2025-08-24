@@ -42,12 +42,18 @@ func New(log *slog.Logger, service Service) *Handler {
 	}
 }
 
-// ServeHTTP обрабатывает HTTP-запрос на получение подписки по ID.
-//
-// Выполняет:
-// - Парсинг ID из URL.
-// - Вызов бизнес-логики для чтения подписки.
-// - Формирование JSON-ответа с данными или ошибкой.
+// ServeHTTP godoc
+// @Summary Получить подписку по ID
+// @Description Возвращает подписку по её уникальному идентификатору.
+// @Tags Subscriptions
+// @Accept  json
+// @Produce  json
+// @Param id path int true "ID подписки"
+// @Success 200 {object} map[string]any "Успешный ответ с данными"
+// @Failure 400 {object} response.ErrorResponse "Некорректный ID"
+// @Failure 404 {object} response.ErrorResponse "Подписка не найдена"
+// @Failure 500 {object} response.ErrorResponse "Внутренняя ошибка сервера"
+// @Router /subscriptions/{id} [get]
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	const op = "handlers.read.New"
 
@@ -59,6 +65,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		log.Error("failed to decode id from url", sl.Err(err))
+		w.WriteHeader(http.StatusBadRequest)
 		render.JSON(w, r, response.Error("failed to decode id from url"))
 		return
 	}

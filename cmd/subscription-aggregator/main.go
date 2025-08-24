@@ -1,5 +1,18 @@
-// Package main инициализирует и запускает HTTP-сервер subscription-aggregator,
-// включая конфигурацию, подключение к базе данных и кэшу, регистрацию путей API и graceful shutdown.
+// @title Subscription Aggregator API
+// @version 1.0
+// @description REST API сервис для работы с подписками (создание, удаление, обновление, получение, суммарный расчёт).
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.email support@example.com
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8080
+// @BasePath /api/v1
+
+// Package main запускает HTTP-сервер Subscription Aggregator.
 package main
 
 import (

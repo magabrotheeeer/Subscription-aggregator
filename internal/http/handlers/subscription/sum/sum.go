@@ -45,14 +45,19 @@ func New(log *slog.Logger, service Service) *Handler {
 	}
 }
 
-// ServeHTTP обрабатывает HTTP-запрос к эндпоинту подсчёта суммы подписок.
-//
-// Выполняет:
-// - Декодирование JSON с фильтром из тела запроса.
-// - Валидацию фильтра.
-// - Извлечение имени пользователя из контекста запроса.
-// - Вызов сервиса подсчёта суммы.
-// - Возврат результата или ошибочного ответа в формате JSON.
+// ServeHTTP godoc
+// @Summary Подсчёт суммы подписок
+// @Description Подсчитывает общую сумму подписок пользователя с возможностью фильтрации.
+// @Tags Subscriptions
+// @Accept  json
+// @Produce  json
+// @Param request body models.DummyFilterSum true "Фильтры для подсчёта суммы"
+// @Success 200 {object} map[string]any "Успешный расчёт суммы"
+// @Failure 400 {object} response.ErrorResponse "Некорректный JSON"
+// @Failure 401 {object} response.ErrorResponse "Пользователь не авторизован"
+// @Failure 422 {object} response.ErrorResponse "Ошибка валидации фильтра"
+// @Failure 500 {object} response.ErrorResponse "Ошибка сервера при вычислении суммы"
+// @Router /subscriptions/sum [post]
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	const op = "handlers.subscription.countsum"
 
@@ -71,7 +76,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.validate.Struct(req); err != nil {
 		log.Error("validation failed", sl.Err(err))
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusUnprocessableEntity)
 		render.JSON(w, r, response.ValidationError(err.(validator.ValidationErrors)))
 		return
 	}

@@ -31,8 +31,8 @@ type Request struct {
 
 // Handler обрабатывает HTTP-запросы для авторизации.
 type Handler struct {
-	log        *slog.Logger      // Логгер для записи операций и ошибок
-	authClient Service           // Клиент для вызова gRPC-сервиса аутентификации
+	log        *slog.Logger        // Логгер для записи операций и ошибок
+	authClient Service             // Клиент для вызова gRPC-сервиса аутентификации
 	validate   *validator.Validate // Валидатор для проверки входных данных
 }
 
@@ -54,13 +54,19 @@ func New(log *slog.Logger, authClient Service) *Handler {
 	}
 }
 
-// ServeHTTP обрабатывает HTTP-запрос на вход пользователя.
-//
-// Выполняет:
-// - Декодирование JSON тела запроса в структуру Request.
-// - Валидацию данных.
-// - Вызов gRPC метода Login через authClient.
-// - Формирует JSON-ответ с JWT токенами или ошибкой.
+// ServeHTTP godoc
+// @Summary Авторизация пользователя
+// @Description Аутентифицирует пользователя по имени и паролю. Возвращает JWT и refresh-токен.
+// @Tags Auth
+// @Accept  json
+// @Produce  json
+// @Param request body Request true "Учетные данные пользователя"
+// @Success 200 {object} map[string]any "Успешная авторизация"
+// @Failure 400 {object} response.ErrorResponse "Некорректный JSON"
+// @Failure 422 {object} response.ErrorResponse "Ошибка валидации"
+// @Failure 401 {object} response.ErrorResponse "Неверные учетные данные"
+// @Failure 500 {object} response.ErrorResponse "Внутренняя ошибка сервера"
+// @Router /login [post]
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	const op = "handlers.auth.login"
 
@@ -72,6 +78,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var req Request
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Error("failed to decode request body", sl.Err(err))
+		w.WriteHeader(http.StatusBadRequest)
 		render.JSON(w, r, response.Error("invalid request body"))
 		return
 	}
@@ -79,6 +86,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.validate.Struct(req); err != nil {
 		log.Error("validation failed", sl.Err(err))
+		w.WriteHeader(http.StatusUnprocessableEntity)
 		render.JSON(w, r, response.ValidationError(err.(validator.ValidationErrors)))
 		return
 	}

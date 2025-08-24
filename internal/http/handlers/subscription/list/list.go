@@ -45,13 +45,18 @@ func New(log *slog.Logger, service Service) *Handler {
 	}
 }
 
-// ServeHTTP обрабатывает HTTP-запрос на получение списка подписок.
-//
-// Выполняет:
-// - Парсинг параметров limit и offset из query строки с дефолтными значениями.
-// - Извлечение имени пользователя и роли из контекста запроса.
-// - Вызов сервиса получения списка подписок.
-// - Формирование JSON-ответа с результатом или ошибкой.
+// ServeHTTP godoc
+// @Summary Получить список подписок пользователя
+// @Description Возвращает список подписок пользователя с учетом пагинации (limit и offset).
+// @Tags Subscriptions
+// @Accept  json
+// @Produce  json
+// @Param limit query int false "Максимальное количество записей (по умолчанию 10)" minimum(1) example(10)
+// @Param offset query int false "Смещение для пагинации (по умолчанию 0)" minimum(0) example(0)
+// @Success 200 {object} map[string]any "Список подписок"
+// @Failure 401 {object} response.ErrorResponse "Пользователь не авторизован"
+// @Failure 500 {object} response.ErrorResponse "Ошибка при получении списка"
+// @Router /subscriptions [get]
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	const op = "handlers.list.New"
 

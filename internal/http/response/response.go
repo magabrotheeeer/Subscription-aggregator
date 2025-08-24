@@ -20,6 +20,13 @@ type Response struct {
 	Data   any    `json:"data,omitempty"`
 }
 
+// ErrorResponse — структура ошибки для Swagger-документации.
+// Используется в аннотациях @Failure как возвращаемый тип ошибки.
+type ErrorResponse struct {
+	Status string `json:"status" example:"Error"`
+	Error  string `json:"error" example:"invalid request body"`
+}
+
 const (
 	// StatusOK — значение статуса для успешного ответа.
 	StatusOK = "OK"
@@ -35,9 +42,11 @@ func StatusOKWithData(data any) Response {
 	}
 }
 
+// TODO: сделать корректные статусы возвратов
+
 // Error возвращает Response с ошибкой и переданным сообщением.
-func Error(msg string) Response {
-	return Response{
+func Error(msg string) ErrorResponse {
+	return ErrorResponse{
 		Status: StatusError,
 		Error:  msg,
 	}
