@@ -28,6 +28,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	_ "github.com/magabrotheeeer/subscription-aggregator/docs"
 	httpSwagger "github.com/swaggo/http-swagger"
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/cache"
