@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -53,6 +54,7 @@ func getMigrationsPath(t *testing.T) string {
 	require.NoError(t, err)
 
 	migrationsPath := filepath.Join(projectRoot, "migrations")
+	migrationsPath = strings.ReplaceAll(migrationsPath, "\\", "/")
 	t.Logf("Migrations path: %s", migrationsPath)
 	return migrationsPath
 }
