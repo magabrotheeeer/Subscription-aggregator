@@ -48,7 +48,7 @@ func main() {
 	ticker := time.NewTicker(12 * time.Hour)
 	defer ticker.Stop()
 	for range ticker.C {
-		logger.Info("запускаем поиск подписок и публикацию сообщений")
+		logger.Info("starting service to find expiring subscriptions")
 		entriesInfo, err := db.FindSubscriptionExpiringTomorrow(ctx)
 		if err != nil {
 			logger.Error("failed to find entries", sl.Err(err))
