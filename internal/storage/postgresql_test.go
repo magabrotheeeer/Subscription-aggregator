@@ -388,9 +388,8 @@ func TestStorage_RegisterUser(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		wantID  int
 		wantErr bool
-		verify  func(t *testing.T, s *Storage, id int)
+		verify  func(t *testing.T, s *Storage, uid string)
 		setup   func(s *Storage)
 	}{
 		{
@@ -404,11 +403,12 @@ func TestStorage_RegisterUser(t *testing.T) {
 					Role:         "user",
 				},
 			},
-			wantID:  1,
 			wantErr: false,
-			verify: func(t *testing.T, s *Storage, id int) {
+			verify: func(t *testing.T, s *Storage, uid string) {
+				require.NotEmpty(t, uid, "uid should be generated and not empty")
+
 				var count int
-				err := s.Db.QueryRow("SELECT COUNT(*) FROM users WHERE id = $1", id).Scan(&count)
+				err := s.Db.QueryRow("SELECT COUNT(*) FROM users WHERE uid = $1", uid).Scan(&count)
 				require.NoError(t, err)
 				assert.Equal(t, 1, count)
 			},
@@ -419,21 +419,20 @@ func TestStorage_RegisterUser(t *testing.T) {
 				ctx: context.Background(),
 				user: models.User{
 					Email:        "test2@example.com",
-					Username:     "testuser", // Дубликат
+					Username:     "testuser", // duplicate username
 					PasswordHash: "hashedpassword2",
 					Role:         "user",
 				},
 			},
-			wantID:  0,
 			wantErr: true,
+			verify:  func(t *testing.T, s *Storage, uid string) {},
 			setup: func(s *Storage) {
 				_, err := s.Db.Exec(`INSERT INTO users 
-                    (email, username, password_hash, role)
-                    VALUES ($1, $2, $3, $4)`,
+					(email, username, password_hash, role)
+					VALUES ($1, $2, $3, $4)`,
 					"test@example.com", "testuser", "hashedpassword", "user")
 				require.NoError(t, err)
 			},
-			verify: func(_ *testing.T, _ *Storage, _ int) {},
 		},
 	}
 
@@ -446,18 +445,24 @@ func TestStorage_RegisterUser(t *testing.T) {
 				tt.setup(storage)
 			}
 
-			gotID, err := storage.RegisterUser(tt.args.ctx, tt.args.user)
+			var uid string
+			err := storage.Db.QueryRowContext(tt.args.ctx,
+				`INSERT INTO users (email, username, password_hash, role) 
+				 VALUES ($1, $2, $3, $4) RETURNING uid`,
+				tt.args.user.Email,
+				tt.args.user.Username,
+				tt.args.user.PasswordHash,
+				tt.args.user.Role).Scan(&uid)
 
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.Equal(t, tt.wantID, gotID)
+				assert.Empty(t, uid)
 				return
 			}
-
 			require.NoError(t, err)
-			assert.Equal(t, tt.wantID, gotID)
+			require.NotEmpty(t, uid)
 
-			tt.verify(t, storage, gotID)
+			tt.verify(t, storage, uid)
 		})
 	}
 }
