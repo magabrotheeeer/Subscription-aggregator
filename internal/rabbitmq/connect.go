@@ -12,7 +12,7 @@ func Connect(connection string, retries int, delay time.Duration) (*amqp.Connect
 	var conn *amqp.Connection
 	var err error
 
-	for i := 0; i < retries; i++ {
+	for range retries {
 		conn, err = amqp.Dial(connection)
 		if err == nil {
 			return conn, nil
@@ -23,15 +23,17 @@ func Connect(connection string, retries int, delay time.Duration) (*amqp.Connect
 	return nil, fmt.Errorf("%s: %w", op, err)
 }
 
-func SetupChannel(conn *amqp.Connection) (*amqp.Channel, error) {
+func SetupChannel(conn *amqp.Connection, queues []QueueConfig) (*amqp.Channel, error) {
 	const op = "rabbitmq.SetupChannel"
+
 	ch, err := conn.Channel()
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+
 	err = ch.ExchangeDeclare(
-		"notifications",
-		"direct",
+		"notifications", // exchange
+		"direct",        // тип
 		true,
 		false,
 		false,
@@ -41,20 +43,31 @@ func SetupChannel(conn *amqp.Connection) (*amqp.Channel, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	_, err = ch.QueueDeclare(
-		"notifications.upcoming",
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+
+	for _, q := range queues {
+		_, err := ch.QueueDeclare(
+			q.QueueName,
+			true,
+			false,
+			false,
+			false,
+			nil,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("%s: failed to declare queue %s: %w", op, q.QueueName, err)
+		}
+
+		err = ch.QueueBind(
+			q.QueueName,
+			q.RoutingKey,
+			"notifications",
+			false,
+			nil,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("%s: failed to bind queue %s with routing key %s: %w", op, q.QueueName, q.RoutingKey, err)
+		}
 	}
-	err = ch.QueueBind("notifications.upcoming", "upcoming", "notifications", false, nil)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-	return ch, err
+
+	return ch, nil
 }
