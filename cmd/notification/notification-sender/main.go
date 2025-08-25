@@ -37,7 +37,7 @@ func main() {
 		_ = ch.Close()
 	}()
 
-	senderService := services.NewSenderService(logger)
+	senderService := services.NewSenderService(cfg, logger)
 
 	err = rabbitmq.ConsumerMessage(ch, "notification.upcoming", senderService.SendInfoExpiringSubscription)
 	if err != nil {
