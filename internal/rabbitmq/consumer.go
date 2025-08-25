@@ -20,13 +20,19 @@ func ConsumerMessage(ch *amqp.Channel, queueName string, handler func([]byte) er
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+
+	sem := make(chan struct{}, 10)
 	go func() {
 		for d := range delivery {
-			if err := handler(d.Body); err != nil {
-				d.Nack(false, true)
-				continue
-			}
-			d.Ack(false)
+			sem <- struct{}{}
+			go func(delivery amqp.Delivery) {
+				defer func() { <-sem }()
+				if err := handler(delivery.Body); err != nil {
+					delivery.Nack(false, true)
+					return
+				}
+				delivery.Ack(false)
+			}(d)
 		}
 	}()
 	return nil
