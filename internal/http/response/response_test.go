@@ -22,7 +22,6 @@ func TestError(t *testing.T) {
 
 	assert.Equal(t, StatusError, resp.Status)
 	assert.Equal(t, msg, resp.Error)
-	assert.Nil(t, resp.Error)
 }
 
 func TestValidationError(t *testing.T) {
