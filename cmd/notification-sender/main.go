@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -49,11 +48,12 @@ func main() {
 	err = rabbitmq.ConsumerMessage(ch, "notification.upcoming", handler)
 	if err != nil {
 		logger.Error("failed to start consumer", sl.Err(err))
+		os.Exit(1)
 	}
 
 	sigterm := make(chan os.Signal, 1)
 	signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
 	<-sigterm
 
-	log.Println("Notification sender shutting down gracefully")
+	logger.Info("Notification sender shutting down gracefully")
 }
