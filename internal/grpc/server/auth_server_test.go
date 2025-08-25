@@ -29,34 +29,36 @@ func runMigrations(t *testing.T, connStr string) {
 	db, err := sql.Open("pgx", connStr)
 	require.NoError(t, err)
 	defer func() {
-		err = db.Close()
-		require.NoError(t, err)
+		require.NoError(t, db.Close())
 	}()
 
 	migrations := []string{
-		`CREATE TABLE IF NOT EXISTS users (
-			id SERIAL PRIMARY KEY,
-			username TEXT NOT NULL UNIQUE,
-			email TEXT NOT NULL UNIQUE,
-			password_hash TEXT NOT NULL,
-			role TEXT NOT NULL DEFAULT 'user'
-		)`,
-
-		`CREATE TABLE IF NOT EXISTS subscriptions (
-			id SERIAL PRIMARY KEY,
-			service_name TEXT NOT NULL,
-			price INT NOT NULL,
-			username TEXT NOT NULL,
-			start_date DATE NOT NULL,
-			counter_months INT NOT NULL
-		)`,
-
-		`CREATE INDEX IF NOT EXISTS idx_susbcriptions_username ON subscriptions(username)`,
+		`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`,
+		`
+        CREATE TABLE IF NOT EXISTS users (
+            uid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            username TEXT NOT NULL UNIQUE,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'user'
+        );	
+		`,
+		`
+        CREATE TABLE IF NOT EXISTS subscriptions (
+            id SERIAL PRIMARY KEY,
+            service_name TEXT NOT NULL,
+            price INT NOT NULL,
+            username TEXT NOT NULL,
+            start_date DATE NOT NULL,
+            counter_months INT NOT NULL
+        );
+		`,
+		`CREATE INDEX IF NOT EXISTS idx_subscriptions_username ON subscriptions(username);`, // исправил опечатку idx_susbcriptions
 	}
 
 	for _, migration := range migrations {
 		_, err := db.Exec(migration)
-		require.NoError(t, err, "Failed to run migration: %s", migration)
+		require.NoErrorf(t, err, "Failed to run migration: %s", migration)
 	}
 }
 
