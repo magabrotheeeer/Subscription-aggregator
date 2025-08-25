@@ -13,7 +13,7 @@ import (
 // UserRepository описывает контракт для работы с пользователями в базе данных.
 type UserRepository interface {
 	// RegisterUser сохраняет нового пользователя и возвращает его ID.
-	RegisterUser(ctx context.Context, user models.User) (int, error)
+	RegisterUser(ctx context.Context, user models.User) (string, error)
 
 	// GetUserByUsername возвращает пользователя по имени или ошибку, если не найден.
 	GetUserByUsername(ctx context.Context, username string) (*models.User, error)
@@ -34,10 +34,10 @@ func NewAuthService(users UserRepository, jwtMaker jwt.Maker) *AuthService {
 }
 
 // Register создает нового пользователя с хэшированием пароля и дефолтной ролью "user".
-func (s *AuthService) Register(ctx context.Context, email, username, rawPassword string) (int, error) {
+func (s *AuthService) Register(ctx context.Context, email, username, rawPassword string) (string, error) {
 	hashed, err := password.GetHash(rawPassword)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 	user := &models.User{
 		Email:        email,
