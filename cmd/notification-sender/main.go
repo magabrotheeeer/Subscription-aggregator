@@ -1,8 +1,6 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -10,8 +8,8 @@ import (
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/rabbitmq"
+	services "github.com/magabrotheeeer/subscription-aggregator/internal/services/notification-sender"
 )
 
 func main() {
@@ -28,7 +26,8 @@ func main() {
 		_ = conn.Close()
 	}()
 
-	ch, err := rabbitmq.SetupChannel(conn)
+	queues := rabbitmq.GetNotificationQueues()
+	ch, err := rabbitmq.SetupChannel(conn, queues)
 	if err != nil {
 		logger.Error("failed to setup RabbitMQ channel", sl.Err(err))
 		os.Exit(1)
@@ -37,15 +36,10 @@ func main() {
 	defer func() {
 		_ = ch.Close()
 	}()
-	handler := func(body []byte) error {
-		var message models.EntryInfo
-		if err := json.Unmarshal(body, &message); err != nil {
-			return fmt.Errorf("error unmarshalling message: %w", err)
-		}
-		return nil
-	}
 
-	err = rabbitmq.ConsumerMessage(ch, "notification.upcoming", handler)
+	senderService := services.NewSenderService(logger)
+
+	err = rabbitmq.ConsumerMessage(ch, "notification.upcoming", senderService.SendInfoExpiringSubscription)
 	if err != nil {
 		logger.Error("failed to start consumer", sl.Err(err))
 		os.Exit(1)

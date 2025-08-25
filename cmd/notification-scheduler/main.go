@@ -4,11 +4,11 @@ import (
 	"context"
 	"log/slog"
 	"os"
-	"time"
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/rabbitmq"
+	services "github.com/magabrotheeeer/subscription-aggregator/internal/services/notification-scheduler"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
 )
 
@@ -27,7 +27,8 @@ func main() {
 		_ = conn.Close()
 	}()
 
-	ch, err := rabbitmq.SetupChannel(conn)
+	queues := rabbitmq.GetNotificationQueues()
+	ch, err := rabbitmq.SetupChannel(conn, queues)
 	if err != nil {
 		logger.Error("failed to setup RabbitMQ channel", sl.Err(err))
 		os.Exit(1)
@@ -45,19 +46,7 @@ func main() {
 		_ = db.Db.Close()
 	}()
 
-	ticker := time.NewTicker(12 * time.Hour)
-	defer ticker.Stop()
-	for range ticker.C {
-		logger.Info("starting service to find expiring subscriptions")
-		entriesInfo, err := db.FindSubscriptionExpiringTomorrow(ctx)
-		if err != nil {
-			logger.Error("failed to find entries", sl.Err(err))
-		}
-		for _, entryInfo := range entriesInfo {
-			err = rabbitmq.PublishMessage(ch, "notifications", "upcoming", entryInfo)
-			if err != nil {
-				logger.Error("failed to publish message", sl.Err(err))
-			}
-		}
-	}
+	schedulerService := services.NewSchedulerService(db, logger)
+
+	go schedulerService.FindExpiringSubscriptions(ctx, ch)
 }
