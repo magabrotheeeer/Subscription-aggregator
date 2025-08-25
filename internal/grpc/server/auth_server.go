@@ -9,7 +9,7 @@ import (
 	"log/slog"
 
 	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/gen"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/services"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/services/auth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

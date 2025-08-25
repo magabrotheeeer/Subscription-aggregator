@@ -20,7 +20,7 @@ import (
 	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/gen"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/grpc/server"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/jwt"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/services"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/services/auth"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
 )
 

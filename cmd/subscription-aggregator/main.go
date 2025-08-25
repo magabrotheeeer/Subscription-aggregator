@@ -45,7 +45,7 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/middlewarectx"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/migrations"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/services"
+	services "github.com/magabrotheeeer/subscription-aggregator/internal/services/subscription"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
 )
 
