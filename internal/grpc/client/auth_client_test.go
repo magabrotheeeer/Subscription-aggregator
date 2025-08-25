@@ -28,34 +28,36 @@ func runMigrations(t *testing.T, connStr string) {
 	db, err := sql.Open("pgx", connStr)
 	require.NoError(t, err)
 	defer func() {
-		err = db.Close()
-		require.NoError(t, err)
+		require.NoError(t, db.Close())
 	}()
 
 	migrations := []string{
-		`CREATE TABLE IF NOT EXISTS users (
-			id SERIAL PRIMARY KEY,
-			username TEXT NOT NULL UNIQUE,
-			email TEXT NOT NULL UNIQUE,
-			password_hash TEXT NOT NULL,
-			role TEXT NOT NULL DEFAULT 'user'
-		)`,
-
-		`CREATE TABLE IF NOT EXISTS subscriptions (
-			id SERIAL PRIMARY KEY,
-			service_name TEXT NOT NULL,
-			price INT NOT NULL,
-			username TEXT NOT NULL,
-			start_date DATE NOT NULL,
-			counter_months INT NOT NULL
-		)`,
-
-		`CREATE INDEX IF NOT EXISTS idx_susbcriptions_username ON subscriptions(username)`,
+		`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`,
+		`
+        CREATE TABLE IF NOT EXISTS users (
+            uid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            username TEXT NOT NULL UNIQUE,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'user'
+        );	
+		`,
+		`
+        CREATE TABLE IF NOT EXISTS subscriptions (
+            id SERIAL PRIMARY KEY,
+            service_name TEXT NOT NULL,
+            price INT NOT NULL,
+            username TEXT NOT NULL,
+            start_date DATE NOT NULL,
+            counter_months INT NOT NULL
+        );
+		`,
+		`CREATE INDEX IF NOT EXISTS idx_subscriptions_username ON subscriptions(username);`, // исправил опечатку idx_susbcriptions
 	}
 
 	for _, migration := range migrations {
 		_, err := db.Exec(migration)
-		require.NoError(t, err, "Failed to run migration: %s", migration)
+		require.NoErrorf(t, err, "Failed to run migration: %s", migration)
 	}
 }
 
@@ -74,8 +76,7 @@ func TestAuthGRPCIntegration(t *testing.T) {
 	)
 	require.NoError(t, err)
 	defer func() {
-		err = pgContainer.Terminate(ctx)
-		require.NoError(t, err)
+		require.NoError(t, pgContainer.Terminate(ctx))
 	}()
 
 	connStr, err := pgContainer.ConnectionString(ctx)
@@ -85,10 +86,8 @@ func TestAuthGRPCIntegration(t *testing.T) {
 
 	storage, err := storage.New(connStr)
 	require.NoError(t, err)
-
 	defer func() {
-		err = storage.Db.Close()
-		require.NoError(t, err)
+		require.NoError(t, storage.Db.Close())
 	}()
 
 	jwtMaker := jwt.NewJWTMaker("test_secret_key", 24*time.Hour)
@@ -100,8 +99,7 @@ func TestAuthGRPCIntegration(t *testing.T) {
 	client, err := NewAuthClient(addr)
 	require.NoError(t, err)
 	defer func() {
-		err = client.Close()
-		require.NoError(t, err)
+		require.NoError(t, client.Close())
 	}()
 
 	t.Run("Register and Login", func(t *testing.T) {
@@ -110,6 +108,7 @@ func TestAuthGRPCIntegration(t *testing.T) {
 
 		loginResp, err := client.Login(ctx, "testuser", "password123")
 		require.NoError(t, err)
+
 		assert.NotEmpty(t, loginResp.Token)
 		assert.NotEmpty(t, loginResp.RefreshToken)
 		assert.Equal(t, "user", loginResp.Role)
@@ -121,6 +120,7 @@ func TestAuthGRPCIntegration(t *testing.T) {
 
 		validateResp, err := client.ValidateToken(ctx, loginResp.Token)
 		require.NoError(t, err)
+
 		assert.True(t, validateResp.Valid)
 		assert.Equal(t, "testuser", validateResp.Username)
 		assert.Equal(t, "user", validateResp.Role)
@@ -150,11 +150,12 @@ func startGRPCServer(t *testing.T, authService *services.AuthService) (*grpc.Ser
 	authpb.RegisterAuthServiceServer(grpcServer, authServer)
 
 	go func() {
-		if err := grpcServer.Serve(lis); err != nil {
-			t.Logf("gRPC server error: %v", err)
+		if serveErr := grpcServer.Serve(lis); serveErr != nil {
+			t.Logf("gRPC server error: %v", serveErr)
 		}
 	}()
 
+	// Ждем немного для надёжного запуска сервера
 	time.Sleep(100 * time.Millisecond)
 
 	return grpcServer, lis.Addr().String()
