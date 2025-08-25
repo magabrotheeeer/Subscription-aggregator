@@ -17,17 +17,17 @@ const (
 	StatusError = "Error"
 )
 
-// Response описывает стандартную структуру JSON‑ответа сервера.
-// Поле Status — статус запроса ("OK" или "Error").
-// Поле Error — текст ошибки (опционально, при неуспехе).
+// OKResponse описывает стандартную структуру JSON‑ответа сервера.
+// Поле Status — статус запроса ("OK").
 // Поле Data — данные ответа (опционально, при успехе).
 type OKResponse struct {
 	Status string `json:"status"`
 	Data   any    `json:"data,omitempty"`
 }
 
-// ErrorResponse — структура ошибки для Swagger-документации.
-// Используется в аннотациях @Failure как возвращаемый тип ошибки.
+// ErrorResponse описывает стандартную структуру JSON‑ответа сервера.
+// Поле Status — статус запроса ("Error").
+// Поле Error  — сообщение ошибки ответа.
 type ErrorResponse struct {
 	Status string `json:"status" example:"Error"`
 	Error  string `json:"error" example:"invalid request body"`
