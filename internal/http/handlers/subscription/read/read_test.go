@@ -63,7 +63,7 @@ func TestReadHandler(t *testing.T) {
 			url:            "/subscriptions/abc",
 			mockID:         0,
 			setupMock:      func(_ *MockService) {},
-			expectedStatus: http.StatusOK, // Because handler does not call WriteHeader, renders JSON with default 200
+			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"status":"Error","error":"failed to decode id from url"}`,
 		},
 		{

@@ -49,7 +49,7 @@ func TestCountSumHandler(t *testing.T) {
 			},
 			username:       "testuser",
 			setupMock:      func(_ *MockService) {},
-			expectedStatus: http.StatusBadRequest,
+			expectedStatus: http.StatusUnprocessableEntity,
 			expectedBody:   `{"status":"Error","error":"field StartDate is a required field, field CounterMonths is a required field"}`,
 		},
 		{

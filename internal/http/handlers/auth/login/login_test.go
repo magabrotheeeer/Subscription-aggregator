@@ -75,7 +75,7 @@ func TestLoginHandler_ServeHTTP(t *testing.T) {
 		{
 			name:           "invalid json body",
 			requestBody:    "not a json",
-			wantStatusCode: http.StatusOK,
+			wantStatusCode: http.StatusBadRequest,
 			wantData:       nil,
 			wantError:      "invalid request body",
 			wantStatus:     "Error",
@@ -83,7 +83,7 @@ func TestLoginHandler_ServeHTTP(t *testing.T) {
 		{
 			name:           "validation error - missing password",
 			requestBody:    Request{Username: "user1"},
-			wantStatusCode: http.StatusOK,
+			wantStatusCode: http.StatusUnprocessableEntity,
 			wantData:       nil,
 			wantError:      "field Password is a required field",
 			wantStatus:     "Error",

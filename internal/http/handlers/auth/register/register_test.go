@@ -66,7 +66,7 @@ func TestRegisterHandler_ServeHTTP(t *testing.T) {
 		{
 			name:           "invalid json body",
 			requestBody:    "not a json",
-			wantStatusCode: http.StatusOK,
+			wantStatusCode: http.StatusBadRequest,
 			wantData:       nil,
 			wantError:      "invalid request body",
 			wantStatus:     "Error",
@@ -77,7 +77,7 @@ func TestRegisterHandler_ServeHTTP(t *testing.T) {
 				Username: "user1",
 				Email:    "user1@example.com",
 			},
-			wantStatusCode: http.StatusOK,
+			wantStatusCode: http.StatusUnprocessableEntity,
 			wantData:       nil,
 			wantError:      "field Password is a required field",
 			wantStatus:     "Error",

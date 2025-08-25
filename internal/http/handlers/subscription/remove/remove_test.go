@@ -51,7 +51,7 @@ func TestRemoveHandler(t *testing.T) {
 			url:            "/subscriptions/abc",
 			mockID:         0,
 			setupMock:      func(_ *MockService) {},
-			expectedStatus: http.StatusOK, // из-за отсутствия WriteHeader в ошибке
+			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"status":"Error","error":"invalid id"}`,
 		},
 		{

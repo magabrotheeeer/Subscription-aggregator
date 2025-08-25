@@ -80,7 +80,7 @@ func TestUpdateHandler(t *testing.T) {
 			},
 			username:       "testuser",
 			setupMock:      func(_ *MockService) {},
-			expectedStatus: http.StatusBadRequest,
+			expectedStatus: http.StatusUnprocessableEntity,
 			expectedBody:   `{"status":"Error","error":"field ServiceName is a required field, field Price is a required field, field StartDate is a required field, field CounterMonths is a required field"}`,
 		},
 		{
@@ -108,7 +108,7 @@ func TestUpdateHandler(t *testing.T) {
 			},
 			username:       "testuser",
 			setupMock:      func(_ *MockService) {},
-			expectedStatus: http.StatusOK,
+			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"status":"Error","error":"failed to decode id from url"}`,
 		},
 		{
