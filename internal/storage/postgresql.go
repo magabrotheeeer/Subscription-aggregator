@@ -204,15 +204,15 @@ func (s *Storage) ListAll(ctx context.Context, limit, offset int) ([]*models.Ent
 }
 
 // RegisterUser сохраняет нового пользователя в базу данных и возвращает его ID.
-func (s *Storage) RegisterUser(ctx context.Context, user models.User) (int, error) {
+func (s *Storage) RegisterUser(ctx context.Context, user models.User) (string, error) {
 	const op = "storage.postgresql.RegisterUser"
-	var newID int
+	var newID string
 	if err := s.Db.QueryRowContext(ctx, `
 			INSERT INTO users (email, username, password_hash, role) 
 			VALUES ($1, $2, $3, $4)
-			RETURNING id;`,
+			RETURNING uid;`,
 		user.Email, user.Username, user.PasswordHash, user.Role).Scan(&newID); err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 	return newID, nil
 }
