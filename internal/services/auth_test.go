@@ -20,9 +20,9 @@ type UserRepoMock struct {
 	mock.Mock
 }
 
-func (m *UserRepoMock) RegisterUser(ctx context.Context, user models.User) (int, error) {
+func (m *UserRepoMock) RegisterUser(ctx context.Context, user models.User) (string, error) {
 	args := m.Called(ctx, user)
-	return args.Int(0), args.Error(1)
+	return args.String(0), args.Error(1)
 }
 
 func (m *UserRepoMock) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
@@ -53,14 +53,14 @@ func (m *JwtMakerMock) ParseToken(token string) (*customjwt.CustomClaims, error)
 
 func TestAuthService_Register(t *testing.T) {
 	tests := []struct {
-		name       string
-		email      string
-		username   string
-		password   string
-		setupMocks func(r *UserRepoMock)
-		wantUserID int
-		wantErr    bool
-		errMsg     string
+		name        string
+		email       string
+		username    string
+		password    string
+		setupMocks  func(r *UserRepoMock)
+		wantUserUID string
+		wantErr     bool
+		errMsg      string
 	}{
 		{
 			name:     "successful registration",
@@ -73,10 +73,10 @@ func TestAuthService_Register(t *testing.T) {
 						user.Username == "testuser" &&
 						user.PasswordHash != "" &&
 						user.Role == "user"
-				})).Return(1, nil).Once()
+				})).Return("some-uuid-string", nil).Once() // возвращаем строку UUID
 			},
-			wantUserID: 1,
-			wantErr:    false,
+			wantUserUID: "some-uuid-string",
+			wantErr:     false,
 		},
 		{
 			name:     "repository error",
@@ -84,11 +84,11 @@ func TestAuthService_Register(t *testing.T) {
 			username: "testuser",
 			password: "password123",
 			setupMocks: func(r *UserRepoMock) {
-				r.On("RegisterUser", mock.Anything, mock.Anything).Return(0, errors.New("db error")).Once()
+				r.On("RegisterUser", mock.Anything, mock.Anything).Return("", errors.New("db error")).Once()
 			},
-			wantUserID: 0,
-			wantErr:    true,
-			errMsg:     "db error",
+			wantUserUID: "",
+			wantErr:     true,
+			errMsg:      "db error",
 		},
 	}
 
@@ -108,14 +108,13 @@ func TestAuthService_Register(t *testing.T) {
 				}
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.wantUserID, got)
+				assert.Equal(t, tt.wantUserUID, got)
 			}
 
 			repo.AssertExpectations(t)
 		})
 	}
 }
-
 func TestAuthService_Login(t *testing.T) {
 	// Правильный сырой пароль для теста
 	rawPassword := "correctpassword"
