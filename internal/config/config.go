@@ -30,7 +30,7 @@ type RabbitMQ struct {
 
 type SMTP struct {
 	SMTPHost string `yaml:"smtp_host"`
-	SMTPPort int    `yaml:"smtp_port"`
+	SMTPPort string `yaml:"smtp_port"`
 	SMTPUser string `yaml:"smtp_user"`
 	SMTPPass string `yaml:"smtp_pass"`
 }
