@@ -38,10 +38,10 @@ services:
       retries: 5
     restart: always
 
-  auth-service:
+  auth:
     build:
       context: .
-      dockerfile: ./cmd/auth-service/Dockerfile
+      dockerfile: ./cmd/auth/Dockerfile
     environment:
       - CONFIG_PATH=/config/config.yaml
     depends_on:
@@ -72,7 +72,7 @@ services:
   notification-scheduler:
     build:
       context: .
-      dockerfile: ./cmd/notification-scheduler/Dockerfile
+      dockerfile: ./cmd/notification/notification-scheduler/Dockerfile
     environment:
       - CONFIG_PATH=/config/config.yaml
     depends_on:
@@ -86,7 +86,7 @@ services:
   notification-sender:
     build:
       context: .
-      dockerfile: ./cmd/notification-sender/Dockerfile
+      dockerfile: ./cmd/notification/notification-sender/Dockerfile
     environment:
       - CONFIG_PATH=/config/config.yaml
     depends_on:

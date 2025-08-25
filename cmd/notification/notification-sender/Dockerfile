@@ -7,7 +7,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o notification-sender ./cmd/notification-sender/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o notification-sender ./cmd/notification/notification-sender/main.go
 
 # Final stage
 FROM alpine:latest

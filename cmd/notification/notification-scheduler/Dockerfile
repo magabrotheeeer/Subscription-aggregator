@@ -7,7 +7,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o notification-scheduler ./cmd/notification-scheduler/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o notification-scheduler ./cmd/notification/notification-scheduler/main.go
 
 # Final stage
 FROM alpine:latest
