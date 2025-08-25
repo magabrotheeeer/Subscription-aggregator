@@ -21,4 +21,4 @@ COPY --from=builder /app/migrations ./migrations
 
 EXPOSE 50051
 
-ENTRYPOINT ["./auth-service"]
+ENTRYPOINT ["./auth"]
