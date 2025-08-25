@@ -30,6 +30,9 @@ func SetupChannel(conn *amqp.Connection, queues []QueueConfig) (*amqp.Channel, e
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+	if err := ch.Qos(10, 0, false); err != nil {
+		return nil, fmt.Errorf("failed to set QoS: %w", err)
+	}
 
 	err = ch.ExchangeDeclare(
 		"notifications", // exchange
