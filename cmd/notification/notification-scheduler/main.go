@@ -49,4 +49,5 @@ func main() {
 	schedulerService := services.NewSchedulerService(db, logger)
 
 	go schedulerService.FindExpiringSubscriptions(ctx, ch)
+	select {}
 }
