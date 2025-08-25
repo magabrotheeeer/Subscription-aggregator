@@ -7,7 +7,7 @@ type QueueConfig struct {
 
 func GetNotificationQueues() []QueueConfig {
 	return []QueueConfig{
-		{QueueName: "notifications.upcoming", RoutingKey: "upcoming"},
+		{QueueName: "notification.upcoming", RoutingKey: "upcoming"},
 		// при необходимости дополнительные очереди для других воркеров
 	}
 }
