@@ -36,6 +36,18 @@ func New(storageConnectionString string) (*Storage, error) {
 	return &Storage{Db: db}, nil
 }
 
+func CheckDatabaseReady(storage *Storage) error {
+	var exists bool
+	err := storage.Db.QueryRow(`SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'subscriptions'
+    )`).Scan(&exists)
+	if err != nil || !exists {
+		return fmt.Errorf("required table subscriptions missing or query error: %w", err)
+	}
+	return nil
+}
+
 // Create вставляет новую запись подписки и возвращает её ID.
 func (s *Storage) Create(ctx context.Context, entry models.Entry) (int, error) {
 	const op = "storage.postgresql.Create"
