@@ -12,6 +12,7 @@ CREATE TABLE subscriptions (
     service_name TEXT NOT NULL,
     price INT NOT NULL,
     username TEXT NOT NULL,
+    user_uid UUID,
     start_date DATE NOT NULL,
     counter_months INT NOT NULL
 );
