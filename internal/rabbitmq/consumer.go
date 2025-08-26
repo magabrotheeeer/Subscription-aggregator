@@ -1,12 +1,13 @@
 package rabbitmq
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/streadway/amqp"
 )
 
-func ConsumerMessage(ch *amqp.Channel, queueName string, handler func([]byte) error) error {
+func ConsumerMessage(ctx context.Context, ch *amqp.Channel, queueName string, handler func([]byte) error) error {
 	const op = "rabbitmq.ConsumerMessage"
 	delivery, err := ch.Consume(
 		queueName,
@@ -23,16 +24,24 @@ func ConsumerMessage(ch *amqp.Channel, queueName string, handler func([]byte) er
 
 	sem := make(chan struct{}, 10)
 	go func() {
-		for d := range delivery {
-			sem <- struct{}{}
-			go func(delivery amqp.Delivery) {
-				defer func() { <-sem }()
-				if err := handler(delivery.Body); err != nil {
-					delivery.Nack(false, true)
+		for {
+			select {
+			case d, ok := <-delivery:
+				if !ok {
 					return
 				}
-				delivery.Ack(false)
-			}(d)
+				sem <- struct{}{}
+				go func(delivery amqp.Delivery) {
+					defer func() { <-sem }()
+					if err := handler(delivery.Body); err != nil {
+						delivery.Nack(false, true)
+						return
+					}
+					delivery.Ack(false)
+				}(d)
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
 	return nil
