@@ -5,14 +5,14 @@ services:
     image: postgres:15
     environment:
       POSTGRES_DB: original_db
-      POSTGRES_USER: papa
-      POSTGRES_PASSWORD: 1234
+      POSTGRES_USER: akhilgovmb
+      POSTGRES_PASSWORD: testpostgres
     ports:
       - "5433:5432"
     volumes:
-      - /home/papa/docker/pgdata:/var/lib/postgresql/data
+      - "C:/Users/akhilgovmb/docker/pgdata:/var/lib/postgresql/data"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U papa -d original_db"]
+      test: ["CMD-SHELL", "pg_isready -U akhilgovmb -d original_db"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -23,7 +23,7 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - /home/papa/docker/redisdata:/data
+      - "C:/Users/akhilgovmb/docker/redisdata:/data"
     restart: always
 
   rabbitmq:
@@ -50,7 +50,7 @@ services:
     ports:
       - "50051:50051"
     volumes:
-      - /home/papa/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro
+      - "C:/Users/akhilgovmb/Desktop/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro"
 
   app:
     build:
@@ -67,12 +67,12 @@ services:
       redis:
         condition: service_started
     volumes:
-      - /home/papa/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro
+      - "C:/Users/akhilgovmb/Desktop/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro"
 
-  notification-scheduler:
+  scheduler:
     build:
       context: .
-      dockerfile: ./cmd/notification/notification-scheduler/Dockerfile
+      dockerfile: ./cmd/scheduler/Dockerfile
     environment:
       - CONFIG_PATH=/config/config.yaml
     depends_on:
@@ -81,19 +81,20 @@ services:
       rabbitmq:
         condition: service_healthy
     volumes:
-      - /home/papa/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro
+      - "C:/Users/akhilgovmb/Desktop/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro"
 
-  notification-sender:
+  sender:
     build:
       context: .
-      dockerfile: ./cmd/notification/notification-sender/Dockerfile
+      dockerfile: ./cmd/sender/Dockerfile
     environment:
       - CONFIG_PATH=/config/config.yaml
     depends_on:
       rabbitmq:
         condition: service_healthy
+      # notification-scheduler:
     volumes:
-      - /home/papa/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro
+      - "C:/Users/akhilgovmb/Desktop/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro"
 
 volumes:
   pgdata:
