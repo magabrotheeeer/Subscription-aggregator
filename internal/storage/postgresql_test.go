@@ -541,3 +541,104 @@ func TestStorage_GetUserByUsername(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckDatabaseReady(t *testing.T) {
+	tests := []struct {
+		name         string
+		setup        func(s *Storage)
+		wantError    bool
+		errorContain string
+	}{
+		{
+			name: "table exists",
+			setup: func(s *Storage) {
+				// Таблица уже создается в setupTestDb
+			},
+			wantError: false,
+		},
+		{
+			name: "table missing",
+			setup: func(s *Storage) {
+				_, err := s.Db.Exec(`DROP TABLE subscriptions`)
+				require.NoError(t, err)
+			},
+			wantError:    true,
+			errorContain: "missing",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			storage, cleanup := setupTestDb(t)
+			defer cleanup()
+			tt.setup(storage)
+
+			err := CheckDatabaseReady(storage)
+			if tt.wantError {
+				require.Error(t, err)
+				if tt.errorContain != "" {
+					assert.Contains(t, err.Error(), tt.errorContain)
+				}
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestStorage_FindSubscriptionExpiringTomorrow(t *testing.T) {
+	tests := []struct {
+		name      string
+		setup     func(s *Storage) error
+		wantCount int
+		wantError bool
+	}{
+		{
+			name: "one subscription expires tomorrow",
+			setup: func(s *Storage) error {
+				_, err := s.Db.Exec(`
+					INSERT INTO users (username, email, password_hash, role) 
+					VALUES ('testuser', 'test@example.com', 'somehash', 'user')
+				`)
+				if err != nil {
+					return err
+				}
+				_, err = s.Db.Exec(`
+					INSERT INTO subscriptions 
+						(service_name, price, username, start_date, counter_months) 
+					VALUES 
+						('TestService', 100, 'testuser', CURRENT_DATE - INTERVAL '1 month' + INTERVAL '1 day', 1)
+				`)
+				return err
+			},
+			wantCount: 1,
+			wantError: false,
+		},
+		{
+			name:      "no subscriptions expire tomorrow",
+			setup:     func(s *Storage) error { return nil },
+			wantCount: 0,
+			wantError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			storage, cleanup := setupTestDb(t)
+			defer cleanup()
+
+			err := tt.setup(storage)
+			require.NoError(t, err)
+
+			ctx := context.Background()
+			res, err := storage.FindSubscriptionExpiringTomorrow(ctx)
+
+			if tt.wantError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.Len(t, res, tt.wantCount)
+			}
+		})
+	}
+}
