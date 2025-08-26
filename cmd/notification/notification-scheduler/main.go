@@ -9,7 +9,7 @@ import (
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/rabbitmq"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/rabbitmq"
 	services "github.com/magabrotheeeer/subscription-aggregator/internal/services/notification-scheduler"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
 )

@@ -9,9 +9,9 @@ import (
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/rabbitmq"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/rabbitmq"
 	services "github.com/magabrotheeeer/subscription-aggregator/internal/services/notification-sender"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/smtp"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/smtp"
 )
 
 func main() {
