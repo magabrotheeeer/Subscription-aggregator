@@ -29,7 +29,7 @@ func main() {
 	cfg := config.MustLoad()
 	ctx := context.Background()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	logger.Info("starting notification-scheduler", slog.String("env", cfg.Env))
+	logger.Info("starting scheduler", slog.String("env", cfg.Env))
 	conn, err := rabbitmq.Connect(cfg.RabbitMQURL, cfg.RabbitMQMaxRetries, cfg.RabbitMQRetryDelay)
 	if err != nil {
 		logger.Error("failed to connect to RabbitMQ", sl.Err(err))

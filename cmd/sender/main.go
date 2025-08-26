@@ -18,7 +18,7 @@ func main() {
 	ctx := context.Background()
 	cfg := config.MustLoad()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	logger.Info("starting notification-sender", slog.String("env", cfg.Env))
+	logger.Info("starting sender service", slog.String("env", cfg.Env))
 	conn, err := rabbitmq.Connect(cfg.RabbitMQURL, cfg.RabbitMQMaxRetries, cfg.RabbitMQRetryDelay)
 	if err != nil {
 		logger.Error("failed to connect to RabbitMQ", sl.Err(err))
@@ -54,5 +54,5 @@ func main() {
 	signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
 	<-sigterm
 
-	logger.Info("Notification sender shutting down gracefully")
+	logger.Info("Sender service shutting down gracefully")
 }
