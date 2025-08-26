@@ -96,6 +96,18 @@ services:
     volumes:
       - "C:/Users/akhilgovmb/Desktop/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro"
 
+  payment-processor:
+    build:
+      context: .
+      dockerfile: ./cmd/payment-processor/Dockerfile
+    environment:
+      - CONFIG_PATH=/config/config.yaml
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - "C:/Users/akhilgovmb/Desktop/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro"
+
 volumes:
   pgdata:
   redisdata:
