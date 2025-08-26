@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
@@ -11,6 +13,17 @@ import (
 	services "github.com/magabrotheeeer/subscription-aggregator/internal/services/notification-scheduler"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
 )
+
+func waitForDB(db *storage.Storage) error {
+	for range 10 {
+		err := storage.CheckDatabaseReady(db)
+		if err == nil {
+			return nil // готово
+		}
+		time.Sleep(3 * time.Second)
+	}
+	return fmt.Errorf("database not ready after retries")
+}
 
 func main() {
 	cfg := config.MustLoad()
@@ -45,6 +58,10 @@ func main() {
 	defer func() {
 		_ = db.Db.Close()
 	}()
+	err = waitForDB(db)
+	if err != nil {
+		logger.Error("Database is not ready:", sl.Err(err))
+	}
 
 	schedulerService := services.NewSchedulerService(db, logger)
 
