@@ -278,3 +278,30 @@ func (s *Storage) FindSubscriptionExpiringTomorrow(ctx context.Context) ([]*mode
 	}
 	return result, nil
 }
+
+func (s *Storage) FindSubscriptionsDueToday(ctx context.Context) ([]*models.Entry, error) {
+	const op = "storage.postgresql.FindSubscriptionsDueToday"
+	rows, err := s.Db.QueryContext(ctx, `
+		SELECT username, service_name, price, next_payment_date, is_active, counter_months
+		FROM subscriptions
+		WHERE next_payment_date = CURRENT_DATE
+  			AND is_active = true;	
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	var result []*models.Entry
+	for rows.Next() {
+		var item models.Entry
+		if err = rows.Scan(&item.Username, &item.ServiceName, &item.Price,
+			&item.NextPaymentDate, &item.IsActive, &item.CounterMonths); err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		result = append(result, &item)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return result, nil
+}
