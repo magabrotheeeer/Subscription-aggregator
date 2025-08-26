@@ -35,42 +35,6 @@ func captureOutput(f func()) (string, bool) {
 	return buf.String(), panicked
 }
 
-func TestConfig_String(t *testing.T) {
-	cfg := &Config{
-		Env:                     "test",
-		GRPCAuthAddress:         "localhost:50051",
-		StorageConnectionString: "postgres://user:pass@localhost:5432/db",
-		RedisConnection: RedisConnection{
-			RedisAddress: "localhost:6379",
-			RedisPassword:     "redis_pass",
-			RedisUser:         "redis_user",
-			RedisDB:           1,
-			RedisMaxRetries:   3,
-			RedisDialTimeout:  5 * time.Second,
-			RedisTimeoutRedis: 10 * time.Second,
-		},
-		HTTPServer: HTTPServer{
-			AddressHTTP: ":8080",
-			TimeoutHTTP: 30 * time.Second,
-			IdleTimeout: 60 * time.Second,
-		},
-		JWTToken: JWTToken{
-			JWTSecretKey: "secret_key_123",
-			TokenTTL:     24 * time.Hour,
-		},
-	}
-
-	result := cfg.String()
-
-	assert.Contains(t, result, "Env: test")
-	assert.Contains(t, result, "StorageConnectionString: postgres://user:pass@localhost:5432/db")
-	assert.Contains(t, result, "Addr: localhost:6379")
-	assert.Contains(t, result, "Password: redis_pass")
-	assert.Contains(t, result, "Address: :8080")
-	assert.Contains(t, result, "JWTSecretKey: secret_key_123")
-	assert.Contains(t, result, "TokenTTL: 24h0m0s")
-}
-
 func TestMustLoad_ValidConfig(t *testing.T) {
 	// Создаем временный конфиг файл
 	configContent := `

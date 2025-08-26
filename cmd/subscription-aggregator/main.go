@@ -18,7 +18,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -52,7 +51,6 @@ import (
 func main() {
 	ctx := context.Background()
 	config := config.MustLoad()
-	fmt.Println(config.String())
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	logger.Info("starting subscription-aggregator", slog.String("env", config.Env))

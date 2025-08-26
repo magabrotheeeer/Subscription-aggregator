@@ -2,7 +2,6 @@
 package config
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -74,47 +73,4 @@ func MustLoad() *Config {
 		log.Fatalf("cannot read config: %s", err)
 	}
 	return &cfg
-}
-
-func (c *Config) String() string {
-	return fmt.Sprintf(
-		"Env: %s\n"+
-			"StorageConnectionString: %s\n"+
-			"RedisConnection:\n"+
-			"  Addr: %s\n"+
-			"  Password: %s\n"+
-			"  User: %s\n"+
-			"  DB: %d\n"+
-			"  MaxRetries: %d\n"+
-			"  DialTimeout: %s\n"+
-			"  Timeout: %s\n"+
-			"HTTPServer:\n"+
-			"  Address: %s\n"+
-			"  Timeout: %s\n"+
-			"  IdleTimeout: %s\n"+
-			"JWTToken:\n"+
-			"  JWTSecretKey: %s\n"+
-			"  TokenTTL: %s\n"+
-			"RabbitMQ:\n"+
-			"  URL: %s\n"+
-			"  MaxRetries: %d\n"+
-			"  RetryDelay: %s\n",
-		c.Env,
-		c.StorageConnectionString,
-		c.RedisAddress,
-		c.RedisPassword,
-		c.RedisUser,
-		c.RedisDB,
-		c.RedisMaxRetries,
-		c.RedisDialTimeout,
-		c.RedisTimeoutRedis,
-		c.AddressHTTP,
-		c.TimeoutHTTP,
-		c.IdleTimeout,
-		c.JWTSecretKey,
-		c.TokenTTL,
-		c.RabbitMQURL,
-		c.RabbitMQMaxRetries,
-		c.RabbitMQRetryDelay,
-	)
 }
