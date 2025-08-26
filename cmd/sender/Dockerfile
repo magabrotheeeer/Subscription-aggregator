@@ -15,4 +15,4 @@ WORKDIR /root/
 COPY --from=builder /app/sender .
 COPY --from=builder /app/config/config.yaml ./config.yaml
 
-ENTRYPOINT [".sender"]
+ENTRYPOINT ["./sender"]
