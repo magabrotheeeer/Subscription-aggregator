@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -14,6 +15,7 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
 	cfg := config.MustLoad()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	logger.Info("starting notification-sender", slog.String("env", cfg.Env))
@@ -42,7 +44,7 @@ func main() {
 
 	senderService := services.NewSenderService(cfg, logger, newTransport)
 
-	err = rabbitmq.ConsumerMessage(ch, "notification.upcoming", senderService.SendInfoExpiringSubscription)
+	err = rabbitmq.ConsumerMessage(ctx, ch, "notification.upcoming", senderService.SendInfoExpiringSubscription)
 	if err != nil {
 		logger.Error("failed to start consumer", sl.Err(err))
 		os.Exit(1)
