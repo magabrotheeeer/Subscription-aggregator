@@ -60,13 +60,21 @@ func (s *SubscriptionService) Create(ctx context.Context, userName string, req m
 	if err != nil {
 		return 0, fmt.Errorf("invalid start date: %w", err)
 	}
+	endDate := startDate.AddDate(0, req.CounterMonths, 0)
+	today := time.Now().Truncate(24 * time.Hour)
+	if endDate.Before(today) {
+		return 0, fmt.Errorf("subscription end date must not be earlier than today")
+	}
 
+	nextPaymentDate := startDate.AddDate(0, 1, 0)
 	entry := models.Entry{
-		ServiceName:   req.ServiceName,
-		Username:      userName,
-		Price:         req.Price,
-		StartDate:     startDate,
-		CounterMonths: req.CounterMonths,
+		ServiceName:     req.ServiceName,
+		Username:        userName,
+		Price:           req.Price,
+		StartDate:       startDate,
+		CounterMonths:   req.CounterMonths,
+		NextPaymentDate: nextPaymentDate,
+		IsActive:        true,
 	}
 
 	id, err := s.repo.Create(ctx, entry)
