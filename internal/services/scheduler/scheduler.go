@@ -89,5 +89,4 @@ func (s *SchedulerService) runFindExpiringSubscriptionsDueToday(ctx context.Cont
 			s.log.Error("failed to publish message", sl.Err(err))
 		}
 	}
-
 }
