@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/rabbitmq"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 	services "github.com/magabrotheeeer/subscription-aggregator/internal/services/scheduler"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
 )
@@ -65,6 +65,7 @@ func main() {
 
 	schedulerService := services.NewSchedulerService(db, logger)
 
-	go schedulerService.FindExpiringSubscriptions(ctx, ch)
+	go schedulerService.FindExpiringSubscriptionsDueTomorrow(ctx, ch)
+	go schedulerService.FindExpiringSubscriptionsDueToday(ctx, ch)
 	select {}
 }
