@@ -1,0 +1,3 @@
+ALTER TABLE subscriptions
+ADD COLUMN next_payment_date DATE,
+ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT TRUE;
