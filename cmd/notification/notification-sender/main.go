@@ -10,6 +10,7 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/rabbitmq"
 	services "github.com/magabrotheeeer/subscription-aggregator/internal/services/notification-sender"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/smtp"
 )
 
 func main() {
@@ -37,7 +38,9 @@ func main() {
 		_ = ch.Close()
 	}()
 
-	senderService := services.NewSenderService(cfg, logger)
+	newTransport := smtp.NewTransport(cfg, logger)
+
+	senderService := services.NewSenderService(cfg, logger, newTransport)
 
 	err = rabbitmq.ConsumerMessage(ch, "notification.upcoming", senderService.SendInfoExpiringSubscription)
 	if err != nil {
