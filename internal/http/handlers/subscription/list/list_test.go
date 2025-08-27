@@ -23,7 +23,7 @@ type MockService struct {
 	mock.Mock
 }
 
-func (m *MockService) List(ctx context.Context, username, role string, limit, offset int) ([]*models.Entry, error) {
+func (m *MockService) ListEntrys(ctx context.Context, username, role string, limit, offset int) ([]*models.Entry, error) {
 	args := m.Called(ctx, username, role, limit, offset)
 	return args.Get(0).([]*models.Entry), args.Error(1)
 }

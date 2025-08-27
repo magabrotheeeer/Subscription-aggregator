@@ -16,37 +16,37 @@ import (
 
 type RepoMock struct{ mock.Mock }
 
-func (m *RepoMock) Create(ctx context.Context, sub models.Entry) (int, error) {
+func (m *RepoMock) CreateEntry(ctx context.Context, sub models.Entry) (int, error) {
 	args := m.Called(ctx, sub)
 	return args.Int(0), args.Error(1)
 }
-func (m *RepoMock) Remove(ctx context.Context, id int) (int, error) {
+func (m *RepoMock) RemoveEntry(ctx context.Context, id int) (int, error) {
 	args := m.Called(ctx, id)
 	return args.Int(0), args.Error(1)
 }
-func (m *RepoMock) Read(ctx context.Context, id int) (*models.Entry, error) {
+func (m *RepoMock) ReadEntry(ctx context.Context, id int) (*models.Entry, error) {
 	args := m.Called(ctx, id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*models.Entry), args.Error(1)
 }
-func (m *RepoMock) Update(ctx context.Context, entry models.Entry, id int) (int, error) {
+func (m *RepoMock) UpdateEntry(ctx context.Context, entry models.Entry, id int) (int, error) {
 	args := m.Called(ctx, entry, id)
 	return args.Int(0), args.Error(1)
 }
-func (m *RepoMock) List(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error) {
+func (m *RepoMock) ListEntrys(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error) {
 	args := m.Called(ctx, username, limit, offset)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]*models.Entry), args.Error(1)
 }
-func (m *RepoMock) CountSum(ctx context.Context, filter models.FilterSum) (float64, error) {
+func (m *RepoMock) CountSumEntrys(ctx context.Context, filter models.FilterSum) (float64, error) {
 	args := m.Called(ctx, filter)
 	return args.Get(0).(float64), args.Error(1)
 }
-func (m *RepoMock) ListAll(ctx context.Context, limit, offset int) ([]*models.Entry, error) {
+func (m *RepoMock) ListAllEntrys(ctx context.Context, limit, offset int) ([]*models.Entry, error) {
 	args := m.Called(ctx, limit, offset)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -147,7 +147,7 @@ func TestSubscriptionService_Create(t *testing.T) {
 
 			tt.setupMocks(repo, cache)
 
-			got, err := svc.Create(context.Background(), "user1", tt.req)
+			got, err := svc.CreateEntry(context.Background(), "user1", tt.req)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -244,7 +244,7 @@ func TestSubscriptionService_Update(t *testing.T) {
 
 			tt.setupMocks(repo, cache)
 
-			res, err := svc.Update(context.Background(), tt.req, tt.id, tt.username)
+			res, err := svc.UpdateEntry(context.Background(), tt.req, tt.id, tt.username)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -306,7 +306,7 @@ func TestSubscriptionService_Remove(t *testing.T) {
 
 			tt.setupMocks(repo, cache)
 
-			count, err := svc.Remove(context.Background(), tt.id)
+			count, err := svc.RemoveEntry(context.Background(), tt.id)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -409,7 +409,7 @@ func TestSubscriptionService_List(t *testing.T) {
 
 			tt.setupMocks(repo)
 
-			got, err := svc.List(context.Background(), tt.username, tt.role, tt.limit, tt.offset)
+			got, err := svc.ListEntrys(context.Background(), tt.username, tt.role, tt.limit, tt.offset)
 			if tt.wantErr {
 				assert.Error(t, err)
 				if tt.errMsg != "" {
@@ -525,7 +525,7 @@ func TestSubscriptionService_Read(t *testing.T) {
 				}
 			}
 
-			got, err := svc.Read(context.Background(), tt.id)
+			got, err := svc.ReadEntry(context.Background(), tt.id)
 			if tt.wantErr {
 				assert.Error(t, err)
 				if tt.errMsg != "" {

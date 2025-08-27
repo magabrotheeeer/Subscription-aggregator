@@ -32,7 +32,7 @@ type Handler struct {
 
 // Service описывает интерфейс бизнес-логики обновления подписки.
 type Service interface {
-	Update(ctx context.Context, req models.DummyEntry, id int, username string) (int, error)
+	UpdateEntry(ctx context.Context, req models.DummyEntry, id int, username string) (int, error)
 }
 
 // New создает новый Handler с переданными логгером и сервисом.
@@ -103,7 +103,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	counter, err := h.service.Update(r.Context(), req, id, username)
+	counter, err := h.service.UpdateEntry(r.Context(), req, id, username)
 	if err != nil {
 		log.Error("failed to update subscription", sl.Err(err))
 		w.WriteHeader(http.StatusInternalServerError)

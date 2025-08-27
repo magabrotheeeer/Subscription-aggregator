@@ -20,7 +20,7 @@ type MockService struct {
 	mock.Mock
 }
 
-func (m *MockService) Remove(ctx context.Context, id int) (int, error) {
+func (m *MockService) RemoveEntry(ctx context.Context, id int) (int, error) {
 	args := m.Called(ctx, id)
 	return args.Int(0), args.Error(1)
 }

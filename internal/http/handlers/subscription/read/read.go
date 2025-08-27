@@ -30,7 +30,7 @@ type Handler struct {
 
 // Service описывает интерфейс бизнес-логики чтения подписки.
 type Service interface {
-	Read(ctx context.Context, id int) (*models.Entry, error)
+	ReadEntry(ctx context.Context, id int) (*models.Entry, error)
 }
 
 // New создает новый Handler с переданным логгером и сервисом.
@@ -70,7 +70,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := h.service.Read(r.Context(), id)
+	res, err := h.service.ReadEntry(r.Context(), id)
 	if err != nil {
 		log.Error("failed to read subscription", sl.Err(err))
 		w.WriteHeader(http.StatusInternalServerError)

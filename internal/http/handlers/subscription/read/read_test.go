@@ -22,7 +22,7 @@ type MockService struct {
 	mock.Mock
 }
 
-func (m *MockService) Read(ctx context.Context, id int) (*models.Entry, error) {
+func (m *MockService) ReadEntry(ctx context.Context, id int) (*models.Entry, error) {
 	args := m.Called(ctx, id)
 	if res := args.Get(0); res != nil {
 		return res.(*models.Entry), args.Error(1)

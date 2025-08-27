@@ -49,7 +49,7 @@ func CheckDatabaseReady(storage *Storage) error {
 }
 
 // Create вставляет новую запись подписки и возвращает её ID.
-func (s *Storage) Create(ctx context.Context, entry models.Entry) (int, error) {
+func (s *Storage) CreateEntry(ctx context.Context, entry models.Entry) (int, error) {
 	const op = "storage.postgresql.Create"
 	var newID int
 	err := s.Db.QueryRowContext(ctx, `
@@ -64,7 +64,7 @@ func (s *Storage) Create(ctx context.Context, entry models.Entry) (int, error) {
 }
 
 // Remove удаляет подписку по ID и возвращает количество удалённых строк.
-func (s *Storage) Remove(ctx context.Context, id int) (int, error) {
+func (s *Storage) RemoveEntry(ctx context.Context, id int) (int, error) {
 	const op = "storage.postgresql.Remove"
 	result, err := s.Db.ExecContext(ctx, `DELETE FROM subscriptions WHERE id = $1`, id)
 	if err != nil {
@@ -78,7 +78,7 @@ func (s *Storage) Remove(ctx context.Context, id int) (int, error) {
 }
 
 // Read возвращает данные подписки по её ID.
-func (s *Storage) Read(ctx context.Context, id int) (*models.Entry, error) {
+func (s *Storage) ReadEntry(ctx context.Context, id int) (*models.Entry, error) {
 	const op = "storage.postgresql.Read"
 	row := s.Db.QueryRowContext(ctx, `
 		SELECT service_name, price, username, start_date, counter_months
@@ -92,7 +92,7 @@ func (s *Storage) Read(ctx context.Context, id int) (*models.Entry, error) {
 }
 
 // Update обновляет данные подписки по её ID и возвращает количество изменённых строк.
-func (s *Storage) Update(ctx context.Context, entry models.Entry, id int) (int, error) {
+func (s *Storage) UpdateEntry(ctx context.Context, entry models.Entry, id int) (int, error) {
 	const op = "storage.postgresql.Update"
 	result, err := s.Db.ExecContext(ctx, `
 		UPDATE subscriptions
@@ -115,7 +115,7 @@ func (s *Storage) Update(ctx context.Context, entry models.Entry, id int) (int, 
 }
 
 // List возвращает список всех подписок пользователя с пагинацией.
-func (s *Storage) List(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error) {
+func (s *Storage) ListEntrys(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error) {
 	const op = "storage.postgresql.List"
 	rows, err := s.Db.QueryContext(ctx, `
 		SELECT service_name, price, username, start_date, counter_months
@@ -143,7 +143,7 @@ func (s *Storage) List(ctx context.Context, username string, limit, offset int) 
 }
 
 // CountSum подсчитывает суммарную стоимость подписок пользователя за выбранный период с учётом фильтров.
-func (s *Storage) CountSum(ctx context.Context, entry models.FilterSum) (float64, error) {
+func (s *Storage) CountSumEntrys(ctx context.Context, entry models.FilterSum) (float64, error) {
 	const op = "storage.postgresql.CountSum"
 	filterEnd := entry.StartDate.AddDate(0, entry.CounterMonths, 0)
 
@@ -187,7 +187,7 @@ func (s *Storage) CountSum(ctx context.Context, entry models.FilterSum) (float64
 }
 
 // ListAll возвращает список всех подписок с пагинацией.
-func (s *Storage) ListAll(ctx context.Context, limit, offset int) ([]*models.Entry, error) {
+func (s *Storage) ListAllEntrys(ctx context.Context, limit, offset int) ([]*models.Entry, error) {
 	const op = "storage.postgresql.ListAll"
 	rows, err := s.Db.QueryContext(ctx, `
 		SELECT service_name, price, username, start_date, counter_months

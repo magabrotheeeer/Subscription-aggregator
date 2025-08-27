@@ -138,7 +138,7 @@ func TestStorage_Create(t *testing.T) {
 			storage, cleanup := setupTestDb(t)
 			defer cleanup()
 
-			gotID, err := storage.Create(tt.args.ctx, tt.args.entry)
+			gotID, err := storage.CreateEntry(tt.args.ctx, tt.args.entry)
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantID, gotID)
 			tt.verify(t, storage, gotID)
@@ -206,7 +206,7 @@ func TestStorage_Remove(t *testing.T) {
 			storage, cleanup := setupTestDb(t)
 			defer cleanup()
 			tt.setup(storage)
-			gotRowsAffected, err := storage.Remove(tt.args.ctx, tt.args.id)
+			gotRowsAffected, err := storage.RemoveEntry(tt.args.ctx, tt.args.id)
 
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantRowsAffected, gotRowsAffected)
@@ -273,7 +273,7 @@ func TestStorage_Read(t *testing.T) {
 
 			tt.setup(storage)
 
-			got, err := storage.Read(tt.args.ctx, tt.args.id)
+			got, err := storage.ReadEntry(tt.args.ctx, tt.args.id)
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -366,7 +366,7 @@ func TestStorage_CountSum(t *testing.T) {
 
 			tt.setup(storage)
 
-			gotTotal, err := storage.CountSum(tt.args.ctx, tt.args.filter)
+			gotTotal, err := storage.CountSumEntrys(tt.args.ctx, tt.args.filter)
 
 			if tt.wantErr {
 				require.Error(t, err)

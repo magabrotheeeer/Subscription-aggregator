@@ -13,19 +13,19 @@ import (
 // SubscriptionRepository определяет методы для работы с подписками в хранилище.
 type SubscriptionRepository interface {
 	// Create добавляет новую подписку и возвращает её ID.
-	Create(ctx context.Context, sub models.Entry) (int, error)
+	CreateEntry(ctx context.Context, sub models.Entry) (int, error)
 	// Remove удаляет подписку по ID и возвращает количество удалённых записей.
-	Remove(ctx context.Context, id int) (int, error)
+	RemoveEntry(ctx context.Context, id int) (int, error)
 	// Read возвращает подписку по ID.
-	Read(ctx context.Context, id int) (*models.Entry, error)
+	ReadEntry(ctx context.Context, id int) (*models.Entry, error)
 	// Update обновляет данные подписки по ID.
-	Update(ctx context.Context, entry models.Entry, id int) (int, error)
+	UpdateEntry(ctx context.Context, entry models.Entry, id int) (int, error)
 	// List возвращает список подписок для пользователя с пагинацией.
-	List(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error)
+	ListEntrys(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error)
 	// CountSum подсчитывает сумму по фильтру.
-	CountSum(ctx context.Context, entry models.FilterSum) (float64, error)
+	CountSumEntrys(ctx context.Context, entry models.FilterSum) (float64, error)
 	// ListAll возвращает список всех подписок с пагинацией.
-	ListAll(ctx context.Context, limit, offset int) ([]*models.Entry, error)
+	ListAllEntrys(ctx context.Context, limit, offset int) ([]*models.Entry, error)
 }
 
 // Cache описывает методы для кэширования данных.
@@ -55,7 +55,7 @@ func NewSubscriptionService(repo SubscriptionRepository, cache Cache, log *slog.
 }
 
 // Create создает новую подписку для пользователя, кеширует её и возвращает ID.
-func (s *SubscriptionService) Create(ctx context.Context, userName string, req models.DummyEntry) (int, error) {
+func (s *SubscriptionService) CreateEntry(ctx context.Context, userName string, req models.DummyEntry) (int, error) {
 	startDate, err := time.Parse("02-01-2006", req.StartDate)
 	if err != nil {
 		return 0, fmt.Errorf("invalid start date: %w", err)
@@ -77,7 +77,7 @@ func (s *SubscriptionService) Create(ctx context.Context, userName string, req m
 		IsActive:        true,
 	}
 
-	id, err := s.repo.Create(ctx, entry)
+	id, err := s.repo.CreateEntry(ctx, entry)
 	if err != nil {
 		return 0, err
 	}
@@ -94,13 +94,13 @@ func (s *SubscriptionService) Create(ctx context.Context, userName string, req m
 }
 
 // Remove удаляет подписку по ID и инвалидирует кеш.
-func (s *SubscriptionService) Remove(ctx context.Context, id int) (int, error) {
+func (s *SubscriptionService) RemoveEntry(ctx context.Context, id int) (int, error) {
 	cacheKey := fmt.Sprintf("subscription:%d", id)
 	if err := s.cache.Invalidate(cacheKey); err != nil {
 		s.log.Warn("failed to remove from cache", slog.String("key", cacheKey), slog.Any("err", err))
 	}
 
-	count, err := s.repo.Remove(ctx, id)
+	count, err := s.repo.RemoveEntry(ctx, id)
 	if err != nil {
 		return 0, err
 	}
@@ -109,7 +109,7 @@ func (s *SubscriptionService) Remove(ctx context.Context, id int) (int, error) {
 }
 
 // Read возвращает подписку по ID, используя кеш или репозиторий.
-func (s *SubscriptionService) Read(ctx context.Context, id int) (*models.Entry, error) {
+func (s *SubscriptionService) ReadEntry(ctx context.Context, id int) (*models.Entry, error) {
 	var result *models.Entry
 	cacheKey := fmt.Sprintf("subscription:%d", id)
 	found, err := s.cache.Get(cacheKey, &result)
@@ -119,7 +119,7 @@ func (s *SubscriptionService) Read(ctx context.Context, id int) (*models.Entry, 
 	if found {
 		return result, nil
 	}
-	result, err = s.repo.Read(ctx, id)
+	result, err = s.repo.ReadEntry(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ func (s *SubscriptionService) Read(ctx context.Context, id int) (*models.Entry, 
 }
 
 // Update обновляет подписку и обновляет кеш.
-func (s *SubscriptionService) Update(ctx context.Context, req models.DummyEntry, id int, username string) (int, error) {
+func (s *SubscriptionService) UpdateEntry(ctx context.Context, req models.DummyEntry, id int, username string) (int, error) {
 	startDate, err := time.Parse("02-01-2006", req.StartDate)
 	if err != nil {
 		return 0, fmt.Errorf("invalid start date: %w", err)
@@ -147,7 +147,7 @@ func (s *SubscriptionService) Update(ctx context.Context, req models.DummyEntry,
 		StartDate:     startDate,
 		CounterMonths: req.CounterMonths,
 	}
-	res, err := s.repo.Update(ctx, entry, id)
+	res, err := s.repo.UpdateEntry(ctx, entry, id)
 	if err != nil {
 		return 0, err
 	}
@@ -162,13 +162,13 @@ func (s *SubscriptionService) Update(ctx context.Context, req models.DummyEntry,
 }
 
 // List возвращает список подписок в зависимости от роли пользователя.
-func (s *SubscriptionService) List(ctx context.Context, username, role string, limit, offset int) ([]*models.Entry, error) {
+func (s *SubscriptionService) ListEntrys(ctx context.Context, username, role string, limit, offset int) ([]*models.Entry, error) {
 	var err error
 	var entries []*models.Entry
 	if role == "admin" {
-		entries, err = s.repo.ListAll(ctx, limit, offset)
+		entries, err = s.repo.ListAllEntrys(ctx, limit, offset)
 	} else {
-		entries, err = s.repo.List(ctx, username, limit, offset)
+		entries, err = s.repo.ListEntrys(ctx, username, limit, offset)
 	}
 	if err != nil {
 		return nil, err
@@ -195,5 +195,5 @@ func (s *SubscriptionService) CountSumWithFilter(ctx context.Context, username s
 		CounterMonths: req.CounterMonths,
 	}
 
-	return s.repo.CountSum(ctx, filter)
+	return s.repo.CountSumEntrys(ctx, filter)
 }

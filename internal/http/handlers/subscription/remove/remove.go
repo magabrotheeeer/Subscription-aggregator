@@ -28,7 +28,7 @@ type Handler struct {
 
 // Service описывает интерфейс бизнес-логики удаления подписки.
 type Service interface {
-	Remove(ctx context.Context, id int) (int, error)
+	RemoveEntry(ctx context.Context, id int) (int, error)
 }
 
 // New создает новый Handler с переданным логгером и сервисом.
@@ -68,7 +68,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := h.service.Remove(r.Context(), id)
+	res, err := h.service.RemoveEntry(r.Context(), id)
 	if err != nil {
 		log.Error("failed to delete subscription", sl.Err(err))
 		w.WriteHeader(http.StatusInternalServerError)

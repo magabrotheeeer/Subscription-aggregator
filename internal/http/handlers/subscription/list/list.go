@@ -33,7 +33,7 @@ type Handler struct {
 
 // Service описывает интерфейс бизнес-логики получения списка подписок с параметрами пагинации и фильтрации.
 type Service interface {
-	List(ctx context.Context, username, role string, limit, offset int) ([]*models.Entry, error)
+	ListEntrys(ctx context.Context, username, role string, limit, offset int) ([]*models.Entry, error)
 }
 
 // New создает новый Handler с переданными логгером и бизнес-сервисом.
@@ -91,7 +91,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, response.Error("unauthorized"))
 		return
 	}
-	res, err := h.service.List(r.Context(), username, role, limit, offset)
+	res, err := h.service.ListEntrys(r.Context(), username, role, limit, offset)
 	if err != nil {
 		log.Error("failed to list entries", sl.Err(err))
 		w.WriteHeader(http.StatusInternalServerError)
