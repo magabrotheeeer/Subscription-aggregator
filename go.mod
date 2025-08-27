@@ -2,8 +2,6 @@ module github.com/magabrotheeeer/subscription-aggregator
 
 go 1.23.1
 
-toolchain go1.24.5
-
 require (
 	github.com/docker/go-connections v0.5.0
 	github.com/go-chi/chi v1.5.5

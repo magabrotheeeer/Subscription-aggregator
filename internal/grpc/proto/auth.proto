@@ -42,6 +42,7 @@ message ValidateTokenResponse {
   bool valid = 1;
   string username = 2;
   string role = 3;
-  string error = 4;
+  string useruid = 4;
+  string error = 5;
 }
 

@@ -9,7 +9,7 @@ import (
 	"log/slog"
 
 	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/gen"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/services/auth"
+	services "github.com/magabrotheeeer/subscription-aggregator/internal/services/auth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -81,5 +81,6 @@ func (s *AuthServer) ValidateToken(ctx context.Context, req *authpb.ValidateToke
 		Username: user.Username,
 		Role:     role,
 		Valid:    valid,
+		Useruid:  user.UUID,
 	}, nil
 }

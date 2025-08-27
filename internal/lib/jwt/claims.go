@@ -14,7 +14,7 @@ import (
 // а также разбирать токен и извлекать из него кастомные данные.
 type Maker interface {
 	// GenerateToken теперь принимает username и role
-	GenerateToken(username, role string) (string, error)
+	GenerateToken(username, role, useruid string) (string, error)
 	// ParseToken возвращает *CustomClaims с username и role
 	ParseToken(tokenStr string) (*CustomClaims, error)
 }

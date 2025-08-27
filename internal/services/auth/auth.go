@@ -57,7 +57,7 @@ func (s *AuthService) Login(ctx context.Context, username, rawPassword string) (
 	if err := password.CompareHash(user.PasswordHash, rawPassword); err != nil {
 		return "", "", "", errors.New("invalid credentials")
 	}
-	token, err = s.jwtMaker.GenerateToken(user.Username, user.Role)
+	token, err = s.jwtMaker.GenerateToken(user.Username, user.Role, user.UUID)
 	if err != nil {
 		return "", "", "", err
 	}
@@ -74,6 +74,7 @@ func (s *AuthService) ValidateToken(_ context.Context, token string) (*models.Us
 	user := &models.User{
 		Username: claims.Username,
 		Role:     claims.Role,
+		UUID:     claims.UserUID,
 	}
 	return user, claims.Role, true, nil
 }

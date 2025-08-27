@@ -35,6 +35,7 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/grpc/client"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/auth/login"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/auth/register"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/payment/paymentcreate"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/create"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/list"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/read"
@@ -44,6 +45,8 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/middlewarectx"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/migrations"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/paymentprovider"
+	servicespm "github.com/magabrotheeeer/subscription-aggregator/internal/services/payment-methods"
 	services "github.com/magabrotheeeer/subscription-aggregator/internal/services/subscription"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
 )
@@ -84,6 +87,10 @@ func main() {
 
 	subscriptionService := services.NewSubscriptionService(db, cache, logger)
 
+	client := paymentprovider.NewClient(/*TODO*/)
+	paymentMethodsService := servicespm.NewPaymentMethodsService(db, logger)	
+
+
 	router := chi.NewRouter()
 	router.Use(
 		middleware.RequestID,
@@ -109,6 +116,8 @@ func main() {
 
 			r.Get("/subscriptions/list", list.New(logger, subscriptionService).ServeHTTP)
 			r.Post("/subscriptions/sum", sum.New(logger, subscriptionService).ServeHTTP)
+
+			r.Post("/paymentmethods", paymentcreate.New(logger, client, paymentMethodsService).ServeHTTP)
 		})
 	})
 

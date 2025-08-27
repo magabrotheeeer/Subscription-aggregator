@@ -16,16 +16,18 @@ import (
 type CustomClaims struct {
 	Username             string `json:"username"` // Имя пользователя
 	Role                 string `json:"role"`     // Роль пользователя
-	jwt.RegisteredClaims        // Встроенные стандартные claims JWT (ExpiresAt, IssuedAt и пр.)
+	UserUID              string `json:"useruid"`
+	jwt.RegisteredClaims // Встроенные стандартные claims JWT (ExpiresAt, IssuedAt и пр.)
 }
 
 // GenerateToken создает JWT токен с заданными username и role, подписывая его секретным ключом.
 //
 // Время жизни токена определяется полем tokenTTL.
-func (j *MakerImpl) GenerateToken(username, role string) (string, error) {
+func (j *MakerImpl) GenerateToken(username, role, useruid string) (string, error) {
 	claims := CustomClaims{
 		Username: username,
 		Role:     role,
+		UserUID: useruid,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(j.tokenTTL)),

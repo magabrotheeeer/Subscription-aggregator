@@ -28,6 +28,8 @@ const (
 	User Key = "username"
 	// Role — ключ для роли пользователя в контексте
 	Role Key = "role"
+	// UserUID — ключ для идентификатора пользователя в контексте
+	UserUID Key = "user_uid"
 )
 
 // Service описывает интерфейс сервиса для валидации JWT токена.
@@ -67,6 +69,7 @@ func JWTMiddleware(authClient Service, log *slog.Logger) func(http.Handler) http
 			}
 			ctx := context.WithValue(r.Context(), User, resp.Username)
 			ctx = context.WithValue(ctx, Role, resp.Role)
+			ctx = context.WithValue(ctx, UserUID, resp.Useruid)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

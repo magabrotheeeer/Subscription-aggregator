@@ -1,0 +1,2 @@
+DROP INDEX idx_robokassa_payment_tokens_user_uid;
+DROP TABLE robokassa_payment_tokens;

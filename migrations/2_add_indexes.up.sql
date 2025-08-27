@@ -1,1 +1,0 @@
-CREATE INDEX idx_subscriptions_username ON subscriptions(username);
