@@ -66,6 +66,5 @@ func main() {
 	schedulerService := services.NewSchedulerService(db, logger)
 
 	go schedulerService.FindExpiringSubscriptionsDueTomorrow(ctx, ch)
-	go schedulerService.FindExpiringSubscriptionsDueToday(ctx, ch)
 	select {}
 }
