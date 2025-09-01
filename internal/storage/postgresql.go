@@ -220,10 +220,10 @@ func (s *Storage) RegisterUser(ctx context.Context, user models.User) (string, e
 	const op = "storage.postgresql.RegisterUser"
 	var newID string
 	if err := s.Db.QueryRowContext(ctx, `
-			INSERT INTO users (email, username, password_hash, role) 
-			VALUES ($1, $2, $3, $4)
+			INSERT INTO users (email, username, password_hash, role, trialEndDate) 
+			VALUES ($1, $2, $3, $4, $5)
 			RETURNING uid;`,
-		user.Email, user.Username, user.PasswordHash, user.Role).Scan(&newID); err != nil {
+		user.Email, user.Username, user.PasswordHash, user.Role, user.TrialEndDate).Scan(&newID); err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 	return newID, nil
