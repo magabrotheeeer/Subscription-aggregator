@@ -39,7 +39,7 @@ type JwtMakerMock struct {
 }
 
 func (m *JwtMakerMock) GenerateToken(username, role, useruid string) (string, error) {
-	args := m.Called(username, role)
+	args := m.Called(username, role, useruid)
 	return args.String(0), args.Error(1)
 }
 
