@@ -10,7 +10,7 @@ import (
 	customjwt "github.com/magabrotheeeer/subscription-aggregator/internal/lib/jwt"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/password"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/services/auth"
+	services "github.com/magabrotheeeer/subscription-aggregator/internal/services/auth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -38,7 +38,7 @@ type JwtMakerMock struct {
 	mock.Mock
 }
 
-func (m *JwtMakerMock) GenerateToken(username, role string) (string, error) {
+func (m *JwtMakerMock) GenerateToken(username, role, useruid string) (string, error) {
 	args := m.Called(username, role)
 	return args.String(0), args.Error(1)
 }
