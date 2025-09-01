@@ -4,6 +4,7 @@ package services
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/jwt"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/password"
@@ -39,11 +40,13 @@ func (s *AuthService) Register(ctx context.Context, email, username, rawPassword
 	if err != nil {
 		return "", err
 	}
+	trialEndDate := time.Now().UTC().AddDate(0, 1, 0)
 	user := &models.User{
 		Email:        email,
 		Username:     username,
 		PasswordHash: hashed,
 		Role:         "user", // дефолтная роль при регистрации
+		TrialEndDate: trialEndDate,
 	}
 	return s.users.RegisterUser(ctx, *user)
 }
