@@ -19,6 +19,7 @@ message RegisterRequest {
 message RegisterResponse {
   bool success = 1;
   string message = 2;
+  string useruid = 3;
 }
 
 // Логин пользователя
