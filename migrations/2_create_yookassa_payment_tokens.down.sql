@@ -1,0 +1,2 @@
+DROP INDEX idx_yookassa_payment_tokens_user_uid;
+DROP TABLE yookassa_payment_tokens;
