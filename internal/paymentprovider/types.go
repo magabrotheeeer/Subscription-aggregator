@@ -2,20 +2,26 @@ package paymentprovider
 
 import "time"
 
-// Запрос на создание платёжного метода (tokenization)
-type CreatePaymentMethodRequest struct {
-	CardCryptogramPacket string `json:"CardCryptogramPacket" validate:"required"`
+type CreatePaymentRequest struct {
+	Amount struct {
+		Value    string `json:"value"`    // сумма, например "200.00"
+		Currency string `json:"currency"` // валюта, например "RUB"
+	} `json:"amount"`
+	PaymentToken string            `json:"payment_token"`      // токен карты (payment_method_token)
+	Metadata     map[string]string `json:"metadata,omitempty"` // дополнительная инфа: user_uid, subscription_id
 }
 
-// Ответ CloudPayments при сохранении платёжного метода
-type CreatePaymentMethodResponse struct {
-	Success bool   `json:"Success"`
-	Message string `json:"Message"`
-	Model   struct {
-		CardId       int64     `json:"CardId"` // ID сохранённой карты
-		CardFirstSix string    `json:"CardFirstSix"`
-		CardLastFour string    `json:"CardLastFour"`
-		CardExpDate  string    `json:"CardExpDate"`
-		CreatedDate  time.Time `json:"CreatedDate"`
-	} `json:"Model,omitempty"`
+type CreatePaymentResponse struct {
+	ID     string `json:"id"`     // ID платежа в ЮKassa
+	Status string `json:"status"` // статус платежа, например "succeeded"
+	Amount struct {
+		Value    string `json:"value"`    // сумма
+		Currency string `json:"currency"` // валюта
+	} `json:"amount"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type Amount struct {
+	Value    string `json:"value"`
+	Currency string `json:"currency"`
 }
