@@ -99,7 +99,7 @@ func main() {
 	// Регистрация роутов API версии v1
 	router.Route("/api/v1", func(r chi.Router) {
 		// Открытые эндпоинты регистрации и логина
-		r.Post("/register", register.New(logger, authClient).ServeHTTP)
+		r.Post("/register", register.New(logger, authClient, subscriptionService).ServeHTTP)
 		r.Post("/login", login.New(logger, authClient).ServeHTTP)
 
 		// Группа роутов с JWT Middleware (требуют авторизации)
