@@ -16,15 +16,16 @@ type Entry struct {
 	CounterMonths   int       // Количество месяцев
 	NextPaymentDate time.Time
 	IsActive        bool
+	UserUID         string
 }
 
 // DummyEntry используется для приёма данных из JSON-запроса,
 // прежде чем конвертировать их в SubscriptionEntry.
 // Даты приходят в виде строк, чтобы их можно было валидировать и парсить вручную.
 type DummyEntry struct {
-	ServiceName   string `json:"service_name" validate:"required"`          // Название сервиса
-	Price         int    `json:"price" validate:"required,gt=0"`            // Цена (>0)
-	StartDate     string `json:"start_date" validate:"required"`            // Дата начала в формате 01-2006
+	ServiceName   string `json:"service_name" validate:"required"`         // Название сервиса
+	Price         int    `json:"price" validate:"required,gt=0"`           // Цена (>0)
+	StartDate     string `json:"start_date" validate:"required"`           // Дата начала в формате 01-2006
 	CounterMonths int    `json:"counter_months" validate:"required, gt=0"` // Количество месяцев
 }
 
