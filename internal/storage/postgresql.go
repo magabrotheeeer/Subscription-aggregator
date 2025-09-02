@@ -53,10 +53,12 @@ func (s *Storage) CreateEntry(ctx context.Context, entry models.Entry) (int, err
 	const op = "storage.postgresql.Create"
 	var newID int
 	err := s.Db.QueryRowContext(ctx, `
-			INSERT INTO subscriptions (service_name, price, username, start_date, counter_months) 
-			VALUES ($1, $2, $3, $4, $5)
+			INSERT INTO subscriptions (service_name, price, username, start_date,
+				counter_months, user_uid, next_payment_date, is_active) 
+			VALUES ($1, $2, $3, $4, $5, %6, %7, %8)
 			RETURNING id`,
-		entry.ServiceName, entry.Price, entry.Username, entry.StartDate, entry.CounterMonths).Scan(&newID)
+		entry.ServiceName, entry.Price, entry.Username, entry.StartDate, entry.CounterMonths,
+		entry.UserUID, entry.NextPaymentDate, entry.IsActive).Scan(&newID)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
@@ -81,11 +83,13 @@ func (s *Storage) RemoveEntry(ctx context.Context, id int) (int, error) {
 func (s *Storage) ReadEntry(ctx context.Context, id int) (*models.Entry, error) {
 	const op = "storage.postgresql.Read"
 	row := s.Db.QueryRowContext(ctx, `
-		SELECT service_name, price, username, start_date, counter_months
+		SELECT service_name, price, username, start_date, counter_months,
+			user_uid, next_payment_date, is_active
 		FROM subscriptions WHERE id = $1`, id)
 
 	var result models.Entry
-	if err := row.Scan(&result.ServiceName, &result.Price, &result.Username, &result.StartDate, &result.CounterMonths); err != nil {
+	if err := row.Scan(&result.ServiceName, &result.Price, &result.Username, &result.StartDate,
+		&result.CounterMonths, &result.UserUID, &result.NextPaymentDate, &result.IsActive); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return &result, nil
@@ -118,7 +122,8 @@ func (s *Storage) UpdateEntry(ctx context.Context, entry models.Entry, id int) (
 func (s *Storage) ListEntrys(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error) {
 	const op = "storage.postgresql.List"
 	rows, err := s.Db.QueryContext(ctx, `
-		SELECT service_name, price, username, start_date, counter_months
+		SELECT service_name, price, username, start_date, counter_months, user_uid,
+			next_payment_date, is_active
 		FROM subscriptions
 		WHERE username = $3
 		LIMIT $1 OFFSET $2`,
@@ -130,7 +135,8 @@ func (s *Storage) ListEntrys(ctx context.Context, username string, limit, offset
 	var result []*models.Entry
 	for rows.Next() {
 		var item models.Entry
-		if err := rows.Scan(&item.ServiceName, &item.Price, &item.Username, &item.StartDate, &item.CounterMonths); err != nil {
+		if err := rows.Scan(&item.ServiceName, &item.Price, &item.Username, &item.StartDate,
+			&item.CounterMonths, &item.UserUID); err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		result = append(result, &item)
@@ -190,7 +196,8 @@ func (s *Storage) CountSumEntrys(ctx context.Context, entry models.FilterSum) (f
 func (s *Storage) ListAllEntrys(ctx context.Context, limit, offset int) ([]*models.Entry, error) {
 	const op = "storage.postgresql.ListAll"
 	rows, err := s.Db.QueryContext(ctx, `
-		SELECT service_name, price, username, start_date, counter_months
+		SELECT service_name, price, username, start_date, counter_months, user_uid,
+			next_payment_date, is_active
 		FROM subscriptions
 		LIMIT $1 OFFSET $2`,
 		limit, offset)
@@ -201,7 +208,8 @@ func (s *Storage) ListAllEntrys(ctx context.Context, limit, offset int) ([]*mode
 	var result []*models.Entry
 	for rows.Next() {
 		var item models.Entry
-		if err := rows.Scan(&item.ServiceName, &item.Price, &item.Username, &item.StartDate, &item.CounterMonths); err != nil {
+		if err := rows.Scan(&item.ServiceName, &item.Price, &item.Username, &item.StartDate,
+			&item.CounterMonths, &item.UserUID, &item.NextPaymentDate, &item.IsActive); err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		result = append(result, &item)
@@ -220,10 +228,12 @@ func (s *Storage) RegisterUser(ctx context.Context, user models.User) (string, e
 	const op = "storage.postgresql.RegisterUser"
 	var newID string
 	if err := s.Db.QueryRowContext(ctx, `
-			INSERT INTO users (email, username, password_hash, role, trialEndDate) 
-			VALUES ($1, $2, $3, $4, $5)
+			INSERT INTO users (email, username, password_hash, role, trial_end_date,
+				subscription_status) 
+			VALUES ($1, $2, $3, $4, $5, $6)
 			RETURNING uid;`,
-		user.Email, user.Username, user.PasswordHash, user.Role, user.TrialEndDate).Scan(&newID); err != nil {
+		user.Email, user.Username, user.PasswordHash, user.Role, user.TrialEndDate,
+		user.SubscriptionStatus).Scan(&newID); err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 	return newID, nil
@@ -234,11 +244,13 @@ func (s *Storage) GetUserByUsername(ctx context.Context, username string) (*mode
 	const op = "storage.postgresql.GetUserByUsername"
 	u := &models.User{}
 	row := s.Db.QueryRowContext(ctx, `
-		SELECT uid, email, username, password_hash, role
+		SELECT uid, email, username, password_hash, role, trial_end_date,
+			subscription_status, subscription_expiry
 		FROM users
 		WHERE username = $1`, username)
 
-	if err := row.Scan(&u.UUID, &u.Email, &u.Username, &u.PasswordHash, &u.Role); err != nil {
+	if err := row.Scan(&u.UUID, &u.Email, &u.Username, &u.PasswordHash,
+		&u.Role, &u.TrialEndDate, &u.SubscriptionStatus, &u.SubscriptionExpire); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return u, nil
@@ -308,4 +320,21 @@ func (s *Storage) FindSubscriptionExpiringToday(ctx context.Context) ([]*models.
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return result, nil
+}
+
+func (s *Storage) CreateEntrySubscriptionAggregator(ctx context.Context, entry models.Entry) (int, error) {
+	const op = "postgresql.CreateEntrySubscriptionAggregator"
+	var res int
+	err := s.Db.QueryRowContext(ctx, `
+		INSERT INTO subscriptions
+			(service_name, username, user_uid, price, start_date,
+			counter_months, is_active, next_payment_date)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING id;
+	`, entry.ServiceName, entry.Username, entry.UserUID, entry.Price,
+		entry.StartDate, entry.CounterMonths, entry.IsActive, entry.NextPaymentDate).Scan(&res)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+	return res, nil
 }

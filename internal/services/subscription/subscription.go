@@ -211,5 +211,5 @@ func (s *SubscriptionService) CreateEntrySubscriptionAggregator(ctx context.Cont
 		StartDate:       time.Now(),
 		NextPaymentDate: time.Now().AddDate(0, 1, 0),
 	}
-	return s.repo.CreateEntrySubscriptionAggregator(ctx, entry)
+	return s.repo.CreateEntry(ctx, entry)
 }
