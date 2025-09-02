@@ -26,6 +26,7 @@ type SubscriptionRepository interface {
 	CountSumEntrys(ctx context.Context, entry models.FilterSum) (float64, error)
 	// ListAll возвращает список всех подписок с пагинацией.
 	ListAllEntrys(ctx context.Context, limit, offset int) ([]*models.Entry, error)
+	CreateEntrySubscriptionAggregator(ctx context.Context, entry models.Entry) (int, error)
 }
 
 // Cache описывает методы для кэширования данных.
@@ -55,7 +56,7 @@ func NewSubscriptionService(repo SubscriptionRepository, cache Cache, log *slog.
 }
 
 // Create создает новую подписку для пользователя, кеширует её и возвращает ID.
-func (s *SubscriptionService) CreateEntry(ctx context.Context, userName string, req models.DummyEntry) (int, error) {
+func (s *SubscriptionService) CreateEntry(ctx context.Context, userName string, userUID string, req models.DummyEntry) (int, error) {
 	startDate, err := time.Parse("02-01-2006", req.StartDate)
 	if err != nil {
 		return 0, fmt.Errorf("invalid start date: %w", err)
@@ -75,6 +76,7 @@ func (s *SubscriptionService) CreateEntry(ctx context.Context, userName string, 
 		CounterMonths:   req.CounterMonths,
 		NextPaymentDate: nextPaymentDate,
 		IsActive:        true,
+		UserUID:         userUID,
 	}
 
 	id, err := s.repo.CreateEntry(ctx, entry)
@@ -196,4 +198,18 @@ func (s *SubscriptionService) CountSumWithFilter(ctx context.Context, username s
 	}
 
 	return s.repo.CountSumEntrys(ctx, filter)
+}
+
+func (s *SubscriptionService) CreateEntrySubscriptionAggregator(ctx context.Context, username, userUID string) (int, error) {
+	entry := models.Entry{
+		ServiceName:     "Subscription-Aggregator",
+		Price:           0,
+		IsActive:        true,
+		CounterMonths:   1,
+		Username:        username,
+		UserUID:         userUID,
+		StartDate:       time.Now(),
+		NextPaymentDate: time.Now().AddDate(0, 1, 0),
+	}
+	return s.repo.CreateEntrySubscriptionAggregator(ctx, entry)
 }
