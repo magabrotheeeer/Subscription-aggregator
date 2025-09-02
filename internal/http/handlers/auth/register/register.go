@@ -27,9 +27,10 @@ type Request struct {
 // Включает логгер для записи операций, клиент для вызова gRPC-сервиса аутентификации
 // и валидатор для проверки входящих данных.
 type Handler struct {
-	log        *slog.Logger
-	authClient Service
-	validate   *validator.Validate
+	log                 *slog.Logger
+	authClient          Service
+	subscriptionService SubscriptionService
+	validate            *validator.Validate
 }
 
 // Service определяет методы бизнес-логики для работы с пользователями.
@@ -37,17 +38,22 @@ type Handler struct {
 // В данном случае включает регистрацию пользователя с учётом
 // email, имени пользователя и пароля.
 type Service interface {
-	Register(ctx context.Context, email, username, password string) error
+	Register(ctx context.Context, email, username, password string) (string, error)
+}
+
+type SubscriptionService interface {
+	CreateEntrySubscriptionAggregator(ctx context.Context, userName, userUID string) (int, error)
 }
 
 // New создает новый экземпляр Handler с заданным логгером и клиентом аутентификации.
 //
 // Инициализирует валидатор для проверки входных данных запросов.
-func New(log *slog.Logger, authClient Service) *Handler {
+func New(log *slog.Logger, authClient Service, subscriptionService SubscriptionService) *Handler {
 	return &Handler{
-		log:        log,
-		authClient: authClient,
-		validate:   validator.New(),
+		log:                 log,
+		authClient:          authClient,
+		subscriptionService: subscriptionService,
+		validate:            validator.New(),
 	}
 }
 
@@ -88,10 +94,18 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Info("all fields are validated")
 
-	if err := h.authClient.Register(r.Context(), req.Email, req.Username, req.Password); err != nil {
+	userUID, err := h.authClient.Register(r.Context(), req.Email, req.Username, req.Password)
+	if err != nil {
 		log.Error("registration failed", sl.Err(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		render.JSON(w, r, response.Error("failed to register user"))
+		return
+	}
+	_, err = h.subscriptionService.CreateEntrySubscriptionAggregator(r.Context(), req.Username, userUID)
+	if err != nil {
+		log.Error("failed to create entry with trial period", sl.Err(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		render.JSON(w, r, response.Error("failed to create entry with trial period"))
 		return
 	}
 
