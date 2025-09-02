@@ -14,4 +14,5 @@ type User struct {
 	Role               string    // Роль пользователя, admin или user
 	TrialEndDate       time.Time // Дата истечения пробного периода
 	SubscriptionExpire time.Time // Дата истечения оплаченной подписки на сервис
+	SubscriptionStatus string
 }
