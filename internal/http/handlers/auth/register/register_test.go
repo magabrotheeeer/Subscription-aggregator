@@ -21,9 +21,18 @@ type AuthClientMock struct {
 	mock.Mock
 }
 
-func (m *AuthClientMock) Register(ctx context.Context, email, username, password string) error {
+type SubscriptionServiceMock struct {
+	mock.Mock
+}
+
+func (s *SubscriptionServiceMock) CreateEntrySubscriptionAggregator(ctx context.Context, userName, userUID string) (int, error) {
+	args := s.Called(ctx, userName, userUID)
+	return args.Int(1), args.Error(0)
+}
+
+func (m *AuthClientMock) Register(ctx context.Context, email, username, password string) (string, error) {
 	args := m.Called(ctx, email, username, password)
-	return args.Error(0)
+	return args.String(1), args.Error(0)
 }
 
 func newNoopLogger() *slog.Logger {
@@ -33,9 +42,10 @@ func newNoopLogger() *slog.Logger {
 
 func TestRegisterHandler_ServeHTTP(t *testing.T) {
 	authMock := new(AuthClientMock)
+	subscriptionService := new(SubscriptionServiceMock)
 	logger := newNoopLogger()
 
-	handler := New(logger, authMock)
+	handler := New(logger, authMock, subscriptionService)
 
 	tests := []struct {
 		name           string
