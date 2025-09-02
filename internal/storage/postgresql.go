@@ -278,3 +278,34 @@ func (s *Storage) FindSubscriptionExpiringTomorrow(ctx context.Context) ([]*mode
 	}
 	return result, nil
 }
+
+func (s *Storage) FindSubscriptionExpiringToday(ctx context.Context) ([]*models.User, error) {
+	const op = "storage.postgresql.FindSubscriptionExpiringToday"
+	rows, err := s.Db.QueryContext(ctx, `
+	SELECT
+		uid, email, username, password_hash, role, trial_end_date,
+			subscription_status, subscription_expiry
+	FROM users
+	WHERE trial_end_date::DATE = CURRENT_DATE;
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer func() {
+		_ = rows.Close()
+	}()
+	var result []*models.User
+	for rows.Next() {
+		var u models.User
+		if err = rows.Scan(&u.UUID, &u.Email, &u.Username, &u.PasswordHash,
+			&u.Role, &u.TrialEndDate, &u.SubscriptionStatus, &u.SubscriptionExpire,
+		); err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		result = append(result, &u)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return result, nil
+}
