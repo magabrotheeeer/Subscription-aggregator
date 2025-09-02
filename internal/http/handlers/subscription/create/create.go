@@ -35,7 +35,7 @@ type Handler struct {
 
 // Service описывает интерфейс бизнес-логики создания подписки.
 type Service interface {
-	CreateEntry(ctx context.Context, userName string, req models.DummyEntry) (int, error)
+	CreateEntry(ctx context.Context, userName string, userUID string, req models.DummyEntry) (int, error)
 }
 
 // New создает новый Handler с переданными логгером и сервисом.
@@ -92,7 +92,15 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := h.service.CreateEntry(r.Context(), username, req)
+	userUID, ok := r.Context().Value(middlewarectx.UserUID).(string)
+	if !ok || userUID == "" {
+		log.Error("username not found in context")
+		w.WriteHeader(http.StatusUnauthorized)
+		render.JSON(w, r, response.Error("unauthorized"))
+		return
+	}
+
+	id, err := h.service.CreateEntry(r.Context(), username, userUID, req)
 	if err != nil {
 		log.Error("failed to create subscription", sl.Err(err))
 		w.WriteHeader(http.StatusInternalServerError)
