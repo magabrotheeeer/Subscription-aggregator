@@ -13,6 +13,7 @@ import (
 
 type SubscriptionRepository interface {
 	FindSubscriptionExpiringTomorrow(ctx context.Context) ([]*models.EntryInfo, error)
+	FindSubscriptionExpiringToday(ctx context.Context) ([]*models.User, error)
 }
 
 type SchedulerService struct {
@@ -42,6 +43,37 @@ func (s *SchedulerService) FindExpiringSubscriptionsDueTomorrow(ctx context.Cont
 func (s *SchedulerService) runFindExpiringSubscriptionsDueTomorrow(ctx context.Context, channel *amqp.Channel) {
 	s.log.Info("starting service to find expiring subscriptions due tomorrow")
 	entriesInfo, err := s.repo.FindSubscriptionExpiringTomorrow(ctx)
+	if err != nil {
+		s.log.Error("failed to find entries", sl.Err(err))
+		return
+	}
+	if len(entriesInfo) == 0 {
+		s.log.Info("no expiring subscriptions found")
+		return
+	}
+	s.log.Info("found expiring subscriptions", "count", len(entriesInfo))
+	for _, entryInfo := range entriesInfo {
+		err = rabbitmq.PublishMessage(channel, "notifications", "upcoming", entryInfo)
+		if err != nil {
+			s.log.Error("failed to publish message", sl.Err(err))
+		}
+	}
+}
+
+func (s *SchedulerService) FindExpiringSubscriptionsDueToday(ctx context.Context, channel *amqp.Channel) {
+	s.FindExpiringTrialPeriod(ctx, channel)
+
+	ticker := time.NewTicker(24 * time.Hour)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		s.FindExpiringTrialPeriod(ctx, channel)
+	}
+}
+
+func (s *SchedulerService) FindExpiringTrialPeriod(ctx context.Context, channel *amqp.Channel) {
+	s.log.Info("starting service to find expiring trial period for subscription")
+	entriesInfo, err := s.repo.FindSubscriptionExpiringToday(ctx)
 	if err != nil {
 		s.log.Error("failed to find entries", sl.Err(err))
 		return
