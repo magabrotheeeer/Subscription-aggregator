@@ -42,11 +42,12 @@ func (s *AuthService) Register(ctx context.Context, email, username, rawPassword
 	}
 	trialEndDate := time.Now().UTC().AddDate(0, 1, 0)
 	user := &models.User{
-		Email:        email,
-		Username:     username,
-		PasswordHash: hashed,
-		Role:         "user", // дефолтная роль при регистрации
-		TrialEndDate: trialEndDate,
+		Email:              email,
+		Username:           username,
+		PasswordHash:       hashed,
+		Role:               "user", // дефолтная роль при регистрации
+		TrialEndDate:       trialEndDate,
+		SubscriptionStatus: "trial",
 	}
 	return s.users.RegisterUser(ctx, *user)
 }
