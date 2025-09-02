@@ -44,7 +44,13 @@ func main() {
 
 	senderService := services.NewSenderService(cfg, logger, newTransport)
 
-	err = rabbitmq.ConsumerMessage(ctx, ch, "notification.upcoming", senderService.SendInfoExpiringSubscription)
+	err = rabbitmq.ConsumerMessage(ctx, ch, "subscription_expiring_queue", senderService.SendInfoExpiringSubscription)
+	if err != nil {
+		logger.Error("failed to start consumer", sl.Err(err))
+		os.Exit(1)
+	}
+
+	err = rabbitmq.ConsumerMessage(ctx, ch, "trial_expiring_queue", senderService.SendInfoExpiringTrialPeriodSubscription)
 	if err != nil {
 		logger.Error("failed to start consumer", sl.Err(err))
 		os.Exit(1)
