@@ -54,6 +54,11 @@ func (m *RepoMock) ListAllEntrys(ctx context.Context, limit, offset int) ([]*mod
 	return args.Get(0).([]*models.Entry), args.Error(1)
 }
 
+func (m *RepoMock) CreateEntrySubscriptionAggregator(ctx context.Context, entry models.Entry) (int, error) {
+	args := m.Called(ctx, entry)
+	return args.Int(0), args.Error(1)
+}
+
 type CacheMock struct{ mock.Mock }
 
 func (m *CacheMock) Get(key string, result any) (bool, error) {
@@ -147,7 +152,7 @@ func TestSubscriptionService_Create(t *testing.T) {
 
 			tt.setupMocks(repo, cache)
 
-			got, err := svc.CreateEntry(context.Background(), "user1", tt.req)
+			got, err := svc.CreateEntry(context.Background(), "user1", "", tt.req)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
