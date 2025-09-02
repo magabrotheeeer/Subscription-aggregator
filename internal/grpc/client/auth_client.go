@@ -43,13 +43,13 @@ func (a *AuthClient) Login(ctx context.Context, username, password string) (*aut
 }
 
 // Register вызывает гRPC метод Register для регистрации пользователя с email, именем пользователя и паролем.
-func (a *AuthClient) Register(ctx context.Context, email, username, password string) error {
-	_, err := a.client.Register(ctx, &authpb.RegisterRequest{
+func (a *AuthClient) Register(ctx context.Context, email, username, password string) (string, error) {
+	resp, err := a.client.Register(ctx, &authpb.RegisterRequest{
 		Email:    email,
 		Username: username,
 		Password: password,
 	})
-	return err
+	return resp.Useruid, err
 }
 
 // ValidateToken вызывает гRPC метод ValidateToken для проверки валидности JWT токена.
