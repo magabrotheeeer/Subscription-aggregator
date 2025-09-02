@@ -61,17 +61,17 @@ func (s *SchedulerService) runFindExpiringSubscriptionsDueTomorrow(ctx context.C
 }
 
 func (s *SchedulerService) FindExpiringSubscriptionsDueToday(ctx context.Context, channel *amqp.Channel) {
-	s.FindExpiringTrialPeriod(ctx, channel)
+	s.runFindExpiringTrialPeriod(ctx, channel)
 
 	ticker := time.NewTicker(24 * time.Hour)
 	defer ticker.Stop()
 
 	for range ticker.C {
-		s.FindExpiringTrialPeriod(ctx, channel)
+		s.runFindExpiringTrialPeriod(ctx, channel)
 	}
 }
 
-func (s *SchedulerService) FindExpiringTrialPeriod(ctx context.Context, channel *amqp.Channel) {
+func (s *SchedulerService) runFindExpiringTrialPeriod(ctx context.Context, channel *amqp.Channel) {
 	s.log.Info("starting service to find expiring trial period for subscription")
 	entriesInfo, err := s.repo.FindSubscriptionExpiringToday(ctx)
 	if err != nil {
