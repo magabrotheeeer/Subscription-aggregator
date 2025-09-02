@@ -321,20 +321,3 @@ func (s *Storage) FindSubscriptionExpiringToday(ctx context.Context) ([]*models.
 	}
 	return result, nil
 }
-
-func (s *Storage) CreateEntrySubscriptionAggregator(ctx context.Context, entry models.Entry) (int, error) {
-	const op = "postgresql.CreateEntrySubscriptionAggregator"
-	var res int
-	err := s.Db.QueryRowContext(ctx, `
-		INSERT INTO subscriptions
-			(service_name, username, user_uid, price, start_date,
-			counter_months, is_active, next_payment_date)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-		RETURNING id;
-	`, entry.ServiceName, entry.Username, entry.UserUID, entry.Price,
-		entry.StartDate, entry.CounterMonths, entry.IsActive, entry.NextPaymentDate).Scan(&res)
-	if err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
-	}
-	return res, nil
-}
