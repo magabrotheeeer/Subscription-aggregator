@@ -20,7 +20,7 @@ import (
 	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/gen"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/grpc/server"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/jwt"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/services/auth"
+	services "github.com/magabrotheeeer/subscription-aggregator/internal/services/auth"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
 )
 
@@ -103,7 +103,7 @@ func TestAuthGRPCIntegration(t *testing.T) {
 	}()
 
 	t.Run("Register and Login", func(t *testing.T) {
-		err := client.Register(ctx, "test@example.com", "testuser", "password123")
+		_, err := client.Register(ctx, "test@example.com", "testuser", "password123")
 		require.NoError(t, err)
 
 		loginResp, err := client.Login(ctx, "testuser", "password123")
