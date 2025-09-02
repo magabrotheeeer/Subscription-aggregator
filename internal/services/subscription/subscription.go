@@ -26,7 +26,6 @@ type SubscriptionRepository interface {
 	CountSumEntrys(ctx context.Context, entry models.FilterSum) (float64, error)
 	// ListAll возвращает список всех подписок с пагинацией.
 	ListAllEntrys(ctx context.Context, limit, offset int) ([]*models.Entry, error)
-	CreateEntrySubscriptionAggregator(ctx context.Context, entry models.Entry) (int, error)
 }
 
 // Cache описывает методы для кэширования данных.
