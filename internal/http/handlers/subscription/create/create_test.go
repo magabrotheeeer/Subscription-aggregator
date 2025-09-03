@@ -25,8 +25,8 @@ type MockService struct {
 	mock.Mock
 }
 
-func (m *MockService) CreateEntry(ctx context.Context, userName string, req models.DummyEntry) (int, error) {
-	args := m.Called(ctx, userName, req)
+func (m *MockService) CreateEntry(ctx context.Context, userName string, userUID string, req models.DummyEntry) (int, error) {
+	args := m.Called(ctx, userName, userUID, req)
 	return args.Int(0), args.Error(1)
 }
 
