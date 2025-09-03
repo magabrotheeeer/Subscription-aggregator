@@ -96,7 +96,7 @@ func (s *Storage) ReadEntry(ctx context.Context, id int) (*models.Entry, error) 
 }
 
 // Update обновляет данные подписки по её ID и возвращает количество изменённых строк.
-func (s *Storage) UpdateEntry(ctx context.Context, entry models.Entry, id int) (int, error) {
+func (s *Storage) UpdateEntry(ctx context.Context, entry models.Entry) (int, error) {
 	const op = "storage.postgresql.Update"
 	result, err := s.Db.ExecContext(ctx, `
 		UPDATE subscriptions
@@ -104,9 +104,10 @@ func (s *Storage) UpdateEntry(ctx context.Context, entry models.Entry, id int) (
 			start_date = $2,
 			counter_months = $3,
 			price = $4,
-			username = $5
-		WHERE id = $6`,
-		entry.ServiceName, entry.StartDate, entry.CounterMonths, entry.Price, entry.Username, id)
+			username = $5,
+			is_active = $6
+		WHERE id = $7`,
+		entry.ServiceName, entry.StartDate, entry.CounterMonths, entry.Price, entry.Username, entry.IsActive, entry.ID)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
@@ -157,6 +158,7 @@ func (s *Storage) CountSumEntrys(ctx context.Context, entry models.FilterSum) (f
         SELECT service_name, price, start_date, counter_months
         FROM subscriptions
         WHERE username = $1
+		  AND is_active = true	
           AND ($2::text IS NULL OR service_name = $2)
           AND start_date < $3
           AND (start_date + (counter_months || ' months')::interval) > $4
@@ -320,4 +322,53 @@ func (s *Storage) FindSubscriptionExpiringToday(ctx context.Context) ([]*models.
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return result, nil
+}
+
+func (s *Storage) FindOldNextPaymentDate(ctx context.Context) ([]*models.Entry, error) {
+	const op = "storage.postgresql.FindOldNextPaymentDate"
+	rows, err := s.Db.QueryContext(ctx, `
+		SELECT id, service_name, price, username, start_date, counter_months,
+			user_uid, next_payment_date, is_active
+		FROM subscriptions
+		WHERE next_payment_date = CURRENT_DATE
+		AND counter_months > 1;
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	defer func() {
+		_ = rows.Close()
+	}()
+	var result []*models.Entry
+	for rows.Next() {
+		var item models.Entry
+		if err := rows.Scan(&item.ID, &item.ServiceName, &item.Price, &item.Username, &item.StartDate,
+			&item.CounterMonths, &item.UserUID, &item.NextPaymentDate, &item.IsActive); err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		result = append(result, &item)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return result, nil
+
+}
+
+func (s *Storage) UpdateNextPaymentDate(ctx context.Context, entry *models.Entry) (int, error) {
+	const op = "storage.postgresql.UpdateNextPaymentDate"
+
+	res, err := s.Db.ExecContext(ctx, `
+		UPDATE subscriptions
+		SET next_payment_date = $1,
+		WHERE id = $7`, entry.NextPaymentDate, entry.ID)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+	return int(rowsAffected), nil
 }
