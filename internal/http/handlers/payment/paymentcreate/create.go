@@ -24,6 +24,9 @@ type ProviderService interface {
 
 type SubscriptionService interface {
 	GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID string) (string, error)
+}
+
+type PaymentService interface {
 	GetOrCreatePaymentToken(context context.Context, userUID string, token string) (int, error)
 }
 
@@ -31,14 +34,16 @@ type Handler struct {
 	log                 *slog.Logger    // Логгер для записи информации и ошибок
 	providerService     ProviderService // Сервис для работы с провайдером
 	subscriptionService SubscriptionService
+	paymentService      PaymentService
 	validate            *validator.Validate // Валидатор структуры входящих данных
 }
 
-func New(log *slog.Logger, providerService ProviderService, ss SubscriptionService) *Handler {
+func New(log *slog.Logger, providerService ProviderService, ss SubscriptionService, ps PaymentService) *Handler {
 	return &Handler{
 		log:                 log,
 		providerService:     providerService,
 		subscriptionService: ss,
+		paymentService:      ps,
 		validate:            validator.New(),
 	}
 }
@@ -78,7 +83,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, response.Error("internal error"))
 		return
 	}
-	_, err = h.subscriptionService.GetOrCreatePaymentToken(r.Context(), userUID, req.PaymentMethodToken)
+	_, err = h.paymentService.GetOrCreatePaymentToken(r.Context(), userUID, req.PaymentMethodToken)
 	if err != nil {
 		log.Error("failed to create or read payment token", sl.Err(err))
 		w.WriteHeader(http.StatusInternalServerError)
