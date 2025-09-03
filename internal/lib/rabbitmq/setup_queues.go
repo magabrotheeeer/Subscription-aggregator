@@ -9,6 +9,5 @@ func GetNotificationQueues() []QueueConfig {
 	return []QueueConfig{
 		{QueueName: "subscription_expiring_queue", RoutingKey: "subscription.expiring.tomorrow"},
 		{QueueName: "trial_expiring_queue", RoutingKey: "subscription.trial.expiring"},
-		{QueueName: "payment.due", RoutingKey: "due"},
 	}
 }
