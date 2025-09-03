@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
@@ -19,7 +20,7 @@ type SubscriptionRepository interface {
 	// Read возвращает подписку по ID.
 	ReadEntry(ctx context.Context, id int) (*models.Entry, error)
 	// Update обновляет данные подписки по ID.
-	UpdateEntry(ctx context.Context, entry models.Entry, id int) (int, error)
+	UpdateEntry(ctx context.Context, entry models.Entry) (int, error)
 	// List возвращает список подписок для пользователя с пагинацией.
 	ListEntrys(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error)
 	// CountSum подсчитывает сумму по фильтру.
@@ -87,7 +88,7 @@ func (s *SubscriptionService) CreateEntry(ctx context.Context, userName string, 
 
 	cacheKey := fmt.Sprintf("subscription:%d", id)
 	if err := s.cache.Set(cacheKey, entry, time.Hour); err != nil {
-		s.log.Warn("failed to cache subscription", slog.String("key", cacheKey), slog.Any("err", err))
+		s.log.Warn("failed to cache subscription", slog.String("key", cacheKey), sl.Err(err))
 	}
 	s.log.Info("created new subscription in cache")
 
@@ -98,7 +99,7 @@ func (s *SubscriptionService) CreateEntry(ctx context.Context, userName string, 
 func (s *SubscriptionService) RemoveEntry(ctx context.Context, id int) (int, error) {
 	cacheKey := fmt.Sprintf("subscription:%d", id)
 	if err := s.cache.Invalidate(cacheKey); err != nil {
-		s.log.Warn("failed to remove from cache", slog.String("key", cacheKey), slog.Any("err", err))
+		s.log.Warn("failed to remove from cache", slog.String("key", cacheKey), sl.Err(err))
 	}
 
 	count, err := s.repo.RemoveEntry(ctx, id)
@@ -127,8 +128,7 @@ func (s *SubscriptionService) ReadEntry(ctx context.Context, id int) (*models.En
 
 	if result != nil {
 		if err := s.cache.Set(cacheKey, result, time.Hour); err != nil {
-			s.log.Warn("failed to add to cache", slog.String("key", cacheKey),
-				slog.Any("err", err))
+			s.log.Warn("failed to add to cache", slog.String("key", cacheKey), sl.Err(err))
 		}
 	}
 	return result, nil
@@ -147,8 +147,10 @@ func (s *SubscriptionService) UpdateEntry(ctx context.Context, req models.DummyE
 		Price:         req.Price,
 		StartDate:     startDate,
 		CounterMonths: req.CounterMonths,
+		IsActive:      req.IsActive,
+		ID:            id,
 	}
-	res, err := s.repo.UpdateEntry(ctx, entry, id)
+	res, err := s.repo.UpdateEntry(ctx, entry)
 	if err != nil {
 		return 0, err
 	}
@@ -156,7 +158,7 @@ func (s *SubscriptionService) UpdateEntry(ctx context.Context, req models.DummyE
 
 	cacheKey := fmt.Sprintf("subscription:%d", id)
 	if err := s.cache.Set(cacheKey, entry, time.Hour); err != nil {
-		s.log.Warn("failed to cache subscription", slog.String("key", cacheKey), slog.Any("err", err))
+		s.log.Warn("failed to cache subscription", slog.String("key", cacheKey), sl.Err(err))
 	}
 	s.log.Info("updated subscription in cache")
 	return res, nil
@@ -210,5 +212,17 @@ func (s *SubscriptionService) CreateEntrySubscriptionAggregator(ctx context.Cont
 		StartDate:       time.Now(),
 		NextPaymentDate: time.Now().AddDate(0, 1, 0),
 	}
-	return s.repo.CreateEntry(ctx, entry)
+	id, err := s.repo.CreateEntry(ctx, entry)
+	if err != nil {
+		return 0, err
+	}
+
+	s.log.Info("created new subscription", slog.Int("id", id))
+
+	cacheKey := fmt.Sprintf("subscription:%d", id)
+	if err := s.cache.Set(cacheKey, entry, time.Hour); err != nil {
+		s.log.Warn("failed to cache subscription", slog.String("key", cacheKey), sl.Err(err))
+	}
+	s.log.Info("created new subscription in cache")
+	return id, nil
 }
