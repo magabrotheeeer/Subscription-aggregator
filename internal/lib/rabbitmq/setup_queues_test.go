@@ -14,8 +14,8 @@ func TestGetNotificationQueues(t *testing.T) {
 
 	// Проверка первой очереди
 	first := queues[0]
-	assert.Equal(t, "notification.upcoming", first.QueueName)
-	assert.Equal(t, "upcoming", first.RoutingKey)
+	assert.Equal(t, "subscription_expiring_queue", first.QueueName)
+	assert.Equal(t, "subscription.expiring.tomorrow", first.RoutingKey)
 
 	// Проверка уникальности QueueName
 	seen := map[string]bool{}
