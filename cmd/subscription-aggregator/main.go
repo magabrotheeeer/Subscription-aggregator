@@ -30,7 +30,7 @@ import (
 	_ "github.com/magabrotheeeer/subscription-aggregator/docs"
 	httpSwagger "github.com/swaggo/http-swagger"
 
-	"github.com/magabrotheeeer/subscription-aggregator/internal/cache"
+	cacheRedis "github.com/magabrotheeeer/subscription-aggregator/internal/cache"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/grpc/client"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/auth/login"
@@ -66,11 +66,12 @@ func main() {
 		logger.Error("failed to run migrations", slog.Any("err", err))
 		os.Exit(1)
 	}
-	cache, err := cache.InitServer(ctx, config.RedisConnection)
+	cache, err := cacheRedis.InitServer(ctx, config.RedisConnection)
 	if err != nil {
 		logger.Error("failed to init cache redis", sl.Err(err))
 		os.Exit(1)
 	}
+	cacheRedis.GlobalCacheHolder.Set(cache)
 
 	authClient, err := client.NewAuthClient(config.GRPCAuthAddress)
 	if err != nil {
