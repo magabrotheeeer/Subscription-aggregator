@@ -28,7 +28,7 @@ type Request struct {
 // и валидатор для проверки входящих данных.
 type Handler struct {
 	log                 *slog.Logger
-	authClient          Service
+	authClient          AuthService
 	subscriptionService SubscriptionService
 	validate            *validator.Validate
 }
@@ -37,7 +37,7 @@ type Handler struct {
 //
 // В данном случае включает регистрацию пользователя с учётом
 // email, имени пользователя и пароля.
-type Service interface {
+type AuthService interface {
 	Register(ctx context.Context, email, username, password string) (string, error)
 }
 
@@ -48,7 +48,7 @@ type SubscriptionService interface {
 // New создает новый экземпляр Handler с заданным логгером и клиентом аутентификации.
 //
 // Инициализирует валидатор для проверки входных данных запросов.
-func New(log *slog.Logger, authClient Service, subscriptionService SubscriptionService) *Handler {
+func New(log *slog.Logger, authClient AuthService, subscriptionService SubscriptionService) *Handler {
 	return &Handler{
 		log:                 log,
 		authClient:          authClient,
