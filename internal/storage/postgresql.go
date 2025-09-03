@@ -104,10 +104,9 @@ func (s *Storage) UpdateEntry(ctx context.Context, entry models.Entry) (int, err
 			start_date = $2,
 			counter_months = $3,
 			price = $4,
-			username = $5,
-			is_active = $6
-		WHERE id = $7`,
-		entry.ServiceName, entry.StartDate, entry.CounterMonths, entry.Price, entry.Username, entry.IsActive, entry.ID)
+			is_active = $5
+		WHERE id = $6`,
+		entry.ServiceName, entry.StartDate, entry.CounterMonths, entry.Price, entry.IsActive, entry.ID)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
