@@ -55,7 +55,7 @@ func (s *Storage) CreateEntry(ctx context.Context, entry models.Entry) (int, err
 	err := s.Db.QueryRowContext(ctx, `
 			INSERT INTO subscriptions (service_name, price, username, start_date,
 				counter_months, user_uid, next_payment_date, is_active) 
-			VALUES ($1, $2, $3, $4, $5, %6, %7, %8)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 			RETURNING id`,
 		entry.ServiceName, entry.Price, entry.Username, entry.StartDate, entry.CounterMonths,
 		entry.UserUID, entry.NextPaymentDate, entry.IsActive).Scan(&newID)
@@ -205,6 +205,9 @@ func (s *Storage) ListAllEntrys(ctx context.Context, limit, offset int) ([]*mode
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var result []*models.Entry
 	for rows.Next() {
@@ -370,4 +373,77 @@ func (s *Storage) UpdateNextPaymentDate(ctx context.Context, entry *models.Entry
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 	return int(rowsAffected), nil
+}
+
+func (s *Storage) GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID string, serviceName string) (string, error) {
+	const op = "storage.postgresql.GetActiveSubscriptionIDByUserUID"
+	var res string
+	row := s.Db.QueryRowContext(ctx, `
+		SELECT id
+		FROM subscriptions
+		WHERE user_uid = $1
+		  AND service_name = $2`, userUID, serviceName)
+	if err := row.Scan(&res); err != nil {
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+	return res, nil
+}
+
+func (s *Storage) FindPaymentToken(ctx context.Context, userUID string, token string) (int, bool, error) {
+	const op = "storage.postgresql.FindPaymentToken"
+	var res int
+	row := s.Db.QueryRowContext(ctx, `
+		SELECT id
+		FROM yookassa_payment_tokens
+		WHERE user_uid = $1
+		  AND token = $2`, userUID, token)
+	err := row.Scan(&res)
+	if err == sql.ErrNoRows {
+		return 0, false, nil
+	}
+	if err != nil {
+		return 0, false, fmt.Errorf("%s: %w", op, err)
+	}
+	return res, true, nil
+}
+
+func (s *Storage) CreatePaymentToken(ctx context.Context, userUID string, token string) (int, error) {
+	const op = "storage.postgresql.CreatePaymentToken"
+	var res int
+	err := s.Db.QueryRowContext(ctx, `
+		INSERT INTO yookassa_payment_tokens (user_uid, token)
+		VALUES ($1, $2)
+		RETURNING id`, userUID, token).Scan(&res)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+	return res, nil
+}
+
+func (s *Storage) ListPaymentTokens(ctx context.Context, userUID string) ([]*models.PaymentToken, error) {
+	const op = "storage.postgresql.ListPaymentTokens"
+	rows, err := s.Db.QueryContext(ctx, `
+		SELECT id, user_uid, token, created_at
+		FROM yookassa_payment_tokens
+		WHERE user_uid = $1`, userUID)
+
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	var res []*models.PaymentToken
+	for rows.Next() {
+		var item models.PaymentToken
+		if err = rows.Scan(&item.ID, &item.UserUID, &item.Token, &item.CreatedAt); err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		res = append(res, &item)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return res, nil
 }
