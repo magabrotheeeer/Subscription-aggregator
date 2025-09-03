@@ -17,6 +17,24 @@ type Cache struct {
 	Db *redis.Client
 }
 
+type CacheHolder struct {
+	cache *Cache
+}
+
+func (ch *CacheHolder) Set(cache *Cache) {
+	ch.cache = cache
+}
+
+func (ch *CacheHolder) Get() (*Cache, error) {
+	if ch.cache == nil {
+		return nil, fmt.Errorf("cache not initialized")
+	}
+	return ch.cache, nil
+}
+
+// Глобальный холдер
+var GlobalCacheHolder = &CacheHolder{}
+
 // InitServer инициализирует подключение к Redis и возвращает структуру Cache.
 // Настройки подключения берутся из переданного конфигурационного объекта cfg.
 // При невозможности подключения возвращается ошибка.
