@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/magabrotheeeer/subscription-aggregator/internal/cache"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/rabbitmq"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
@@ -62,8 +63,11 @@ func main() {
 	if err != nil {
 		logger.Error("Database is not ready:", sl.Err(err))
 	}
-
-	schedulerService := services.NewSchedulerService(db, logger)
+	cache, err := cache.GlobalCacheHolder.Get()
+	if err != nil {
+		logger.Error("cache not initialized", sl.Err(err))
+	}
+	schedulerService := services.NewSchedulerService(db, cache, logger)
 
 	go schedulerService.FindExpiringSubscriptionsDueTomorrow(ctx, ch)
 	go schedulerService.FindExpiringSubscriptionsDueToday(ctx, ch)
