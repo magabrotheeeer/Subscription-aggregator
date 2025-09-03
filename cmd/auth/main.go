@@ -1,71 +1,35 @@
-// Пакет main содержит точку входа для запуска gRPC-сервиса аутентификации.
-//
-// Он выполняет следующие действия:
-// 1. Загружает конфигурацию приложения.
-// 2. Настраивает логгер с уровнем отладки.
-// 3. Инициализирует подключение к базе данных.
-// 4. Создает JWT-генератор с указанным секретным ключом и TTL.
-// 5. Строит бизнес-логику аутентификации (AuthService).
-// 6. Запускает gRPC-сервер и регистрирует AuthService.
-// 7. Обрабатывает системные сигналы для корректного завершения работы.
 package main
 
 import (
+	"context"
 	"log/slog"
-	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"google.golang.org/grpc"
-
+	"github.com/magabrotheeeer/subscription-aggregator/internal/app/auth"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
-	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/gen"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/grpc/server"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/jwt"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
-	services "github.com/magabrotheeeer/subscription-aggregator/internal/services/auth"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
 )
 
 func main() {
-	config := config.MustLoad()
+	cfg := config.MustLoad()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	logger.Info("starting auth-service", slog.String("env", config.Env))
-	logger.Debug("debug messages are enabled")
 
-	// Подключаем базу пользователей
-	db, err := storage.New(config.StorageConnectionString)
+	logger.Info("starting auth-service", slog.String("env", cfg.Env))
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	app, err := auth.New(ctx, cfg, logger)
 	if err != nil {
-		logger.Error("failed to init storage", sl.Err(err))
+		logger.Error("failed to initialize auth app", slog.Any("err", err))
 		os.Exit(1)
 	}
 
-	// JWT Maker
-	jwtMaker := jwt.NewJWTMaker(config.JWTSecretKey, config.TokenTTL)
-
-	// Бизнес-логика Auth
-	authService := services.NewAuthService(db, jwtMaker)
-
-	// gRPC сервер
-	lis, err := net.Listen("tcp", config.GRPCAuthAddress)
-	if err != nil {
-		logger.Error("failed to listen", slog.String("address", config.GRPCAuthAddress))
+	if err := app.Run(ctx); err != nil {
+		logger.Error("auth app stopped with error", slog.Any("err", err))
 		os.Exit(1)
 	}
-	grpcServer := grpc.NewServer()
-	authpb.RegisterAuthServiceServer(grpcServer, server.NewAuthServer(authService, logger))
 
-	logger.Info("Auth gRPC service listening on", slog.String("port:", config.GRPCAuthAddress))
-	if err := grpcServer.Serve(lis); err != nil {
-		logger.Error("failed to listen port", sl.Err(err))
-	}
-
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
-
-	<-stop
-
-	grpcServer.GracefulStop()
-	logger.Info("application stopped")
+	logger.Info("auth app stopped gracefully")
 }

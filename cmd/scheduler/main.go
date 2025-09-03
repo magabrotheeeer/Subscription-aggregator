@@ -2,74 +2,34 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
-	"time"
+	"os/signal"
+	"syscall"
 
-	"github.com/magabrotheeeer/subscription-aggregator/internal/cache"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/app/scheduler"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/rabbitmq"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
-	services "github.com/magabrotheeeer/subscription-aggregator/internal/services/scheduler"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
 )
-
-func waitForDB(db *storage.Storage) error {
-	for range 10 {
-		err := storage.CheckDatabaseReady(db)
-		if err == nil {
-			return nil // готово
-		}
-		time.Sleep(3 * time.Second)
-	}
-	return fmt.Errorf("database not ready after retries")
-}
 
 func main() {
 	cfg := config.MustLoad()
-	ctx := context.Background()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+
 	logger.Info("starting scheduler", slog.String("env", cfg.Env))
-	conn, err := rabbitmq.Connect(cfg.RabbitMQURL, cfg.RabbitMQMaxRetries, cfg.RabbitMQRetryDelay)
-	if err != nil {
-		logger.Error("failed to connect to RabbitMQ", sl.Err(err))
-		os.Exit(1)
-	}
-	logger.Info("succes to connect to RabbitMQ:", slog.String("URL", cfg.RabbitMQURL))
-	defer func() {
-		_ = conn.Close()
-	}()
 
-	queues := rabbitmq.GetNotificationQueues()
-	ch, err := rabbitmq.SetupChannel(conn, queues)
-	if err != nil {
-		logger.Error("failed to setup RabbitMQ channel", sl.Err(err))
-		os.Exit(1)
-	}
-	logger.Info("success to setup RabbitMQ channel")
-	defer func() {
-		_ = ch.Close()
-	}()
-	db, err := storage.New(cfg.StorageConnectionString)
-	if err != nil {
-		logger.Error("failed to connect to storage", sl.Err(err))
-		os.Exit(1)
-	}
-	defer func() {
-		_ = db.Db.Close()
-	}()
-	err = waitForDB(db)
-	if err != nil {
-		logger.Error("Database is not ready:", sl.Err(err))
-	}
-	cache, err := cache.GlobalCacheHolder.Get()
-	if err != nil {
-		logger.Error("cache not initialized", sl.Err(err))
-	}
-	schedulerService := services.NewSchedulerService(db, cache, logger)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
-	go schedulerService.FindExpiringSubscriptionsDueTomorrow(ctx, ch)
-	go schedulerService.FindExpiringSubscriptionsDueToday(ctx, ch)
-	select {}
+	app, err := scheduler.New(ctx, cfg, logger)
+	if err != nil {
+		logger.Error("failed to initialize scheduler app", slog.Any("err", err))
+		os.Exit(1)
+	}
+
+	if err := app.Run(ctx); err != nil {
+		logger.Error("scheduler app stopped with error", slog.Any("err", err))
+		os.Exit(1)
+	}
+
+	logger.Info("scheduler app stopped gracefully")
 }
