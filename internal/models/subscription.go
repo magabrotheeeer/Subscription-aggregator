@@ -9,6 +9,7 @@ import "time"
 // Все даты хранятся в формате time.Time, поле EndDate может быть nil —
 // это означает отсутствие даты окончания (подписка бессрочная).
 type Entry struct {
+	ID              int
 	ServiceName     string    // Название сервиса подписки
 	Price           int       // Цена подписки за месяц
 	Username        string    // Имя пользователя, которому принадлежит подписка
@@ -27,6 +28,7 @@ type DummyEntry struct {
 	Price         int    `json:"price" validate:"required,gt=0"`           // Цена (>0)
 	StartDate     string `json:"start_date" validate:"required"`           // Дата начала в формате 01-2006
 	CounterMonths int    `json:"counter_months" validate:"required, gt=0"` // Количество месяцев
+	IsActive      bool   `json:"is_active" validate:"required"`
 }
 
 type EntryInfo struct {
