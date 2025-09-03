@@ -31,8 +31,8 @@ func (m *RepoMock) ReadEntry(ctx context.Context, id int) (*models.Entry, error)
 	}
 	return args.Get(0).(*models.Entry), args.Error(1)
 }
-func (m *RepoMock) UpdateEntry(ctx context.Context, entry models.Entry, id int) (int, error) {
-	args := m.Called(ctx, entry, id)
+func (m *RepoMock) UpdateEntry(ctx context.Context, entry models.Entry) (int, error) {
+	args := m.Called(ctx, entry)
 	return args.Int(0), args.Error(1)
 }
 func (m *RepoMock) ListEntrys(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error) {
