@@ -76,6 +76,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		},
 		Metadata: map[string]string{
 			"user_uid": userUID,
+			"subscription_id": //TODO,
 		},
 	}
 
