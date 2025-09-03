@@ -28,9 +28,6 @@ type SubscriptionRepository interface {
 	// ListAll возвращает список всех подписок с пагинацией.
 	ListAllEntrys(ctx context.Context, limit, offset int) ([]*models.Entry, error)
 	GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID string, serviceName string) (string, error)
-	FindPaymentToken(ctx context.Context, userUID string, token string) (int, bool, error)
-	CreatePaymentToken(ctx context.Context, userUID string, token string) (int, error)
-	ListPaymentTokens(ctx context.Context, userUID string) ([]*models.PaymentToken, error)
 }
 
 // Cache описывает методы для кэширования данных.
@@ -239,23 +236,4 @@ func (s *SubscriptionService) CreateEntrySubscriptionAggregator(ctx context.Cont
 func (s *SubscriptionService) GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID string) (string, error) {
 	serviceName := "Subscription-Aggregator"
 	return s.repo.GetActiveSubscriptionIDByUserUID(ctx, userUID, serviceName)
-}
-
-func (s *SubscriptionService) GetOrCreatePaymentToken(ctx context.Context, userUID string, token string) (int, error) {
-	res, found, err := s.repo.FindPaymentToken(ctx, userUID, token)
-	if err != nil {
-		return 0, fmt.Errorf("failed to find token: %w", err)
-	}
-	if found {
-		return res, nil
-	}
-	res, err = s.repo.CreatePaymentToken(ctx, userUID, token)
-	if err != nil {
-		return 0, fmt.Errorf("failed to create token: %w", err)
-	}
-	return res, nil
-}
-
-func (s *SubscriptionService) ListPaymentTokens(ctx context.Context, userUID string) ([]*models.PaymentToken, error) {
-	return s.repo.ListPaymentTokens(ctx, userUID)
 }
