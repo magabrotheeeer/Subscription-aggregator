@@ -90,7 +90,6 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-      # notification-scheduler:
     volumes:
       - "C:/Users/akhilgovmb/Desktop/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro"
 
