@@ -2,33 +2,33 @@ services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_DB: original_db
-      POSTGRES_USER: akhilgovmb
-      POSTGRES_PASSWORD: testpostgres
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
-      - "5433:5432"
+      - "${POSTGRES_PORT}:5432"
     volumes:
-      - "C:/Users/akhilgovmb/docker/pgdata:/var/lib/postgresql/data"
+      - "${POSTGRES_DATA}:/var/lib/postgresql/data"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U akhilgovmb -d original_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7
-    command: ["redis-server", "--requirepass", "test1234"]
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT}:6379"
     volumes:
-      - "C:/Users/akhilgovmb/docker/redisdata:/data"
+      - "${REDIS_DATA}:/data"
     restart: always
 
   rabbitmq:
     image: rabbitmq:3-management
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "${RABBITMQ_PORT_AMQP}:5672"
+      - "${RABBITMQ_PORT_MANAGEMENT}:15672"
     healthcheck:
       test: ["CMD", "rabbitmqctl", "status"]
       interval: 5s
@@ -41,14 +41,14 @@ services:
       context: .
       dockerfile: ./cmd/auth/Dockerfile
     environment:
-      - CONFIG_PATH=/config/config.yaml
+      - CONFIG_PATH=${CONFIG_PATH}
     depends_on:
       db:
         condition: service_healthy
     ports:
-      - "50051:50051"
+      - "${AUTH_PORT}:50051"
     volumes:
-      - "C:/Users/akhilgovmb/Desktop/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro"
+      - "${CONFIG_PATH}:/config/config.yaml:ro"
 
   app:
     build:
@@ -56,43 +56,39 @@ services:
       dockerfile: ./cmd/subscription-aggregator/Dockerfile
     restart: always
     environment:
-      - CONFIG_PATH=/config/config.yaml
+      - CONFIG_PATH=${CONFIG_PATH}
     ports:
-      - "8080:8080"
+      - "${APP_PORT}:8080"
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
     volumes:
-      - "C:/Users/akhilgovmb/Desktop/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro"
+      - "${CONFIG_PATH}:/config/config.yaml:ro"
 
   scheduler:
     build:
       context: .
       dockerfile: ./cmd/scheduler/Dockerfile
     environment:
-      - CONFIG_PATH=/config/config.yaml
+      - CONFIG_PATH=${CONFIG_PATH}
     depends_on:
       db:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
     volumes:
-      - "C:/Users/akhilgovmb/Desktop/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro"
+      - "${CONFIG_PATH}:/config/config.yaml:ro"
 
   sender:
     build:
       context: .
       dockerfile: ./cmd/sender/Dockerfile
     environment:
-      - CONFIG_PATH=/config/config.yaml
+      - CONFIG_PATH=${CONFIG_PATH}
     depends_on:
       rabbitmq:
         condition: service_healthy
     volumes:
-      - "C:/Users/akhilgovmb/Desktop/Subscription-aggregator/config/config.yaml:/config/config.yaml:ro"
-
-volumes:
-  pgdata:
-  redisdata:
+      - "${CONFIG_PATH}:/config/config.yaml:ro"
