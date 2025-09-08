@@ -21,6 +21,7 @@ CREATE TABLE subscriptions (
     counter_months INT NOT NULL,
     next_payment_date DATE,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    payment_method_id INT
 );
 
 CREATE INDEX idx_subscriptions_username ON subscriptions(username);
