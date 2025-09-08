@@ -27,7 +27,6 @@ type SubscriptionRepository interface {
 	CountSumEntrys(ctx context.Context, entry models.FilterSum) (float64, error)
 	// ListAll возвращает список всех подписок с пагинацией.
 	ListAllEntrys(ctx context.Context, limit, offset int) ([]*models.Entry, error)
-	GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID string, serviceName string) (string, error)
 }
 
 // Cache описывает методы для кэширования данных.
@@ -233,7 +232,3 @@ func (s *SubscriptionService) CreateEntrySubscriptionAggregator(ctx context.Cont
 	return id, nil
 }
 
-func (s *SubscriptionService) GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID string) (string, error) {
-	serviceName := "Subscription-Aggregator"
-	return s.repo.GetActiveSubscriptionIDByUserUID(ctx, userUID, serviceName)
-}

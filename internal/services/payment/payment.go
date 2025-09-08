@@ -12,6 +12,7 @@ type SubscriptionRepository interface {
 	FindPaymentToken(ctx context.Context, userUID string, token string) (int, bool, error)
 	CreatePaymentToken(ctx context.Context, userUID string, token string) (int, error)
 	ListPaymentTokens(ctx context.Context, userUID string) ([]*models.PaymentToken, error)
+	GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID, serviceName string) (string, error)
 }
 
 type SubscriptionService struct {
@@ -43,4 +44,9 @@ func (s *SubscriptionService) GetOrCreatePaymentToken(ctx context.Context, userU
 
 func (s *SubscriptionService) ListPaymentTokens(ctx context.Context, userUID string) ([]*models.PaymentToken, error) {
 	return s.repo.ListPaymentTokens(ctx, userUID)
+}
+
+func (s *SubscriptionService) GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID string) (string, error) {
+	serviceName := "Subscription-Aggregator"
+	return s.repo.GetActiveSubscriptionIDByUserUID(ctx, userUID, serviceName)
 }
