@@ -15,6 +15,8 @@ type SubscriptionRepository interface {
 	ListPaymentTokens(ctx context.Context, userUID string) ([]*models.PaymentToken, error)
 	GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID, serviceName string) (string, error)
 	SavePayment(ctx context.Context, payload *paymentwebhook.Payload) (int, error)
+	UpdateStatusActiveForSubscription(ctx context.Context, userUID, status string) error
+	UpdateStatusCancelForSubscription(ctx context.Context, userUID, status string) error
 }
 
 type PaymentService struct {
@@ -53,6 +55,14 @@ func (s *PaymentService) GetActiveSubscriptionIDByUserUID(ctx context.Context, u
 	return s.repo.GetActiveSubscriptionIDByUserUID(ctx, userUID, serviceName)
 }
 
-func (s *PaymentService) ProcessSuccessPayment(ctx context.Context, payload *paymentwebhook.Payload) (int, error) {
+func (s *PaymentService) SavePayment(ctx context.Context, payload *paymentwebhook.Payload) (int, error) {
 	return s.repo.SavePayment(ctx, payload)
+}
+
+func (s *PaymentService) UpdateStatusActiveForSubscription(ctx context.Context, userUID string) error {
+	return s.repo.UpdateStatusActiveForSubscription(ctx, userUID, "active")
+}
+
+func (s *PaymentService) UpdateStatusExpireForSubscription(ctx context.Context, userUID string) error {
+	return s.repo.UpdateStatusCancelForSubscription(ctx, userUID, "expire")
 }
