@@ -480,3 +480,30 @@ func (s *Storage) SavePayment(ctx context.Context, payload *paymentwebhook.Paylo
 	}
 	return res, nil
 }
+
+func (s *Storage) UpdateStatusActiveForSubscription(ctx context.Context, userUID, status string) error {
+	const op = "storage.postgresql.UpdateStatusForSubscription"
+	_, err := s.Db.ExecContext(ctx, `
+		UPDATE users
+		SET subscription_status = $1,
+			subscription_expiry = subscription_expiry + INTERVAL '1 month'
+		WHERE uid = $2`,
+		status, userUID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}
+
+func (s *Storage) UpdateStatusCancelForSubscription(ctx context.Context, userUID, status string) error {
+	const op = "storage.postgresql.UpdateStatusForSubscription"
+	_, err := s.Db.ExecContext(ctx, `
+		UPDATE users
+		SET subscription_status = $1,
+		WHERE uid = $2`,
+		status, userUID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}
