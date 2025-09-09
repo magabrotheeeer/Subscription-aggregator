@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/payment/paymentwebhook"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
@@ -13,6 +14,7 @@ type SubscriptionRepository interface {
 	CreatePaymentToken(ctx context.Context, userUID string, token string) (int, error)
 	ListPaymentTokens(ctx context.Context, userUID string) ([]*models.PaymentToken, error)
 	GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID, serviceName string) (string, error)
+	SavePayment(ctx context.Context, payload *paymentwebhook.Payload) (int, error)
 }
 
 type PaymentService struct {
@@ -49,4 +51,8 @@ func (s *PaymentService) ListPaymentTokens(ctx context.Context, userUID string) 
 func (s *PaymentService) GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID string) (string, error) {
 	serviceName := "Subscription-Aggregator"
 	return s.repo.GetActiveSubscriptionIDByUserUID(ctx, userUID, serviceName)
+}
+
+func (s *PaymentService) ProcessSuccessPayment(ctx context.Context, payload *paymentwebhook.Payload) (int, error) {
+	return s.repo.SavePayment(ctx, payload)
 }
