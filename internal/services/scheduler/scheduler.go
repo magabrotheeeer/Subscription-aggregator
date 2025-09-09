@@ -132,9 +132,9 @@ func (s *SchedulerService) runFindOldNextPaymentDate(ctx context.Context) {
 		id, err := s.repo.UpdateNextPaymentDate(ctx, entryInfo)
 		if err != nil {
 			s.log.Error("failed to update next payment date",
-				slog.Int("id", id),
-				sl.Err(err))
-			continue
+			 slog.Int("id", id),
+			 sl.Err(err))
+			 continue
 		}
 		cacheKey := fmt.Sprintf("subscription:%d", id)
 		if err := s.cache.Set(cacheKey, entryInfo, time.Hour); err != nil {
