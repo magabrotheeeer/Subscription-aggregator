@@ -8,6 +8,8 @@ import (
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/auth/login"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/auth/register"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/payment/paymentcreate"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/payment/paymentlist"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/create"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/list"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/read"
@@ -15,6 +17,8 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/sum"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/update"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/middlewarectx"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/paymentprovider"
+	paymentservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/payment"
 	subservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/subscription"
 
 	"log/slog"
@@ -22,7 +26,7 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/grpc/client"
 )
 
-func RegisterRoutes(r chi.Router, logger *slog.Logger, subscriptionService *subservice.SubscriptionService, authClient *client.AuthClient) {
+func RegisterRoutes(r chi.Router, logger *slog.Logger, subscriptionService *subservice.SubscriptionService, authClient *client.AuthClient, providerClient *paymentprovider.Client, paymentService *paymentservice.PaymentService) {
 	// Глобальные middleware
 	r.Use(
 		middleware.RequestID,
@@ -45,6 +49,8 @@ func RegisterRoutes(r chi.Router, logger *slog.Logger, subscriptionService *subs
 			r.Put("/subscriptions/{id}", update.New(logger, subscriptionService).ServeHTTP)
 			r.Get("/subscriptions/list", list.New(logger, subscriptionService).ServeHTTP)
 			r.Post("/subscriptions/sum", sum.New(logger, subscriptionService).ServeHTTP)
+			r.Post("/payment", paymentcreate.New(logger, providerClient, paymentService).ServeHTTP)
+			r.Get("/payments/list", paymentlist.New(logger, paymentService).ServeHTTP)
 		})
 	})
 
