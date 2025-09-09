@@ -58,7 +58,7 @@ func (s *SenderService) SendInfoExpiringTrialPeriodSubscription(body []byte) err
 			Ваша подписка на сервис Subscription-aggregator заканчивается сегодня.
 			Если вы решите ее продлить, то для оплаты необходимо перейти по ссылке: %s.
 			В противном случае сервис будет недоступен.
-		`, message.Username, "ваша_ссылка_на_оплату")
+		`, message.Username, "ссылка_на_оплату")
 
 	return s.sendEmail(to, subject, bodyText)
 }
