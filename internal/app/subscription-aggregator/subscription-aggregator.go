@@ -13,9 +13,11 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/cache"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/grpc/client"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/paymentprovider"
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/migrations"
 	subsaggregatorservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/subscription"
+	paymentservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/payment"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
 )
 
@@ -39,18 +41,19 @@ func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, er
 	if err != nil {
 		return nil, err
 	}
-	cache.GlobalCacheHolder.Set(cacheRedis)
 
 	authClient, err := client.NewAuthClient(cfg.GRPCAuthAddress)
 	if err != nil {
 		return nil, err
 	}
 
+	providerService := paymentprovider.NewClient("заглушка", "заглушка")
+	paymentService := paymentservice.New(db, logger)
 	subscriptionService := subsaggregatorservice.NewSubscriptionService(db, cacheRedis, logger)
 
 	router := chi.NewRouter()
 
-	RegisterRoutes(router, logger, subscriptionService, authClient)
+	RegisterRoutes(router, logger, subscriptionService, authClient, providerService, paymentService)
 
 	router.Get("/docs/*", httpSwagger.WrapHandler)
 
