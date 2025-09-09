@@ -507,3 +507,17 @@ func (s *Storage) UpdateStatusCancelForSubscription(ctx context.Context, userUID
 	}
 	return nil
 }
+
+func (s *Storage) GetSubscriptionStatus(ctx context.Context, userUID string) (string, error) {
+	const op = "storage.postgresql.UpdateStatusForSubscription"
+	var res string
+	err := s.Db.QueryRowContext(ctx, `
+		SELECT subscription_status
+		FROM users
+		WHERE uid = $1
+	`, userUID).Scan(&res)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+	return res, nil
+}
