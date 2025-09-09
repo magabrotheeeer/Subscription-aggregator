@@ -27,7 +27,7 @@ type DummyEntry struct {
 	ServiceName   string `json:"service_name" validate:"required"`         // Название сервиса
 	Price         int    `json:"price" validate:"required,gt=0"`           // Цена (>0)
 	StartDate     string `json:"start_date" validate:"required"`           // Дата начала в формате 01-2006
-	CounterMonths int    `json:"counter_months" validate:"required, gt=0"` // Количество месяцев
+	CounterMonths int    `json:"counter_months" validate:"required,gt=0"` // Количество месяцев
 	IsActive      bool   `json:"is_active" validate:"required"`
 }
 
