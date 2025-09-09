@@ -499,7 +499,7 @@ func (s *Storage) UpdateStatusCancelForSubscription(ctx context.Context, userUID
 	const op = "storage.postgresql.UpdateStatusForSubscription"
 	_, err := s.Db.ExecContext(ctx, `
 		UPDATE users
-		SET subscription_status = $1,
+		SET subscription_status = $1
 		WHERE uid = $2`,
 		status, userUID)
 	if err != nil {
