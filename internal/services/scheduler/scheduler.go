@@ -58,7 +58,7 @@ func (s *SchedulerService) runFindExpiringSubscriptionsDueTomorrow(ctx context.C
 		return
 	}
 	if len(entriesInfo) == 0 {
-		s.log.Info("no expiring subscriptions found")
+		s.log.Info("no expiring subscriptions due tomorrow found")
 		return
 	}
 	s.log.Info("found expiring subscriptions", "count", len(entriesInfo))
@@ -90,7 +90,7 @@ func (s *SchedulerService) runFindExpiringTrialPeriod(ctx context.Context, chann
 		return
 	}
 	if len(entriesInfo) == 0 {
-		s.log.Info("no expiring subscriptions found")
+		s.log.Info("no expiring trial period subscriptions found")
 		return
 	}
 	s.log.Info("found expiring subscriptions", "count", len(entriesInfo))
@@ -132,9 +132,9 @@ func (s *SchedulerService) runFindOldNextPaymentDate(ctx context.Context) {
 		id, err := s.repo.UpdateNextPaymentDate(ctx, entryInfo)
 		if err != nil {
 			s.log.Error("failed to update next payment date",
-			 slog.Int("id", id),
-			 sl.Err(err))
-			 continue
+				slog.Int("id", id),
+				sl.Err(err))
+			continue
 		}
 		cacheKey := fmt.Sprintf("subscription:%d", id)
 		if err := s.cache.Set(cacheKey, entryInfo, time.Hour); err != nil {
