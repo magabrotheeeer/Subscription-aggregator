@@ -58,14 +58,14 @@ func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, er
 		return nil, err
 	}
 
-	cache, err := cache.GlobalCacheHolder.Get()
+	cacheRedis, err := cache.InitServer(ctx, cfg.RedisConnection)
 	if err != nil {
 		ch.Close()
 		conn.Close()
 		return nil, fmt.Errorf("cache not initialized: %w", err)
 	}
 
-	schedulerService := schedulerservice.NewSchedulerService(db, cache, logger)
+	schedulerService := schedulerservice.NewSchedulerService(db, cacheRedis, logger)
 
 	return &App{
 		schedulerService: schedulerService,
