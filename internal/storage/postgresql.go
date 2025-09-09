@@ -12,6 +12,7 @@ import (
 
 	// Регистрация драйвера pgx для использования с database/sql.
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/payment/paymentwebhook"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/month"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
@@ -260,6 +261,22 @@ func (s *Storage) GetUserByUsername(ctx context.Context, username string) (*mode
 	return u, nil
 }
 
+func (s *Storage) GetUser(ctx context.Context, userUID string) (*models.User, error) {
+	const op = "storage.postgresql.GetUser"
+	u := &models.User{}
+	row := s.Db.QueryRowContext(ctx, `
+		SELECT uid, email, username, password_hash, role, trial_end_date,
+			subscription_status, subscription_expiry
+		FROM users
+		WHERE uid = $1`, userUID)
+
+	if err := row.Scan(&u.UUID, &u.Email, &u.Username, &u.PasswordHash,
+		&u.Role, &u.TrialEndDate, &u.SubscriptionStatus, &u.SubscriptionExpire); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return u, nil
+}
+
 func (s *Storage) FindSubscriptionExpiringTomorrow(ctx context.Context) ([]*models.EntryInfo, error) {
 	const op = "storage.postgresql.FindSubscriptionExpiringTomorrow"
 	rows, err := s.Db.QueryContext(ctx, `
@@ -444,6 +461,22 @@ func (s *Storage) ListPaymentTokens(ctx context.Context, userUID string) ([]*mod
 	}
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return res, nil
+}
+
+func (s *Storage) SavePayment(ctx context.Context, payload *paymentwebhook.Payload) (int, error) {
+	const op = "storage.postgresql.SavePayment"
+	var res int
+	err := s.Db.QueryRowContext(ctx, `
+		INSERT INTO	yookassa_payments
+		(user_uid, subscription_id, payment_id, amount, currency, status, payment_token_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		payload.Object.Metadata["user_uid"], payload.Object.Metadata["subscription_id"],
+		payload.Object.ID, payload.Object.Amount.Value, payload.Object.Amount.Currency,
+		payload.Object.Status, payload.Object.PaymentMethod.ID).Scan(&res)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 	return res, nil
 }
