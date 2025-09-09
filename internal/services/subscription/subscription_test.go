@@ -59,26 +59,9 @@ func (m *RepoMock) CreateEntrySubscriptionAggregator(ctx context.Context, entry 
 	return args.Int(0), args.Error(1)
 }
 
-func (m *RepoMock) GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID string, userName string) (string, error) {
-	args := m.Called(ctx, userUID, userName)
-	return args.String(0), args.Error(1)
-}
-
-func (m *RepoMock) FindPaymentToken(ctx context.Context, userUID string, token string) (int, bool, error) {
-	args := m.Called(ctx, userUID, token)
-	return args.Int(0), args.Bool(0), args.Error(1)
-}
-func (m *RepoMock) CreatePaymentToken(ctx context.Context, userUID string, token string) (int, error) {
-	args := m.Called(ctx, userUID, token)
-	return args.Int(0), args.Error(1)
-}
-
-func (m *RepoMock) ListPaymentTokens(ctx context.Context, userUID string) ([]*models.PaymentToken, error) {
+func (m *RepoMock) GetSubscriptionStatus(ctx context.Context, userUID string) (string, error) {
 	args := m.Called(ctx, userUID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*models.PaymentToken), args.Error(1)
+	return args.String(0), args.Error(1)
 }
 
 type CacheMock struct{ mock.Mock }
