@@ -15,19 +15,19 @@ type SubscriptionRepository interface {
 	GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID, serviceName string) (string, error)
 }
 
-type SubscriptionService struct {
+type PaymentService struct {
 	repo SubscriptionRepository
 	log  *slog.Logger
 }
 
-func New(repo SubscriptionRepository, log *slog.Logger) *SubscriptionService {
-	return &SubscriptionService{
+func New(repo SubscriptionRepository, log *slog.Logger) *PaymentService {
+	return &PaymentService{
 		repo: repo,
 		log:  log,
 	}
 }
 
-func (s *SubscriptionService) GetOrCreatePaymentToken(ctx context.Context, userUID string, token string) (int, error) {
+func (s *PaymentService) GetOrCreatePaymentToken(ctx context.Context, userUID string, token string) (int, error) {
 	res, found, err := s.repo.FindPaymentToken(ctx, userUID, token)
 	if err != nil {
 		return 0, fmt.Errorf("failed to find token: %w", err)
@@ -42,11 +42,11 @@ func (s *SubscriptionService) GetOrCreatePaymentToken(ctx context.Context, userU
 	return res, nil
 }
 
-func (s *SubscriptionService) ListPaymentTokens(ctx context.Context, userUID string) ([]*models.PaymentToken, error) {
+func (s *PaymentService) ListPaymentTokens(ctx context.Context, userUID string) ([]*models.PaymentToken, error) {
 	return s.repo.ListPaymentTokens(ctx, userUID)
 }
 
-func (s *SubscriptionService) GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID string) (string, error) {
+func (s *PaymentService) GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID string) (string, error) {
 	serviceName := "Subscription-Aggregator"
 	return s.repo.GetActiveSubscriptionIDByUserUID(ctx, userUID, serviceName)
 }
