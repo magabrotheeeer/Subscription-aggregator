@@ -380,7 +380,7 @@ func (s *Storage) UpdateNextPaymentDate(ctx context.Context, entry *models.Entry
 
 	res, err := s.Db.ExecContext(ctx, `
 		UPDATE subscriptions
-		SET next_payment_date = $1,
+		SET next_payment_date = $1
 		WHERE id = $7`, entry.NextPaymentDate, entry.ID)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
