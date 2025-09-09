@@ -18,33 +18,28 @@ type CreatePaymentMethodRequestApp struct {
 	PaymentMethodToken string `json:"payment_method_token"`
 }
 
-type ProviderService interface {
+type ProviderClient interface {
 	CreatePayment(reqParams paymentprovider.CreatePaymentRequest) (*paymentprovider.CreatePaymentResponse, error)
-}
-
-type SubscriptionService interface {
-	GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID string) (string, error)
 }
 
 type PaymentService interface {
 	GetOrCreatePaymentToken(context context.Context, userUID string, token string) (int, error)
+	GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID string) (string, error)
 }
 
 type Handler struct {
-	log                 *slog.Logger    // Логгер для записи информации и ошибок
-	providerService     ProviderService // Сервис для работы с провайдером
-	subscriptionService SubscriptionService
-	paymentService      PaymentService
-	validate            *validator.Validate // Валидатор структуры входящих данных
+	log            *slog.Logger   // Логгер для записи информации и ошибок
+	providerClient ProviderClient // Клиeнт для работы с провайдером
+	paymentService PaymentService
+	validate       *validator.Validate // Валидатор структуры входящих данных
 }
 
-func New(log *slog.Logger, providerService ProviderService, ss SubscriptionService, ps PaymentService) *Handler {
+func New(log *slog.Logger, providerClient ProviderClient, ps PaymentService) *Handler {
 	return &Handler{
-		log:                 log,
-		providerService:     providerService,
-		subscriptionService: ss,
-		paymentService:      ps,
-		validate:            validator.New(),
+		log:            log,
+		providerClient: providerClient,
+		paymentService: ps,
+		validate:       validator.New(),
 	}
 }
 
@@ -76,7 +71,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, response.Error("unauthorized"))
 		return
 	}
-	subscriptionID, err := h.subscriptionService.GetActiveSubscriptionIDByUserUID(r.Context(), userUID)
+	subscriptionID, err := h.paymentService.GetActiveSubscriptionIDByUserUID(r.Context(), userUID)
 	if err != nil {
 		log.Error("failed to get active subscription", sl.Err(err))
 		w.WriteHeader(http.StatusInternalServerError)
@@ -103,7 +98,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	paymentResp, err := h.providerService.CreatePayment(paymentReq)
+	paymentResp, err := h.providerClient.CreatePayment(paymentReq)
 	if err != nil {
 		log.Error("failed to create payment method from provider", sl.Err(err))
 		w.WriteHeader(http.StatusInternalServerError)
