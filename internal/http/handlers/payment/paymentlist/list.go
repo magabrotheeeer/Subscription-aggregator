@@ -13,21 +13,21 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
-type SubscriptionService interface {
+type PaymentService interface {
 	ListPaymentTokens(ctx context.Context, userUID string) ([]*models.PaymentToken, error)
 }
 
 type Handler struct {
-	log                 *slog.Logger // Логгер для записи информации и ошибок
-	subscriptionService SubscriptionService
-	validate            *validator.Validate // Валидатор структуры входящих данных
+	log            *slog.Logger // Логгер для записи информации и ошибок
+	paymentService PaymentService
+	validate       *validator.Validate // Валидатор структуры входящих данных
 }
 
-func New(log *slog.Logger, ss SubscriptionService) *Handler {
+func New(log *slog.Logger, ps PaymentService) *Handler {
 	return &Handler{
-		log:                 log,
-		subscriptionService: ss,
-		validate:            validator.New(),
+		log:            log,
+		paymentService: ps,
+		validate:       validator.New(),
 	}
 }
 
@@ -43,7 +43,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	paymentTokens, err := h.subscriptionService.ListPaymentTokens(r.Context(), userUID)
+	paymentTokens, err := h.paymentService.ListPaymentTokens(r.Context(), userUID)
 	if err != nil {
 		log.Error("failed to get payment tokens", sl.Err(err))
 		w.WriteHeader(http.StatusInternalServerError)
