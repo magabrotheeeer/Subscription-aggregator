@@ -8,6 +8,7 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/rabbitmq"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/smtp"
 	senderservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/sender"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
 	"github.com/streadway/amqp"
 )
 
@@ -19,6 +20,10 @@ type App struct {
 }
 
 func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, error) {
+	db, err := storage.New(cfg.StorageConnectionString)
+	if err != nil {
+		return nil, err
+	}
 	conn, err := rabbitmq.Connect(cfg.RabbitMQURL, cfg.RabbitMQMaxRetries, cfg.RabbitMQRetryDelay)
 	if err != nil {
 		return nil, err
@@ -32,7 +37,7 @@ func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, er
 	}
 
 	newTransport := smtp.NewTransport(cfg, logger)
-	senderService := senderservice.NewSenderService(cfg, logger, newTransport)
+	senderService := senderservice.NewSenderService(db, logger, newTransport)
 
 	return &App{
 		conn:          conn,
