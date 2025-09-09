@@ -1,18 +1,24 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/smtp"
 	"strings"
 
-	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/payment/paymentwebhook"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
+type SubscriptionRepository interface {
+	GetUser(ctx context.Context, userUID string) (*models.User, error)
+}
+
 type SenderService struct {
+	repo      SubscriptionRepository
 	transport Transport
 	log       *slog.Logger
 }
@@ -23,8 +29,9 @@ type Transport interface {
 }
 
 // NewSenderService создает новый экземпляр SenderService.
-func NewSenderService(cfg *config.Config, log *slog.Logger, transport Transport) *SenderService {
+func NewSenderService(repo SubscriptionRepository, log *slog.Logger, transport Transport) *SenderService {
 	return &SenderService{
+		repo:      repo,
 		transport: transport,
 		log:       log,
 	}
@@ -60,6 +67,36 @@ func (s *SenderService) SendInfoExpiringTrialPeriodSubscription(body []byte) err
 			В противном случае сервис будет недоступен.
 		`, message.Username, "ссылка_на_оплату")
 
+	return s.sendEmail(to, subject, bodyText)
+}
+
+func (s *SenderService) SendInfoSuccessPayment(payload *paymentwebhook.Payload) error {
+	user, err := s.repo.GetUser(context.Background(), payload.Object.Metadata["user_uid"])
+	if err != nil {
+		s.log.Error("Failed to get username", "error", sl.Err(err))
+		return fmt.Errorf("failed to get username: %w", err)
+	}
+	to := []string{user.Email}
+	subject := "Уведомление об успешном списании денежных средств на Subscription-aggregator"
+	bodyText := fmt.Sprintf(`Здравствуйте, %s!
+			С вашего счёта успешно списана сумма за подписку на сервис Subscription-aggregator.
+			Спасибо за использование нашего сервиса!
+		`, user.Username)
+	return s.sendEmail(to, subject, bodyText)
+}
+
+func (s *SenderService) SendInfoFailurePayment(payload *paymentwebhook.Payload) error {
+	user, err := s.repo.GetUser(context.Background(), payload.Object.Metadata["user_uid"])
+	if err != nil {
+		s.log.Error("Failed to get username", "error", sl.Err(err))
+		return fmt.Errorf("failed to get username: %w", err)
+	}
+	to := []string{user.Email}
+	subject := "Уведомление о неуспешном списании денежных средств на Subscription-aggregator"
+	bodyText := fmt.Sprintf(`Здравствуйте, %s!
+			К сожалению, с вашего счёта не удалось списать оплату за подписку на сервис Subscription-aggregator.
+			Для повторной оплаты перейдите по ссылке: %s
+		`, user.Username, "ссылка_на_оплату")
 	return s.sendEmail(to, subject, bodyText)
 }
 
