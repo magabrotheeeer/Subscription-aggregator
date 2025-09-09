@@ -16,6 +16,8 @@ import (
 
 type PaymentService interface {
 	SavePayment(ctx context.Context, payload *Payload) (int, error)
+	UpdateStatusActiveForSubscription(ctx context.Context, userUID string) error
+	UpdateStatusCancelForSubscription(ctx context.Context, userUID string) error
 }
 
 type SenderService interface {
@@ -107,10 +109,18 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Error("failed to send info about success payment", sl.Err(err))
 		}
+		err = h.paymentService.UpdateStatusActiveForSubscription(r.Context(), payload.Object.Metadata["user_uid"])
+		if err != nil {
+			log.Error("failed to update status", sl.Err(err))
+		}
 	case PaymentCanceled:
 		err := h.senderService.SendInfoFailurePayment(&payload)
 		if err != nil {
 			log.Error("failed to send info about failure payment", sl.Err(err))
+		}
+		err = h.paymentService.UpdateStatusCancelForSubscription(r.Context(), payload.Object.Metadata["user_uid"])
+		if err != nil {
+			log.Error("failed to update status", sl.Err(err))
 		}
 	default:
 		log.Info("ignored webhook event", slog.String("event", payload.Event))
