@@ -7,6 +7,7 @@ import (
 	"github.com/streadway/amqp"
 )
 
+// PublishMessage публикует сообщение в RabbitMQ.
 func PublishMessage(ch *amqp.Channel, exchange string, routingkey string, message any) error {
 	const op = "rabbitmq.PublishMessage"
 	body, err := json.Marshal(message)

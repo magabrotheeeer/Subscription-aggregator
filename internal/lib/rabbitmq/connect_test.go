@@ -104,7 +104,11 @@ func TestConnectAndSetupChannel(t *testing.T) {
 			}
 			require.NoError(t, err)
 			require.NotNil(t, conn)
-			defer conn.Close()
+			defer func() {
+				if err := conn.Close(); err != nil {
+					t.Errorf("failed to close connection: %v", err)
+				}
+			}()
 
 			ch, err := SetupChannel(conn, tt.queues)
 			if tt.wantErr {

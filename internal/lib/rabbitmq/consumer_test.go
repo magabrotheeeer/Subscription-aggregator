@@ -26,11 +26,19 @@ func TestConsumerMessage_HandleMessages(t *testing.T) {
 	// Подключаемся
 	conn, err := Connect(amqpURI, 3, time.Second)
 	require.NoError(t, err)
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			t.Errorf("failed to close connection: %v", err)
+		}
+	}()
 
 	ch, err := conn.Channel()
 	require.NoError(t, err)
-	defer ch.Close()
+	defer func() {
+		if err := ch.Close(); err != nil {
+			t.Errorf("failed to close channel: %v", err)
+		}
+	}()
 
 	queueName := "consumer-test"
 	_, err = ch.QueueDeclare(
@@ -101,18 +109,26 @@ func TestConsumerMessage_HandlerErrorTriggersNack(t *testing.T) {
 
 	conn, err := Connect(amqpURI, 3, time.Second)
 	require.NoError(t, err)
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			t.Errorf("failed to close connection: %v", err)
+		}
+	}()
 
 	ch, err := conn.Channel()
 	require.NoError(t, err)
-	defer ch.Close()
+	defer func() {
+		if err := ch.Close(); err != nil {
+			t.Errorf("failed to close channel: %v", err)
+		}
+	}()
 
 	queueName := "nack-test"
 	_, err = ch.QueueDeclare(queueName, false, false, false, false, nil)
 	require.NoError(t, err)
 
 	// Handler всегда возвращает ошибку → сообщения должны возвращаться в очередь
-	handler := func(body []byte) error {
+	handler := func(_ []byte) error {
 		return fmt.Errorf("fail")
 	}
 

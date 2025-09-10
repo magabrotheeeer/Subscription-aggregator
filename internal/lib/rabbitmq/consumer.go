@@ -3,10 +3,12 @@ package rabbitmq
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/streadway/amqp"
 )
 
+// ConsumerMessage создает потребителя сообщений из очереди RabbitMQ.
 func ConsumerMessage(ctx context.Context, ch *amqp.Channel, queueName string, handler func([]byte) error) error {
 	const op = "rabbitmq.ConsumerMessage"
 	delivery, err := ch.Consume(
@@ -34,10 +36,14 @@ func ConsumerMessage(ctx context.Context, ch *amqp.Channel, queueName string, ha
 				go func(delivery amqp.Delivery) {
 					defer func() { <-sem }()
 					if err := handler(delivery.Body); err != nil {
-						delivery.Nack(false, true)
+						if nackErr := delivery.Nack(false, true); nackErr != nil {
+							log.Printf("failed to nack message: %v", nackErr)
+						}
 						return
 					}
-					delivery.Ack(false)
+					if ackErr := delivery.Ack(false); ackErr != nil {
+						log.Printf("failed to ack message: %v", ackErr)
+					}
 				}(d)
 			case <-ctx.Done():
 				return

@@ -1,3 +1,4 @@
+// Package rabbitmq содержит функции для работы с RabbitMQ.
 package rabbitmq
 
 import (
@@ -7,6 +8,7 @@ import (
 	"github.com/streadway/amqp"
 )
 
+// Connect устанавливает соединение с RabbitMQ с повторными попытками.
 func Connect(connection string, retries int, delay time.Duration) (*amqp.Connection, error) {
 	const op = "rabbitmq.ConnectRabbitMQ"
 	var conn *amqp.Connection
@@ -23,6 +25,7 @@ func Connect(connection string, retries int, delay time.Duration) (*amqp.Connect
 	return nil, fmt.Errorf("%s: %w", op, err)
 }
 
+// SetupChannel настраивает канал RabbitMQ и создает необходимые очереди.
 func SetupChannel(conn *amqp.Connection, queues []QueueConfig) (*amqp.Channel, error) {
 	const op = "rabbitmq.SetupChannel"
 

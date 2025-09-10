@@ -20,11 +20,19 @@ func TestPublishMessage(t *testing.T) {
 
 	conn, err := Connect(amqpURI, 3, time.Second)
 	require.NoError(t, err)
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			t.Errorf("failed to close connection: %v", err)
+		}
+	}()
 
 	ch, err := conn.Channel()
 	require.NoError(t, err)
-	defer ch.Close()
+	defer func() {
+		if err := ch.Close(); err != nil {
+			t.Errorf("failed to close channel: %v", err)
+		}
+	}()
 
 	queueName := "publish-test"
 	_, err = ch.QueueDeclare(queueName, false, false, false, false, nil)
@@ -82,11 +90,19 @@ func TestPublishMessage_ToExchangeWithRoutingKey(t *testing.T) {
 
 	conn, err := Connect(amqpURI, 3, time.Second)
 	require.NoError(t, err)
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			t.Errorf("failed to close connection: %v", err)
+		}
+	}()
 
 	ch, err := conn.Channel()
 	require.NoError(t, err)
-	defer ch.Close()
+	defer func() {
+		if err := ch.Close(); err != nil {
+			t.Errorf("failed to close channel: %v", err)
+		}
+	}()
 
 	// Создаем direct exchange
 	exchangeName := "test-exchange"
