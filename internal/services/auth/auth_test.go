@@ -149,7 +149,7 @@ func TestAuthService_Login(t *testing.T) {
 			password: rawPassword, // Используем правильный сырой пароль
 			setupMocks: func(r *UserRepoMock, j *JwtMakerMock) {
 				r.On("GetUserByUsername", mock.Anything, "testuser").Return(testUser, nil).Once()
-				j.On("GenerateToken", "testuser", "user").Return("jwt-token-123", nil).Once()
+				j.On("GenerateToken", "testuser", "user", "").Return("jwt-token-123", nil).Once()
 			},
 			wantToken:   "jwt-token-123",
 			wantRefresh: "refresh-token-placeholder",
@@ -188,7 +188,7 @@ func TestAuthService_Login(t *testing.T) {
 			password: rawPassword, // Правильный пароль
 			setupMocks: func(r *UserRepoMock, j *JwtMakerMock) {
 				r.On("GetUserByUsername", mock.Anything, "testuser").Return(testUser, nil).Once()
-				j.On("GenerateToken", "testuser", "user").Return("", errors.New("token error")).Once()
+				j.On("GenerateToken", "testuser", "user", "").Return("", errors.New("token error")).Once()
 			},
 			wantToken:   "",
 			wantRefresh: "",
