@@ -27,12 +27,12 @@ type SubscriptionServiceMock struct {
 
 func (s *SubscriptionServiceMock) CreateEntrySubscriptionAggregator(ctx context.Context, userName, userUID string) (int, error) {
 	args := s.Called(ctx, userName, userUID)
-	return args.Int(1), args.Error(0)
+	return args.Int(0), args.Error(1)
 }
 
 func (m *AuthClientMock) Register(ctx context.Context, email, username, password string) (string, error) {
 	args := m.Called(ctx, email, username, password)
-	return args.String(1), args.Error(0)
+	return args.String(0), args.Error(1)
 }
 
 func newNoopLogger() *slog.Logger {
@@ -113,11 +113,20 @@ func TestRegisterHandler_ServeHTTP(t *testing.T) {
 			authMock.Calls = nil
 
 			if tt.name == "valid registration" || tt.name == "registration grpc error" {
-				authMock.On("Register", mock.Anything,
-					mock.Anything,
-					mock.Anything,
-					mock.Anything,
-				).Return(tt.mockErr).Once()
+				if tt.mockErr != nil {
+					authMock.On("Register", mock.Anything,
+						mock.Anything,
+						mock.Anything,
+						mock.Anything,
+					).Return("", tt.mockErr).Once()
+				} else {
+					authMock.On("Register", mock.Anything,
+						mock.Anything,
+						mock.Anything,
+						mock.Anything,
+					).Return("user123", nil).Once()
+					subscriptionService.On("CreateEntrySubscriptionAggregator", mock.Anything, mock.Anything, "user123").Return(1, nil).Once()
+				}
 			}
 
 			var bodyBytes []byte
@@ -166,6 +175,7 @@ func TestRegisterHandler_ServeHTTP(t *testing.T) {
 			}
 
 			authMock.AssertExpectations(t)
+			subscriptionService.AssertExpectations(t)
 		})
 	}
 }

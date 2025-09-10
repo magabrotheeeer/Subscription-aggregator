@@ -33,7 +33,7 @@ type Handler struct {
 	validate            *validator.Validate
 }
 
-// Service определяет методы бизнес-логики для работы с пользователями.
+// AuthService определяет методы бизнес-логики для работы с пользователями.
 //
 // В данном случае включает регистрацию пользователя с учётом
 // email, имени пользователя и пароля.
@@ -41,6 +41,7 @@ type AuthService interface {
 	Register(ctx context.Context, email, username, password string) (string, error)
 }
 
+// SubscriptionService определяет интерфейс для работы с подписками.
 type SubscriptionService interface {
 	CreateEntrySubscriptionAggregator(ctx context.Context, userName, userUID string) (int, error)
 }
