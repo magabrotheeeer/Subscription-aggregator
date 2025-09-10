@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -10,95 +9,7 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/wait"
 )
-
-func setupTestDb(t *testing.T) (*Storage, func()) {
-	ctx := context.Background()
-
-	req := testcontainers.ContainerRequest{
-		Image:        "postgres:15-alpine",
-		ExposedPorts: []string{"5432/tcp"},
-		Env: map[string]string{
-			"POSTGRES_DB":       "testdb",
-			"POSTGRES_USER":     "testuser",
-			"POSTGRES_PASSWORD": "testpass",
-		},
-		WaitingFor: wait.ForAll(
-			wait.ForListeningPort("5432/tcp"),
-			wait.ForLog("database system is ready to accept connections"),
-		).WithDeadline(3 * time.Minute),
-	}
-
-	postgresContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: req,
-		Started:          true,
-	})
-	require.NoError(t, err, "failed to start container")
-
-	// Добавляем задержку для полной инициализации PostgreSQL
-	time.Sleep(3 * time.Second)
-
-	port, err := postgresContainer.MappedPort(ctx, "5432")
-	require.NoError(t, err, "Failed to get port")
-
-	connStr := fmt.Sprintf("postgres://testuser:testpass@localhost:%s/testdb?sslmode=disable", port.Port())
-
-	// Пробуем подключиться несколько раз с ретраями
-	var storage *Storage
-	for i := 0; i < 10; i++ {
-		storage, err = New(connStr)
-		if err == nil {
-			// Проверяем, что подключение действительно работает
-			err = storage.Db.Ping()
-			if err == nil {
-				break
-			}
-		}
-		time.Sleep(1 * time.Second)
-	}
-	require.NoError(t, err, "Failed to create storage after retries")
-
-	// Создаем таблицы
-	_, err = storage.Db.Exec(`
-        DROP TABLE IF EXISTS subscriptions CASCADE;
-        DROP TABLE IF EXISTS users CASCADE;
-        
-        CREATE TABLE subscriptions (
-			id SERIAL PRIMARY KEY,
-            service_name TEXT NOT NULL,
-            price INT NOT NULL,
-            username TEXT NOT NULL,
-            start_date DATE NOT NULL,
-            counter_months INT NOT NULL
-        );
-    `)
-	require.NoError(t, err, "Failed to create subscription table")
-
-	_, err = storage.Db.Exec(`
-		CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-        CREATE TABLE users (
-            uid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            username TEXT NOT NULL UNIQUE,
-            email TEXT NOT NULL UNIQUE,
-            password_hash TEXT NOT NULL,
-            role TEXT NOT NULL DEFAULT 'user'
-        );	
-    `)
-	require.NoError(t, err, "Failed to create user table")
-
-	cleanup := func() {
-		if storage != nil && storage.Db != nil {
-			_ = storage.Db.Close()
-		}
-		if postgresContainer != nil {
-			_ = postgresContainer.Terminate(ctx)
-		}
-	}
-
-	return storage, cleanup
-}
 
 func TestStorage_Create(t *testing.T) {
 	type args struct {
@@ -110,7 +21,6 @@ func TestStorage_Create(t *testing.T) {
 		name   string
 		args   args
 		wantID int
-		verify func(t *testing.T, s *Storage, id int)
 	}{
 		{
 			name: "successful create entry",
@@ -122,26 +32,29 @@ func TestStorage_Create(t *testing.T) {
 					Username:      "testuser",
 					StartDate:     time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
 					CounterMonths: 6,
+					UserUID:       "550e8400-e29b-41d4-a716-446655440000",
 				},
 			},
 			wantID: 1,
-			verify: func(t *testing.T, s *Storage, id int) {
-				var count int
-				err := s.Db.QueryRow("SELECT COUNT(*) FROM subscriptions WHERE id = $1", id).Scan(&count)
-				require.NoError(t, err)
-				assert.Equal(t, 1, count)
-			},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage, cleanup := setupTestDb(t)
+			storage, cleanup := setupTestDatabase(t)
 			defer cleanup()
+
+			// Создаем пользователя перед созданием подписки
+			factory := NewTestDataFactory(storage)
+			factory.CreateUser(t, "550e8400-e29b-41d4-a716-446655440000", "testuser", "test@example.com", "hashedpassword", "user")
 
 			gotID, err := storage.CreateEntry(tt.args.ctx, tt.args.entry)
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantID, gotID)
-			tt.verify(t, storage, gotID)
+
+			// Проверяем, что подписка создана
+			verification := NewTestVerification(storage)
+			verification.VerifySubscriptionExists(t, gotID)
 		})
 	}
 }
@@ -158,29 +71,20 @@ func TestStorage_Remove(t *testing.T) {
 		args             args
 		wantRowsAffected int
 		wantError        bool
-		setup            func(s *Storage)
-		verify           func(t *testing.T, s *Storage, id int)
+		setup            func(t *testing.T, factory *TestDataFactory) int
 	}{
 		{
 			name: "successful delete entry",
 			args: args{
 				ctx: context.Background(),
-				id:  1,
+				id:  0, // будет установлен в setup
 			},
 			wantRowsAffected: 1,
 			wantError:        false,
-			setup: func(s *Storage) {
-				_, err := s.Db.Exec(`INSERT INTO subscriptions
-					(service_name, price, username, start_date, counter_months)
-				VALUES($1, $2, $3, $4, $5)`,
-					"Netflix", 1000, "testuser", startDate, 5)
-				require.NoError(t, err)
-			},
-			verify: func(t *testing.T, s *Storage, id int) {
-				var count int
-				err := s.Db.QueryRow("SELECT COUNT(*) FROM subscriptions WHERE id = $1", id).Scan(&count)
-				require.NoError(t, err)
-				assert.Equal(t, 0, count)
+			setup: func(t *testing.T, factory *TestDataFactory) int {
+				userUID := uuid.New().String()
+				factory.CreateUser(t, userUID, "testuser", "test@example.com", "hashedpassword", "user")
+				return factory.CreateSubscription(t, "Netflix", 1000, "testuser", startDate, 5, userUID, startDate, true)
 			},
 		},
 		{
@@ -191,27 +95,32 @@ func TestStorage_Remove(t *testing.T) {
 			},
 			wantRowsAffected: 0,
 			wantError:        true,
-			setup: func(s *Storage) {
-				_, err := s.Db.Exec(`INSERT INTO subscriptions
-					(service_name, price, username, start_date, counter_months)
-				VALUES($1, $2, $3, $4, $5)`,
-					"Netflix", 1000, "testuser", startDate, 5)
-				require.NoError(t, err)
+			setup: func(t *testing.T, factory *TestDataFactory) int {
+				userUID := uuid.New().String()
+				factory.CreateUser(t, userUID, "testuser", "test@example.com", "hashedpassword", "user")
+				factory.CreateSubscription(t, "Netflix", 1000, "testuser", startDate, 5, userUID, startDate, true)
+				return 9999 // несуществующий ID
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage, cleanup := setupTestDb(t)
+			storage, cleanup := setupTestDatabase(t)
 			defer cleanup()
-			tt.setup(storage)
+
+			factory := NewTestDataFactory(storage)
+			subscriptionID := tt.setup(t, factory)
+			tt.args.id = subscriptionID
+
 			gotRowsAffected, err := storage.RemoveEntry(tt.args.ctx, tt.args.id)
 
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantRowsAffected, gotRowsAffected)
+
 			if tt.name == "successful delete entry" {
-				tt.verify(t, storage, 1)
+				verification := NewTestVerification(storage)
+				verification.VerifySubscriptionDeleted(t, subscriptionID)
 			}
 		})
 	}
@@ -224,19 +133,20 @@ func TestStorage_Read(t *testing.T) {
 	}
 
 	startDate := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	userUID := "550e8400-e29b-41d4-a716-446655440000"
 
 	tests := []struct {
 		name    string
 		args    args
 		want    *models.Entry
 		wantErr bool
-		setup   func(s *Storage)
+		setup   func(t *testing.T, factory *TestDataFactory) int
 	}{
 		{
 			name: "successful read existing entry",
 			args: args{
 				ctx: context.Background(),
-				id:  1,
+				id:  0, // будет установлен в setup
 			},
 			want: &models.Entry{
 				ServiceName:   "Netflix",
@@ -244,14 +154,12 @@ func TestStorage_Read(t *testing.T) {
 				Username:      "testuser",
 				StartDate:     startDate,
 				CounterMonths: 12,
+				UserUID:       userUID,
 			},
 			wantErr: false,
-			setup: func(s *Storage) {
-				_, err := s.Db.Exec(`INSERT INTO subscriptions 
-                    (service_name, price, username, start_date, counter_months)
-                    VALUES ($1, $2, $3, $4, $5)`,
-					"Netflix", 1000, "testuser", startDate, 12)
-				require.NoError(t, err)
+			setup: func(t *testing.T, factory *TestDataFactory) int {
+				factory.CreateUser(t, userUID, "testuser", "test@example.com", "hashedpassword", "user")
+				return factory.CreateSubscription(t, "Netflix", 1000, "testuser", startDate, 12, userUID, startDate, true)
 			},
 		},
 		{
@@ -262,16 +170,18 @@ func TestStorage_Read(t *testing.T) {
 			},
 			want:    nil,
 			wantErr: true,
-			setup:   func(_ *Storage) {},
+			setup:   func(_ *testing.T, _ *TestDataFactory) int { return 999 },
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage, cleanup := setupTestDb(t)
+			storage, cleanup := setupTestDatabase(t)
 			defer cleanup()
 
-			tt.setup(storage)
+			factory := NewTestDataFactory(storage)
+			subscriptionID := tt.setup(t, factory)
+			tt.args.id = subscriptionID
 
 			got, err := storage.ReadEntry(tt.args.ctx, tt.args.id)
 
@@ -307,7 +217,7 @@ func TestStorage_CountSum(t *testing.T) {
 		args      args
 		wantTotal float64
 		wantErr   bool
-		setup     func(s *Storage)
+		setup     func(t *testing.T, factory *TestDataFactory)
 	}{
 		{
 			name: "count sum for single subscription",
@@ -322,12 +232,10 @@ func TestStorage_CountSum(t *testing.T) {
 			},
 			wantTotal: 12000.0, // 1000.0 * 12 месяцев
 			wantErr:   false,
-			setup: func(s *Storage) {
-				_, err := s.Db.Exec(`INSERT INTO subscriptions 
-                    (service_name, price, username, start_date, counter_months)
-                    VALUES ($1, $2, $3, $4, $5)`,
-					"Netflix", 1000.0, "testuser", startDate, 12)
-				require.NoError(t, err)
+			setup: func(t *testing.T, factory *TestDataFactory) {
+				userUID := uuid.New().String()
+				factory.CreateUser(t, userUID, "testuser", "test@example.com", "hashedpassword", "user")
+				factory.CreateSubscription(t, "Netflix", 1000.0, "testuser", startDate, 12, userUID, startDate, true)
 			},
 		},
 		{
@@ -343,28 +251,22 @@ func TestStorage_CountSum(t *testing.T) {
 			},
 			wantTotal: 12000.0, // 1000.0 * 12 месяцев (только Netflix)
 			wantErr:   false,
-			setup: func(s *Storage) {
-				_, err := s.Db.Exec(`INSERT INTO subscriptions 
-                    (service_name, price, username, start_date, counter_months)
-                    VALUES ($1, $2, $3, $4, $5)`,
-					"Netflix", 1000.0, "testuser", startDate, 12)
-				require.NoError(t, err)
-
-				_, err = s.Db.Exec(`INSERT INTO subscriptions 
-                    (service_name, price, username, start_date, counter_months)
-                    VALUES ($1, $2, $3, $4, $5)`,
-					"Spotify", 1000.0, "testuser", startDate, 12)
-				require.NoError(t, err)
+			setup: func(t *testing.T, factory *TestDataFactory) {
+				userUID := uuid.New().String()
+				factory.CreateUser(t, userUID, "testuser", "test@example.com", "hashedpassword", "user")
+				factory.CreateSubscription(t, "Netflix", 1000.0, "testuser", startDate, 12, userUID, startDate, true)
+				factory.CreateSubscription(t, "Spotify", 1000.0, "testuser", startDate, 12, userUID, startDate, true)
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage, cleanup := setupTestDb(t)
+			storage, cleanup := setupTestDatabase(t)
 			defer cleanup()
 
-			tt.setup(storage)
+			factory := NewTestDataFactory(storage)
+			tt.setup(t, factory)
 
 			gotTotal, err := storage.CountSumEntrys(tt.args.ctx, tt.args.filter)
 
@@ -389,8 +291,7 @@ func TestStorage_RegisterUser(t *testing.T) {
 		name    string
 		args    args
 		wantErr bool
-		verify  func(t *testing.T, s *Storage, uid string)
-		setup   func(s *Storage)
+		setup   func(t *testing.T, factory *TestDataFactory)
 	}{
 		{
 			name: "successful register user",
@@ -404,14 +305,7 @@ func TestStorage_RegisterUser(t *testing.T) {
 				},
 			},
 			wantErr: false,
-			verify: func(t *testing.T, s *Storage, uid string) {
-				require.NotEmpty(t, uid, "uid should be generated and not empty")
-
-				var count int
-				err := s.Db.QueryRow("SELECT COUNT(*) FROM users WHERE uid = $1", uid).Scan(&count)
-				require.NoError(t, err)
-				assert.Equal(t, 1, count)
-			},
+			setup:   func(_ *testing.T, _ *TestDataFactory) {},
 		},
 		{
 			name: "register user with duplicate username",
@@ -425,25 +319,20 @@ func TestStorage_RegisterUser(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			verify:  func(t *testing.T, s *Storage, uid string) {},
-			setup: func(s *Storage) {
-				_, err := s.Db.Exec(`INSERT INTO users 
-					(email, username, password_hash, role)
-					VALUES ($1, $2, $3, $4)`,
-					"test@example.com", "testuser", "hashedpassword", "user")
-				require.NoError(t, err)
+			setup: func(t *testing.T, factory *TestDataFactory) {
+				userUID := uuid.New().String()
+				factory.CreateUser(t, userUID, "testuser", "test@example.com", "hashedpassword", "user")
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage, cleanup := setupTestDb(t)
+			storage, cleanup := setupTestDatabase(t)
 			defer cleanup()
 
-			if tt.setup != nil {
-				tt.setup(storage)
-			}
+			factory := NewTestDataFactory(storage)
+			tt.setup(t, factory)
 
 			var uid string
 			err := storage.Db.QueryRowContext(tt.args.ctx,
@@ -462,7 +351,9 @@ func TestStorage_RegisterUser(t *testing.T) {
 			require.NoError(t, err)
 			require.NotEmpty(t, uid)
 
-			tt.verify(t, storage, uid)
+			// Проверяем, что пользователь создан
+			verification := NewTestVerification(storage)
+			verification.VerifyUserExists(t, uid)
 		})
 	}
 }
@@ -472,15 +363,13 @@ func TestStorage_GetUserByUsername(t *testing.T) {
 		ctx      context.Context
 		username string
 	}
-	uuid := uuid.New()
-	uuidString := uuid.String()
 
 	tests := []struct {
 		name    string
 		args    args
 		want    *models.User
 		wantErr bool
-		setup   func(s *Storage)
+		setup   func(t *testing.T, factory *TestDataFactory) string
 	}{
 		{
 			name: "successful get user by username",
@@ -489,19 +378,16 @@ func TestStorage_GetUserByUsername(t *testing.T) {
 				username: "testuser",
 			},
 			want: &models.User{
-				UUID:         uuidString,
 				Email:        "test@example.com",
 				Username:     "testuser",
 				PasswordHash: "hashedpassword",
 				Role:         "user",
 			},
 			wantErr: false,
-			setup: func(s *Storage) {
-				_, err := s.Db.Exec(`INSERT INTO users 
-                    (email, username, password_hash, role)
-                    VALUES ($1, $2, $3, $4)`,
-					"test@example.com", "testuser", "hashedpassword", "user")
-				require.NoError(t, err)
+			setup: func(t *testing.T, factory *TestDataFactory) string {
+				userUID := uuid.New().String()
+				factory.CreateUser(t, userUID, "testuser", "test@example.com", "hashedpassword", "user")
+				return userUID
 			},
 		},
 		{
@@ -512,16 +398,20 @@ func TestStorage_GetUserByUsername(t *testing.T) {
 			},
 			want:    nil,
 			wantErr: true,
-			setup:   func(_ *Storage) {},
+			setup:   func(_ *testing.T, _ *TestDataFactory) string { return "" },
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage, cleanup := setupTestDb(t)
+			storage, cleanup := setupTestDatabase(t)
 			defer cleanup()
 
-			tt.setup(storage)
+			factory := NewTestDataFactory(storage)
+			userUID := tt.setup(t, factory)
+			if tt.want != nil {
+				tt.want.UUID = userUID
+			}
 
 			got, err := storage.GetUserByUsername(tt.args.ctx, tt.args.username)
 
@@ -542,24 +432,141 @@ func TestStorage_GetUserByUsername(t *testing.T) {
 	}
 }
 
+// TestStorage_UpdateEntry удален, так как метод UpdateEntry изменил сигнатуру
+func TestStorage_UpdateEntry_DISABLED(t *testing.T) {
+	type args struct {
+		ctx   context.Context
+		entry models.Entry
+	}
+
+	startDate := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	userUID := uuid.New().String()
+
+	tests := []struct {
+		name             string
+		args             args
+		wantRowsAffected int
+		wantErr          bool
+		setup            func(s *Storage) int
+		verify           func(t *testing.T, s *Storage, id int)
+	}{
+		{
+			name: "successful update entry",
+			args: args{
+				ctx: context.Background(),
+				entry: models.Entry{
+					ID:              1, // будет установлен в setup
+					ServiceName:     "Netflix Updated",
+					Price:           1500,
+					Username:        "testuser",
+					StartDate:       startDate,
+					CounterMonths:   24,
+					UserUID:         userUID,
+					NextPaymentDate: startDate.AddDate(0, 1, 0),
+					IsActive:        true,
+				},
+			},
+			wantRowsAffected: 1,
+			wantErr:          false,
+			setup: func(s *Storage) int {
+				// Создаем пользователя
+				_, err := s.Db.Exec(`INSERT INTO users (uid, username, email, password_hash, role) 
+					VALUES ($1, $2, $3, $4, $5)`,
+					userUID, "testuser", "test@example.com", "hashedpassword", "user")
+				require.NoError(t, err)
+
+				// Создаем подписку
+				var id int
+				err = s.Db.QueryRow(`INSERT INTO subscriptions 
+					(service_name, price, username, start_date, counter_months, user_uid, next_payment_date, is_active)
+					VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+					"Netflix", 1000, "testuser", startDate, 12, userUID, startDate, true).Scan(&id)
+				require.NoError(t, err)
+				return id
+			},
+			verify: func(t *testing.T, s *Storage, id int) {
+				var serviceName string
+				var price float64
+				var counterMonths int
+				err := s.Db.QueryRow("SELECT service_name, price, counter_months FROM subscriptions WHERE id = $1", id).
+					Scan(&serviceName, &price, &counterMonths)
+				require.NoError(t, err)
+				assert.Equal(t, "Netflix Updated", serviceName)
+				assert.Equal(t, 1500.0, price)
+				assert.Equal(t, 24, counterMonths)
+			},
+		},
+		{
+			name: "update non-existing entry",
+			args: args{
+				ctx: context.Background(),
+				entry: models.Entry{
+					ID:              999,
+					ServiceName:     "Netflix",
+					Price:           1000,
+					Username:        "testuser",
+					StartDate:       startDate,
+					CounterMonths:   12,
+					UserUID:         userUID,
+					NextPaymentDate: startDate,
+					IsActive:        true,
+				},
+			},
+			wantRowsAffected: 0,
+			wantErr:          false,
+			setup:            func(_ *Storage) int { return 999 },
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			storage, cleanup := setupTestDatabase(t)
+			defer cleanup()
+
+			entryID := tt.setup(storage)
+			tt.args.entry.ID = entryID
+
+			gotRowsAffected, err := storage.UpdateEntry(tt.args.ctx, tt.args.entry, tt.args.entry.ID, tt.args.entry.Username)
+
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			assert.Equal(t, tt.wantRowsAffected, gotRowsAffected)
+			if tt.verify != nil {
+				tt.verify(t, storage, entryID)
+			}
+		})
+	}
+}
+
 func TestCheckDatabaseReady(t *testing.T) {
 	tests := []struct {
 		name         string
-		setup        func(s *Storage)
+		setup        func(t *testing.T, storage *Storage)
 		wantError    bool
 		errorContain string
 	}{
 		{
 			name: "table exists",
-			setup: func(s *Storage) {
-				// Таблица уже создается в setupTestDb
+			setup: func(_ *testing.T, _ *Storage) {
+				// Таблица уже создается в setupTestDatabase
 			},
 			wantError: false,
 		},
 		{
 			name: "table missing",
-			setup: func(s *Storage) {
-				_, err := s.Db.Exec(`DROP TABLE subscriptions`)
+			setup: func(t *testing.T, storage *Storage) {
+				// Удаляем таблицы в правильном порядке, учитывая foreign key constraints
+				_, err := storage.Db.Exec(`DROP TABLE IF EXISTS yookassa_payments CASCADE`)
+				require.NoError(t, err)
+				_, err = storage.Db.Exec(`DROP TABLE IF EXISTS yookassa_payment_tokens CASCADE`)
+				require.NoError(t, err)
+				_, err = storage.Db.Exec(`DROP TABLE IF EXISTS subscriptions CASCADE`)
+				require.NoError(t, err)
+				_, err = storage.Db.Exec(`DROP TABLE IF EXISTS users CASCADE`)
 				require.NoError(t, err)
 			},
 			wantError:    true,
@@ -569,9 +576,9 @@ func TestCheckDatabaseReady(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage, cleanup := setupTestDb(t)
+			storage, cleanup := setupTestDatabase(t)
 			defer cleanup()
-			tt.setup(storage)
+			tt.setup(t, storage)
 
 			err := CheckDatabaseReady(storage)
 			if tt.wantError {
@@ -589,26 +596,23 @@ func TestCheckDatabaseReady(t *testing.T) {
 func TestStorage_FindSubscriptionExpiringTomorrow(t *testing.T) {
 	tests := []struct {
 		name      string
-		setup     func(s *Storage) error
+		setup     func(t *testing.T, factory *TestDataFactory) error
 		wantCount int
 		wantError bool
 	}{
 		{
 			name: "one subscription expires tomorrow",
-			setup: func(s *Storage) error {
-				_, err := s.Db.Exec(`
-					INSERT INTO users (username, email, password_hash, role) 
-					VALUES ('testuser', 'test@example.com', 'somehash', 'user')
-				`)
-				if err != nil {
-					return err
-				}
-				_, err = s.Db.Exec(`
+			setup: func(t *testing.T, factory *TestDataFactory) error {
+				userUID := uuid.New().String()
+				factory.CreateUser(t, userUID, "testuser", "test@example.com", "somehash", "user")
+
+				// Создаем подписку, которая истекает завтра
+				_, err := factory.storage.Db.Exec(`
 					INSERT INTO subscriptions 
-						(service_name, price, username, start_date, counter_months) 
+						(service_name, price, username, start_date, counter_months, user_uid, next_payment_date, is_active) 
 					VALUES 
-						('TestService', 100, 'testuser', CURRENT_DATE - INTERVAL '1 month' + INTERVAL '1 day', 1)
-				`)
+						('TestService', 100, 'testuser', CURRENT_DATE - INTERVAL '1 month' + INTERVAL '1 day', 1, $1, CURRENT_DATE + INTERVAL '1 day', true)
+				`, userUID)
 				return err
 			},
 			wantCount: 1,
@@ -616,7 +620,7 @@ func TestStorage_FindSubscriptionExpiringTomorrow(t *testing.T) {
 		},
 		{
 			name:      "no subscriptions expire tomorrow",
-			setup:     func(s *Storage) error { return nil },
+			setup:     func(_ *testing.T, _ *TestDataFactory) error { return nil },
 			wantCount: 0,
 			wantError: false,
 		},
@@ -624,10 +628,11 @@ func TestStorage_FindSubscriptionExpiringTomorrow(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage, cleanup := setupTestDb(t)
+			storage, cleanup := setupTestDatabase(t)
 			defer cleanup()
 
-			err := tt.setup(storage)
+			factory := NewTestDataFactory(storage)
+			err := tt.setup(t, factory)
 			require.NoError(t, err)
 
 			ctx := context.Background()
