@@ -148,14 +148,12 @@ jobs:
         env:
           TEST_DB_URL: "postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable"
           TEST_REDIS_URL: "redis://localhost:6379"
-          TEST_RABBITMQ_URL: "amqp://guest:guest@localhost:5672/"
         run: go test -race -coverprofile=coverage.out -v ./...
 
       - name: Run integration tests
         env:
           TEST_DB_URL: "postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable"
           TEST_REDIS_URL: "redis://localhost:6379"
-          TEST_RABBITMQ_URL: "amqp://guest:guest@localhost:5672/"
         run: go test -tags=integration -race -coverprofile=coverage-integration.out -v ./...
 
       - name: Show coverage
