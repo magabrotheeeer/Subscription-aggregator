@@ -1,14 +1,20 @@
 package middlewarectx
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
-	services "github.com/magabrotheeeer/subscription-aggregator/internal/services/subscription"
 )
 
-func SubscriptionStatusMiddleware(log *slog.Logger, subService *services.SubscriptionService) func(http.Handler) http.Handler {
+// SubscriptionServiceInterface определяет интерфейс для работы с подписками
+type SubscriptionServiceInterface interface {
+	GetSubscriptionStatus(ctx context.Context, userUID string) (string, error)
+}
+
+// SubscriptionStatusMiddleware создает middleware для проверки статуса подписки пользователя.
+func SubscriptionStatusMiddleware(log *slog.Logger, subService SubscriptionServiceInterface) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			userUID, ok := r.Context().Value(UserUID).(string)
