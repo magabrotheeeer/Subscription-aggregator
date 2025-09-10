@@ -1,3 +1,4 @@
+// Package main содержит точку входа для сервиса отправки уведомлений.
 package main
 
 import (

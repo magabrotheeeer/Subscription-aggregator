@@ -1,3 +1,4 @@
+// Package main Scheduler service for subscription management
 package main
 
 import (

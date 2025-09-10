@@ -1,3 +1,4 @@
+// Package main содержит точку входа для сервиса аутентификации.
 package main
 
 import (
