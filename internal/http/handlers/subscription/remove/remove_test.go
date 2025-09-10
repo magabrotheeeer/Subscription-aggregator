@@ -41,7 +41,7 @@ func TestRemoveHandler(t *testing.T) {
 			url:    "/subscriptions/123",
 			mockID: 123,
 			setupMock: func(m *MockService) {
-				m.On("Remove", mock.Anything, 123).Return(1, nil)
+				m.On("RemoveEntry", mock.Anything, 123).Return(1, nil)
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody:   `"deleted_count":1`,
@@ -59,7 +59,7 @@ func TestRemoveHandler(t *testing.T) {
 			url:    "/subscriptions/777",
 			mockID: 777,
 			setupMock: func(m *MockService) {
-				m.On("Remove", mock.Anything, 777).Return(0, errors.New("db error"))
+				m.On("RemoveEntry", mock.Anything, 777).Return(0, errors.New("db error"))
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   `{"status":"Error","error":"failed to delete subscription"}`,

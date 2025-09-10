@@ -49,12 +49,12 @@ func TestUpdateHandler(t *testing.T) {
 			requestBody: models.DummyEntry{
 				ServiceName:   "Netflix",
 				Price:         15,
-				StartDate:     "01-2024",
+				StartDate:     "01-01-2024",
 				CounterMonths: 6,
 			},
 			username: "testuser",
 			setupMock: func(m *MockService) {
-				m.On("Update", mock.Anything, mock.AnythingOfType("models.DummyEntry"), 123, "testuser").
+				m.On("UpdateEntry", mock.Anything, mock.AnythingOfType("models.DummyEntry"), 123, "testuser").
 					Return(1, nil)
 			},
 			expectedStatus: http.StatusOK,
@@ -89,7 +89,7 @@ func TestUpdateHandler(t *testing.T) {
 			requestBody: models.DummyEntry{
 				ServiceName:   "Netflix",
 				Price:         15,
-				StartDate:     "01-2024",
+				StartDate:     "01-01-2024",
 				CounterMonths: 6,
 			},
 			username:       "",
@@ -103,7 +103,7 @@ func TestUpdateHandler(t *testing.T) {
 			requestBody: models.DummyEntry{
 				ServiceName:   "Netflix",
 				Price:         15,
-				StartDate:     "01-2024",
+				StartDate:     "01-01-2024",
 				CounterMonths: 6,
 			},
 			username:       "testuser",
@@ -117,12 +117,12 @@ func TestUpdateHandler(t *testing.T) {
 			requestBody: models.DummyEntry{
 				ServiceName:   "Netflix",
 				Price:         15,
-				StartDate:     "01-2024",
+				StartDate:     "01-01-2024",
 				CounterMonths: 6,
 			},
 			username: "testuser",
 			setupMock: func(m *MockService) {
-				m.On("Update", mock.Anything, mock.AnythingOfType("models.DummyEntry"), 123, "testuser").
+				m.On("UpdateEntry", mock.Anything, mock.AnythingOfType("models.DummyEntry"), 123, "testuser").
 					Return(0, errors.New("db error"))
 			},
 			expectedStatus: http.StatusInternalServerError,

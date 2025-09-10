@@ -51,7 +51,7 @@ func TestCreateHandler(t *testing.T) {
 			},
 			username: "testuser",
 			setupMock: func(m *MockService) {
-				m.On("Create", mock.Anything, "testuser", mock.AnythingOfType("models.DummyEntry")).
+				m.On("CreateEntry", mock.Anything, "testuser", "user123", mock.AnythingOfType("models.DummyEntry")).
 					Return(123, nil)
 			},
 			expectedStatus: http.StatusOK,
@@ -101,7 +101,7 @@ func TestCreateHandler(t *testing.T) {
 			},
 			username: "testuser",
 			setupMock: func(m *MockService) {
-				m.On("Create", mock.Anything, "testuser", mock.AnythingOfType("models.DummyEntry")).
+				m.On("CreateEntry", mock.Anything, "testuser", "user123", mock.AnythingOfType("models.DummyEntry")).
 					Return(0, errors.New("db error"))
 			},
 			expectedStatus: http.StatusInternalServerError,
@@ -129,6 +129,7 @@ func TestCreateHandler(t *testing.T) {
 			req.Header.Set("Content-Type", "application/json")
 
 			ctx := context.WithValue(req.Context(), middlewarectx.User, tt.username)
+			ctx = context.WithValue(ctx, middlewarectx.UserUID, "user123")
 			ctx = context.WithValue(ctx, middleware.RequestIDKey, "req-id")
 			req = req.WithContext(ctx)
 

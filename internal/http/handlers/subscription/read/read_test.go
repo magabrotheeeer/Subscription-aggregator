@@ -53,7 +53,7 @@ func TestReadHandler(t *testing.T) {
 					Username:      "testuser",
 					CounterMonths: 6,
 				}
-				m.On("Read", mock.Anything, 123).Return(entry, nil)
+				m.On("ReadEntry", mock.Anything, 123).Return(entry, nil)
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody:   `"ServiceName":"Netflix"`,
@@ -71,7 +71,7 @@ func TestReadHandler(t *testing.T) {
 			url:    "/subscriptions/777",
 			mockID: 777,
 			setupMock: func(m *MockService) {
-				m.On("Read", mock.Anything, 777).Return(nil, errors.New("db error"))
+				m.On("ReadEntry", mock.Anything, 777).Return(nil, errors.New("db error"))
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   `{"status":"Error","error":"could not read subscription"}`,

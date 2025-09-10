@@ -50,7 +50,7 @@ func TestListHandler(t *testing.T) {
 					{ServiceName: "Netflix", Price: 10, Username: "testuser", CounterMonths: 3},
 					{ServiceName: "Spotify", Price: 5, Username: "testuser", CounterMonths: 1},
 				}
-				m.On("List", mock.Anything, "testuser", "user", 10, 0).
+				m.On("ListEntrys", mock.Anything, "testuser", "user", 10, 0).
 					Return(entries, nil)
 			},
 			expectedStatus: http.StatusOK,
@@ -62,7 +62,7 @@ func TestListHandler(t *testing.T) {
 			username:    "testuser",
 			role:        "user",
 			setupMock: func(m *MockService) {
-				m.On("List", mock.Anything, "testuser", "user", 5, 3).
+				m.On("ListEntrys", mock.Anything, "testuser", "user", 5, 3).
 					Return([]*models.Entry{}, nil)
 			},
 			expectedStatus: http.StatusOK,
@@ -74,7 +74,7 @@ func TestListHandler(t *testing.T) {
 			username:    "testuser",
 			role:        "user",
 			setupMock: func(m *MockService) {
-				m.On("List", mock.Anything, "testuser", "user", 10, 0).
+				m.On("ListEntrys", mock.Anything, "testuser", "user", 10, 0).
 					Return([]*models.Entry{}, nil)
 			},
 			expectedStatus: http.StatusOK,
@@ -104,7 +104,7 @@ func TestListHandler(t *testing.T) {
 			username:    "testuser",
 			role:        "admin",
 			setupMock: func(m *MockService) {
-				m.On("List", mock.Anything, "testuser", "admin", 10, 0).
+				m.On("ListEntrys", mock.Anything, "testuser", "admin", 10, 0).
 					Return([]*models.Entry{}, errors.New("db error"))
 			},
 			expectedStatus: http.StatusInternalServerError,
