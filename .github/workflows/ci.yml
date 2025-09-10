@@ -69,7 +69,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libpq-dev pkg-config
+          sudo apt-get install -y libpq-dev pkg-config redis-tools
 
       - name: Install dependencies
         run: go mod download
