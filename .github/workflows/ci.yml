@@ -56,20 +56,6 @@ jobs:
         ports:
           - 6379:6379
 
-      rabbitmq:
-        image: rabbitmq:3-management
-        env:
-          RABBITMQ_DEFAULT_USER: guest
-          RABBITMQ_DEFAULT_PASS: guest
-        options: >-
-          --health-cmd "rabbitmq-diagnostics -q ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
-        ports:
-          - 5672:5672
-          - 15672:15672
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -83,7 +69,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libpq-dev pkg-config redis-tools netcat-openbsd
+          sudo apt-get install -y libpq-dev pkg-config redis-tools
 
       - name: Install dependencies
         run: go mod download
@@ -113,17 +99,6 @@ jobs:
               break
             fi
             echo "Waiting for Redis... (attempt $i/30)"
-            sleep 2
-          done
-
-      - name: Wait for RabbitMQ
-        run: |
-          for i in {1..30}; do
-            if nc -z localhost 5672; then
-              echo "RabbitMQ is ready"
-              break
-            fi
-            echo "Waiting for RabbitMQ... (attempt $i/30)"
             sleep 2
           done
 

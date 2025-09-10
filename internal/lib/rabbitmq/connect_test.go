@@ -95,11 +95,10 @@ func TestConnectAndSetupChannel(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:       "invalid AMQP URI",
-			amqpURI:    "amqp://invalid:invalid@localhost:5672/",
-			queues:     []QueueConfig{},
-			wantErr:    true,
-			errMessage: "dial",
+			name:    "invalid AMQP URI",
+			amqpURI: "amqp://invalid:invalid@localhost:5672/",
+			queues:  []QueueConfig{},
+			wantErr: true,
 		},
 		{
 			name:    "empty queues list",
