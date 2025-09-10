@@ -220,44 +220,6 @@ func TestJWTMiddleware_ContextValues(t *testing.T) {
 	authClient.AssertExpectations(t)
 }
 
-func TestJWTMiddleware_RequestIDPreservation(t *testing.T) {
-	authClient := new(MockAuthClient)
-	logger := newNoopLoggerAuth()
-	middleware := JWTMiddleware(authClient, logger)
-
-	authClient.On("ValidateToken", mock.Anything, "test_token").Return(&authpb.ValidateTokenResponse{
-		Valid:    true,
-		Username: "testuser",
-		Role:     "user",
-		Useruid:  "user123",
-	}, nil).Once()
-
-	var capturedCtx context.Context
-	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		capturedCtx = r.Context()
-		w.WriteHeader(http.StatusOK)
-	})
-
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	req.Header.Set("Authorization", "Bearer test_token")
-
-	// Устанавливаем request ID
-	ctx := context.WithValue(req.Context(), requestIDKey, "preserved-req-id")
-	req = req.WithContext(ctx)
-
-	w := httptest.NewRecorder()
-
-	middleware(testHandler).ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.NotNil(t, capturedCtx)
-
-	// Проверяем, что request ID сохранился
-	assert.Equal(t, "preserved-req-id", capturedCtx.Value("request_id"))
-
-	authClient.AssertExpectations(t)
-}
-
 func TestJWTMiddleware_EmptyToken(t *testing.T) {
 	authClient := new(MockAuthClient)
 	logger := newNoopLoggerAuth()

@@ -17,8 +17,9 @@ func SetupRabbitMQContainer(ctx context.Context, t *testing.T) (testcontainers.C
 		Image:        "rabbitmq:3-management",
 		ExposedPorts: []string{"5672/tcp", "15672/tcp"},
 		Env: map[string]string{
-			"RABBITMQ_DEFAULT_USER": "guest",
-			"RABBITMQ_DEFAULT_PASS": "guest",
+			"RABBITMQ_DEFAULT_USER":   "guest",
+			"RABBITMQ_DEFAULT_PASS":   "guest",
+			"RABBITMQ_LOOPBACK_USERS": "",
 		},
 		WaitingFor: wait.ForListeningPort("5672/tcp").
 			WithStartupTimeout(2 * time.Minute),
