@@ -1,3 +1,4 @@
+// Package services предоставляет бизнес-логику приложения.
 package services
 
 import (
@@ -5,31 +6,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"net/smtp"
 	"strings"
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/payment/paymentwebhook"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/smtp"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
+// SubscriptionRepository определяет интерфейс для работы с подписками в репозитории.
 type SubscriptionRepository interface {
 	GetUser(ctx context.Context, userUID string) (*models.User, error)
 }
 
+// SenderService предоставляет сервис для отправки уведомлений.
 type SenderService struct {
 	repo      SubscriptionRepository
-	transport Transport
+	transport smtp.TransportInterface
 	log       *slog.Logger
 }
 
-type Transport interface {
-	Connect() (*smtp.Client, error)
-	GetSMTPUser() string
-}
-
 // NewSenderService создает новый экземпляр SenderService.
-func NewSenderService(repo SubscriptionRepository, log *slog.Logger, transport Transport) *SenderService {
+func NewSenderService(repo SubscriptionRepository, log *slog.Logger, transport smtp.TransportInterface) *SenderService {
 	return &SenderService{
 		repo:      repo,
 		transport: transport,
@@ -37,6 +35,7 @@ func NewSenderService(repo SubscriptionRepository, log *slog.Logger, transport T
 	}
 }
 
+// SendInfoExpiringSubscription отправляет уведомление об истекающей подписке.
 func (s *SenderService) SendInfoExpiringSubscription(body []byte) error {
 	var message models.EntryInfo
 	if err := json.Unmarshal(body, &message); err != nil {
@@ -52,6 +51,7 @@ func (s *SenderService) SendInfoExpiringSubscription(body []byte) error {
 	return s.sendEmail(to, subject, bodyText)
 }
 
+// SendInfoExpiringTrialPeriodSubscription отправляет уведомление об истекающем пробном периоде.
 func (s *SenderService) SendInfoExpiringTrialPeriodSubscription(body []byte) error {
 	var message models.User
 	if err := json.Unmarshal(body, &message); err != nil {
@@ -70,6 +70,7 @@ func (s *SenderService) SendInfoExpiringTrialPeriodSubscription(body []byte) err
 	return s.sendEmail(to, subject, bodyText)
 }
 
+// SendInfoSuccessPayment отправляет уведомление об успешном платеже.
 func (s *SenderService) SendInfoSuccessPayment(payload *paymentwebhook.Payload) error {
 	user, err := s.repo.GetUser(context.Background(), payload.Object.Metadata["user_uid"])
 	if err != nil {
@@ -85,6 +86,7 @@ func (s *SenderService) SendInfoSuccessPayment(payload *paymentwebhook.Payload) 
 	return s.sendEmail(to, subject, bodyText)
 }
 
+// SendInfoFailurePayment отправляет уведомление о неудачном платеже.
 func (s *SenderService) SendInfoFailurePayment(payload *paymentwebhook.Payload) error {
 	user, err := s.repo.GetUser(context.Background(), payload.Object.Metadata["user_uid"])
 	if err != nil {
@@ -116,7 +118,11 @@ func (s *SenderService) sendEmail(to []string, subject, bodyText string) error {
 		s.log.Error("Failed to connect to SMTP server", "error", sl.Err(err))
 		return err
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			s.log.Error("failed to close SMTP client", "error", sl.Err(err))
+		}
+	}()
 
 	if err := client.Mail(s.transport.GetSMTPUser()); err != nil {
 		s.log.Error("Failed to set MAIL FROM", "from", s.transport.GetSMTPUser(), "error", sl.Err(err))
