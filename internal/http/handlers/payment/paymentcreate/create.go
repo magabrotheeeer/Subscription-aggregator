@@ -1,3 +1,4 @@
+// Package paymentcreate обрабатывает создание платежных методов.
 package paymentcreate
 
 import (
@@ -14,27 +15,32 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/paymentprovider"
 )
 
+// CreatePaymentMethodRequestApp представляет запрос на создание платежного метода.
 type CreatePaymentMethodRequestApp struct {
-	PaymentMethodToken string `json:"payment_method_token"`
+	PaymentMethodToken string `json:"payment_method_token" validate:"required"`
 }
 
+// ProviderClient определяет интерфейс для работы с платежным провайдером.
 type ProviderClient interface {
 	CreatePayment(reqParams paymentprovider.CreatePaymentRequest) (*paymentprovider.CreatePaymentResponse, error)
 }
 
-type PaymentService interface {
+// Service определяет интерфейс для работы с платежами.
+type Service interface {
 	GetOrCreatePaymentToken(context context.Context, userUID string, token string) (int, error)
 	GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID string) (string, error)
 }
 
+// Handler обрабатывает запросы на создание платежных методов.
 type Handler struct {
 	log            *slog.Logger   // Логгер для записи информации и ошибок
 	providerClient ProviderClient // Клиeнт для работы с провайдером
-	paymentService PaymentService
+	paymentService Service
 	validate       *validator.Validate // Валидатор структуры входящих данных
 }
 
-func New(log *slog.Logger, providerClient ProviderClient, ps PaymentService) *Handler {
+// New создает новый экземпляр Handler.
+func New(log *slog.Logger, providerClient ProviderClient, ps Service) *Handler {
 	return &Handler{
 		log:            log,
 		providerClient: providerClient,
@@ -43,8 +49,20 @@ func New(log *slog.Logger, providerClient ProviderClient, ps PaymentService) *Ha
 	}
 }
 
-// ServeHTTP возвращает клиенту confirmation_token, полученный от ЮКАССа
-// Точка приема платежа от frontend
+// ServeHTTP godoc
+// @Summary Создать платеж
+// @Description Создает новый платеж через YooKassa для активной подписки пользователя
+// @Tags Payments
+// @Accept  json
+// @Produce  json
+// @Param request body CreatePaymentMethodRequestApp true "Данные для создания платежа"
+// @Success 200 {object} paymentprovider.CreatePaymentResponse "Успешное создание платежа"
+// @Failure 400 {object} response.ErrorResponse "Некорректный JSON"
+// @Failure 401 {object} response.ErrorResponse "Пользователь не авторизован"
+// @Failure 422 {object} response.ErrorResponse "Ошибка валидации"
+// @Failure 500 {object} response.ErrorResponse "Ошибка сервера при создании платежа"
+// @Router /payments/create [post]
+// @Security BearerAuth
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	const op = "handlers.payment.create"
 	log := h.log.With(slog.String("op", op))
