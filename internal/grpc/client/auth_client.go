@@ -49,7 +49,10 @@ func (a *AuthClient) Register(ctx context.Context, email, username, password str
 		Username: username,
 		Password: password,
 	})
-	return resp.Useruid, err
+	if err != nil {
+		return "", err
+	}
+	return resp.Useruid, nil
 }
 
 // ValidateToken вызывает гRPC метод ValidateToken для проверки валидности JWT токена.

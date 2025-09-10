@@ -9,20 +9,27 @@ import (
 	"log/slog"
 
 	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/gen"
-	services "github.com/magabrotheeeer/subscription-aggregator/internal/services/auth"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
+// AuthServiceInterface определяет интерфейс для сервиса аутентификации
+type AuthServiceInterface interface {
+	Register(ctx context.Context, email, username, password string) (string, error)
+	Login(ctx context.Context, username, password string) (string, string, string, error)
+	ValidateToken(ctx context.Context, token string) (*models.User, string, bool, error)
+}
+
 // AuthServer реализует gRPC-сервис авторизации
 type AuthServer struct {
 	authpb.UnimplementedAuthServiceServer
-	authService *services.AuthService
+	authService AuthServiceInterface
 	log         *slog.Logger
 }
 
 // NewAuthServer создает новый экземпляр AuthServer с указанным сервисом аутентификации и логгером.
-func NewAuthServer(authService *services.AuthService, logger *slog.Logger) *AuthServer {
+func NewAuthServer(authService AuthServiceInterface, logger *slog.Logger) *AuthServer {
 	return &AuthServer{
 		authService: authService,
 		log:         logger,
