@@ -19,9 +19,11 @@ func TestPublishMessage(t *testing.T) {
 
 	// Check if we're in CI environment with external RabbitMQ
 	if testRabbitMQURL := os.Getenv("TEST_RABBITMQ_URL"); testRabbitMQURL != "" {
+		t.Logf("Using external RabbitMQ service: %s", testRabbitMQURL)
 		amqpURI = testRabbitMQURL
 		cleanup = func() {} // No cleanup needed for external service
 	} else {
+		t.Log("Using testcontainers for RabbitMQ")
 		// Use testcontainers for local development
 		rmqContainer, containerCleanup := SetupRabbitMQContainer(ctx, t)
 		cleanup = containerCleanup
@@ -102,9 +104,11 @@ func TestPublishMessage_ToExchangeWithRoutingKey(t *testing.T) {
 
 	// Check if we're in CI environment with external RabbitMQ
 	if testRabbitMQURL := os.Getenv("TEST_RABBITMQ_URL"); testRabbitMQURL != "" {
+		t.Logf("Using external RabbitMQ service: %s", testRabbitMQURL)
 		amqpURI = testRabbitMQURL
 		cleanup = func() {} // No cleanup needed for external service
 	} else {
+		t.Log("Using testcontainers for RabbitMQ")
 		// Use testcontainers for local development
 		rmqContainer, containerCleanup := SetupRabbitMQContainer(ctx, t)
 		cleanup = containerCleanup
