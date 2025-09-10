@@ -1,3 +1,4 @@
+// Package sender содержит логику отправки уведомлений.
 package sender
 
 import (
@@ -12,6 +13,7 @@ import (
 	"github.com/streadway/amqp"
 )
 
+// App представляет приложение отправителя уведомлений.
 type App struct {
 	conn          *amqp.Connection
 	ch            *amqp.Channel
@@ -19,7 +21,8 @@ type App struct {
 	logger        *slog.Logger
 }
 
-func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, error) {
+// New создает новый экземпляр приложения отправителя.
+func New(_ context.Context, cfg *config.Config, logger *slog.Logger) (*App, error) {
 	db, err := storage.New(cfg.StorageConnectionString)
 	if err != nil {
 		return nil, err
@@ -32,7 +35,9 @@ func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, er
 	queues := rabbitmq.GetNotificationQueues()
 	ch, err := rabbitmq.SetupChannel(conn, queues)
 	if err != nil {
-		conn.Close()
+		if closeErr := conn.Close(); closeErr != nil {
+			logger.Error("failed to close connection", "error", closeErr)
+		}
 		return nil, err
 	}
 
@@ -47,6 +52,7 @@ func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, er
 	}, nil
 }
 
+// Run запускает отправитель уведомлений.
 func (a *App) Run(ctx context.Context) error {
 	err := rabbitmq.ConsumerMessage(ctx, a.ch, "subscription_expiring_queue", a.senderService.SendInfoExpiringSubscription)
 	if err != nil {

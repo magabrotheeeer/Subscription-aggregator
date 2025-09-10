@@ -1,3 +1,4 @@
+// Package auth предоставляет сервис аутентификации.
 package auth
 
 import (
@@ -14,13 +15,15 @@ import (
 	"google.golang.org/grpc"
 )
 
+// App представляет приложение аутентификации.
 type App struct {
 	grpcServer *grpc.Server
 	listener   net.Listener
 	logger     *slog.Logger
 }
 
-func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, error) {
+// New создает новый экземпляр приложения аутентификации.
+func New(_ context.Context, cfg *config.Config, logger *slog.Logger) (*App, error) {
 	db, err := storage.New(cfg.StorageConnectionString)
 	if err != nil {
 		return nil, err
@@ -45,6 +48,7 @@ func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, er
 	}, nil
 }
 
+// Run запускает приложение аутентификации.
 func (a *App) Run(ctx context.Context) error {
 	errCh := make(chan error, 1)
 

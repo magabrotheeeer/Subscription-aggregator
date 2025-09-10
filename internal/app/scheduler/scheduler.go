@@ -1,3 +1,4 @@
+// Package scheduler содержит логику планировщика для обработки подписок.
 package scheduler
 
 import (
@@ -14,6 +15,7 @@ import (
 	"github.com/streadway/amqp"
 )
 
+// App представляет приложение планировщика.
 type App struct {
 	schedulerService *schedulerservice.SchedulerService
 	conn             *amqp.Connection
@@ -32,6 +34,7 @@ func waitForDB(db *storage.Storage) error {
 	return fmt.Errorf("database not ready after retries")
 }
 
+// New создает новый экземпляр приложения планировщика.
 func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, error) {
 	conn, err := rabbitmq.Connect(cfg.RabbitMQURL, cfg.RabbitMQMaxRetries, cfg.RabbitMQRetryDelay)
 	if err != nil {
@@ -41,27 +44,41 @@ func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, er
 	queues := rabbitmq.GetNotificationQueues()
 	ch, err := rabbitmq.SetupChannel(conn, queues)
 	if err != nil {
-		conn.Close()
+		if closeErr := conn.Close(); closeErr != nil {
+			logger.Error("failed to close connection", "error", closeErr)
+		}
 		return nil, fmt.Errorf("failed to setup RabbitMQ channel: %w", err)
 	}
 
 	db, err := storage.New(cfg.StorageConnectionString)
 	if err != nil {
-		ch.Close()
-		conn.Close()
+		if closeErr := ch.Close(); closeErr != nil {
+			logger.Error("failed to close channel", "error", closeErr)
+		}
+		if closeErr := conn.Close(); closeErr != nil {
+			logger.Error("failed to close connection", "error", closeErr)
+		}
 		return nil, fmt.Errorf("failed to connect storage: %w", err)
 	}
 
 	if err := waitForDB(db); err != nil {
-		ch.Close()
-		conn.Close()
+		if closeErr := ch.Close(); closeErr != nil {
+			logger.Error("failed to close channel", "error", closeErr)
+		}
+		if closeErr := conn.Close(); closeErr != nil {
+			logger.Error("failed to close connection", "error", closeErr)
+		}
 		return nil, err
 	}
 
 	cacheRedis, err := cache.InitServer(ctx, cfg.RedisConnection)
 	if err != nil {
-		ch.Close()
-		conn.Close()
+		if closeErr := ch.Close(); closeErr != nil {
+			logger.Error("failed to close channel", "error", closeErr)
+		}
+		if closeErr := conn.Close(); closeErr != nil {
+			logger.Error("failed to close connection", "error", closeErr)
+		}
 		return nil, fmt.Errorf("cache not initialized: %w", err)
 	}
 
@@ -75,6 +92,7 @@ func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, er
 	}, nil
 }
 
+// Run запускает планировщик.
 func (a *App) Run(ctx context.Context) error {
 	go a.schedulerService.FindExpiringSubscriptionsDueTomorrow(ctx, a.ch)
 	go a.schedulerService.FindExpiringSubscriptionsDueToday(ctx, a.ch)
