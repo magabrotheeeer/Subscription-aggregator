@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
 	"testing"
 	"time"
 
@@ -31,8 +32,8 @@ func (m *RepoMock) ReadEntry(ctx context.Context, id int) (*models.Entry, error)
 	}
 	return args.Get(0).(*models.Entry), args.Error(1)
 }
-func (m *RepoMock) UpdateEntry(ctx context.Context, entry models.Entry) (int, error) {
-	args := m.Called(ctx, entry)
+func (m *RepoMock) UpdateEntry(ctx context.Context, req models.Entry, id int, username string) (int, error) {
+	args := m.Called(ctx, req, id, username)
 	return args.Int(0), args.Error(1)
 }
 func (m *RepoMock) ListEntrys(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error) {
@@ -84,19 +85,13 @@ func newNoopLogger() *slog.Logger {
 
 func TestSubscriptionService_Create(t *testing.T) {
 	now := time.Now()
-	dummyReq := models.DummyEntry{
+	entry := models.DummyEntry{
 		ServiceName:   "Netflix",
 		Price:         500,
 		StartDate:     now.Format("02-01-2006"),
 		CounterMonths: 5,
 	}
-	entry := models.Entry{
-		ServiceName:   "Netflix",
-		Price:         500,
-		Username:      "user1",
-		StartDate:     now,
-		CounterMonths: 5,
-	}
+	// entry для теста Create
 
 	tests := []struct {
 		name       string
@@ -108,19 +103,15 @@ func TestSubscriptionService_Create(t *testing.T) {
 		{
 			name: "success create",
 			setupMocks: func(r *RepoMock, c *CacheMock) {
-				r.On("Create", mock.Anything, mock.MatchedBy(func(e models.Entry) bool {
+				r.On("CreateEntry", mock.Anything, mock.MatchedBy(func(e models.Entry) bool {
 					return e.ServiceName == entry.ServiceName &&
-						e.Username == entry.Username &&
 						e.Price == entry.Price &&
-						e.CounterMonths == entry.CounterMonths &&
-						e.StartDate.Year() == entry.StartDate.Year() &&
-						e.StartDate.Month() == entry.StartDate.Month() &&
-						e.StartDate.Day() == entry.StartDate.Day()
+						e.CounterMonths == entry.CounterMonths
 				})).Return(42, nil).Once()
 
 				c.On("Set", "subscription:42", mock.Anything, time.Hour).Return(nil).Once()
 			},
-			req:     dummyReq,
+			req:     entry,
 			wantID:  42,
 			wantErr: false,
 		},
@@ -140,10 +131,10 @@ func TestSubscriptionService_Create(t *testing.T) {
 		{
 			name: "cache set error logs warning but returns id",
 			setupMocks: func(r *RepoMock, c *CacheMock) {
-				r.On("Create", mock.Anything, mock.Anything).Return(7, nil).Once()
+				r.On("CreateEntry", mock.Anything, mock.Anything).Return(7, nil).Once()
 				c.On("Set", "subscription:7", mock.Anything, time.Hour).Return(errors.New("redis down")).Once()
 			},
-			req:     dummyReq,
+			req:     entry,
 			wantID:  7,
 			wantErr: false,
 		},
@@ -173,18 +164,12 @@ func TestSubscriptionService_Create(t *testing.T) {
 
 func TestSubscriptionService_Update(t *testing.T) {
 	now := time.Now()
-	dummyReq := models.DummyEntry{
+	entry := models.DummyEntry{
 		ServiceName:   "Netflix",
 		Price:         500,
 		StartDate:     now.Format("02-01-2006"),
 		CounterMonths: 5,
-	}
-	entry := models.Entry{
-		ServiceName:   "Netflix",
-		Price:         500,
-		Username:      "user1",
-		StartDate:     now,
-		CounterMonths: 5,
+		IsActive:      true,
 	}
 
 	tests := []struct {
@@ -199,19 +184,19 @@ func TestSubscriptionService_Update(t *testing.T) {
 		{
 			name: "success update",
 			setupMocks: func(r *RepoMock, c *CacheMock) {
-				r.On("Update", mock.Anything, mock.MatchedBy(func(e models.Entry) bool {
-					return e.ServiceName == entry.ServiceName &&
-						e.Username == entry.Username &&
-						e.Price == entry.Price &&
-						e.CounterMonths == entry.CounterMonths &&
-						e.StartDate.Year() == entry.StartDate.Year() &&
-						e.StartDate.Month() == entry.StartDate.Month() &&
-						e.StartDate.Day() == entry.StartDate.Day()
-				}), 1).Return(1, nil).Once()
+				r.On("UpdateEntry", mock.Anything, mock.MatchedBy(func(req models.Entry) bool {
+					// Парсим дату из DummyEntry для сравнения
+					startDate, _ := time.Parse("02-01-2006", entry.StartDate)
+					return req.ServiceName == entry.ServiceName &&
+						req.Price == entry.Price &&
+						req.StartDate.Equal(startDate) &&
+						req.CounterMonths == entry.CounterMonths &&
+						req.IsActive == entry.IsActive
+				}), 1, "user1").Return(1, nil).Once()
 
 				c.On("Set", "subscription:1", mock.Anything, time.Hour).Return(nil).Once()
 			},
-			req:      dummyReq,
+			req:      entry,
 			id:       1,
 			username: "user1",
 			wantRes:  1,
@@ -224,8 +209,9 @@ func TestSubscriptionService_Update(t *testing.T) {
 			req: models.DummyEntry{
 				ServiceName:   "Netflix",
 				Price:         500,
-				StartDate:     "invalid-date",
-				CounterMonths: 5,
+				StartDate:     time.Now().AddDate(0, -2, 0).Format("02-01-2006"), // 2 месяца назад
+				CounterMonths: 1,                                                 // 1 месяц, чтобы endDate была месяц назад
+				IsActive:      true,
 			},
 			id:       1,
 			username: "user1",
@@ -235,10 +221,10 @@ func TestSubscriptionService_Update(t *testing.T) {
 		{
 			name: "cache set error logs warning but returns res",
 			setupMocks: func(r *RepoMock, c *CacheMock) {
-				r.On("Update", mock.Anything, mock.Anything, 1).Return(1, nil).Once()
+				r.On("UpdateEntry", mock.Anything, mock.Anything, 1, "user1").Return(1, nil).Once()
 				c.On("Set", "subscription:1", mock.Anything, time.Hour).Return(errors.New("redis down")).Once()
 			},
-			req:      dummyReq,
+			req:      entry,
 			id:       1,
 			username: "user1",
 			wantRes:  1,
@@ -250,7 +236,10 @@ func TestSubscriptionService_Update(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := new(RepoMock)
 			cache := new(CacheMock)
-			svc := NewSubscriptionService(repo, cache, newNoopLogger())
+			// Создаем логгер с уровнем DEBUG для отладки
+			h := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
+			logger := slog.New(h)
+			svc := NewSubscriptionService(repo, cache, logger)
 
 			tt.setupMocks(repo, cache)
 
@@ -280,7 +269,7 @@ func TestSubscriptionService_Remove(t *testing.T) {
 			name: "success remove",
 			setupMocks: func(r *RepoMock, c *CacheMock) {
 				c.On("Invalidate", "subscription:1").Return(nil).Once()
-				r.On("Remove", mock.Anything, 1).Return(1, nil).Once()
+				r.On("RemoveEntry", mock.Anything, 1).Return(1, nil).Once()
 			},
 			id:        1,
 			wantCount: 1,
@@ -290,7 +279,7 @@ func TestSubscriptionService_Remove(t *testing.T) {
 			name: "cache invalidate error but proceed",
 			setupMocks: func(r *RepoMock, c *CacheMock) {
 				c.On("Invalidate", "subscription:2").Return(errors.New("cache fail")).Once()
-				r.On("Remove", mock.Anything, 2).Return(1, nil).Once()
+				r.On("RemoveEntry", mock.Anything, 2).Return(1, nil).Once()
 			},
 			id:        2,
 			wantCount: 1,
@@ -300,7 +289,7 @@ func TestSubscriptionService_Remove(t *testing.T) {
 			name: "repo remove error",
 			setupMocks: func(r *RepoMock, c *CacheMock) {
 				c.On("Invalidate", "subscription:3").Return(nil).Once()
-				r.On("Remove", mock.Anything, 3).Return(0, errors.New("not found")).Once()
+				r.On("RemoveEntry", mock.Anything, 3).Return(0, errors.New("not found")).Once()
 			},
 			id:        3,
 			wantCount: 0,
@@ -354,7 +343,7 @@ func TestSubscriptionService_List(t *testing.T) {
 			limit:    10,
 			offset:   0,
 			setupMocks: func(r *RepoMock) {
-				r.On("ListAll", mock.Anything, 10, 0).Return(entries, nil).Once()
+				r.On("ListAllEntrys", mock.Anything, 10, 0).Return(entries, nil).Once()
 			},
 			want:    entries,
 			wantErr: false,
@@ -366,7 +355,7 @@ func TestSubscriptionService_List(t *testing.T) {
 			limit:    5,
 			offset:   2,
 			setupMocks: func(r *RepoMock) {
-				r.On("List", mock.Anything, "user1", 5, 2).Return(entries, nil).Once()
+				r.On("ListEntrys", mock.Anything, "user1", 5, 2).Return(entries, nil).Once()
 			},
 			want:    entries,
 			wantErr: false,
@@ -378,7 +367,7 @@ func TestSubscriptionService_List(t *testing.T) {
 			limit:    10,
 			offset:   0,
 			setupMocks: func(r *RepoMock) {
-				r.On("ListAll", mock.Anything, 10, 0).Return(nil, errors.New("db error")).Once()
+				r.On("ListAllEntrys", mock.Anything, 10, 0).Return(nil, errors.New("db error")).Once()
 			},
 			want:    nil,
 			wantErr: true,
@@ -391,7 +380,7 @@ func TestSubscriptionService_List(t *testing.T) {
 			limit:    10,
 			offset:   0,
 			setupMocks: func(r *RepoMock) {
-				r.On("List", mock.Anything, "user1", 10, 0).Return(nil, errors.New("db error")).Once()
+				r.On("ListEntrys", mock.Anything, "user1", 10, 0).Return(nil, errors.New("db error")).Once()
 			},
 			want:    nil,
 			wantErr: true,
@@ -404,7 +393,7 @@ func TestSubscriptionService_List(t *testing.T) {
 			limit:    10,
 			offset:   0,
 			setupMocks: func(r *RepoMock) {
-				r.On("List", mock.Anything, "user2", 10, 0).Return([]*models.Entry{}, nil).Once()
+				r.On("ListEntrys", mock.Anything, "user2", 10, 0).Return([]*models.Entry{}, nil).Once()
 			},
 			want:    []*models.Entry{},
 			wantErr: false,
@@ -528,7 +517,7 @@ func TestSubscriptionService_Read(t *testing.T) {
 			}).Once()
 
 			if !tt.cacheFound && tt.cacheErr == nil {
-				repo.On("Read", mock.Anything, tt.id).Return(tt.repoEntry, tt.repoErr).Once()
+				repo.On("ReadEntry", mock.Anything, tt.id).Return(tt.repoEntry, tt.repoErr).Once()
 
 				if tt.repoEntry != nil {
 					cache.On("Set", cacheKey, tt.repoEntry, time.Hour).Return(nil).Once()
@@ -575,7 +564,7 @@ func TestSubscriptionService_CountSumWithFilter(t *testing.T) {
 				CounterMonths: 5,
 			},
 			setupMocks: func(r *RepoMock) {
-				r.On("CountSum", mock.Anything, mock.MatchedBy(func(f models.FilterSum) bool {
+				r.On("CountSumEntrys", mock.Anything, mock.MatchedBy(func(f models.FilterSum) bool {
 					return f.Username == "user1" &&
 						f.ServiceName != nil && *f.ServiceName == "Netflix" &&
 						f.StartDate.Equal(parsedDate) &&
@@ -594,7 +583,7 @@ func TestSubscriptionService_CountSumWithFilter(t *testing.T) {
 				CounterMonths: 3,
 			},
 			setupMocks: func(r *RepoMock) {
-				r.On("CountSum", mock.Anything, mock.MatchedBy(func(f models.FilterSum) bool {
+				r.On("CountSumEntrys", mock.Anything, mock.MatchedBy(func(f models.FilterSum) bool {
 					return f.Username == "user2" &&
 						f.ServiceName == nil &&
 						f.StartDate.Equal(parsedDate) &&
@@ -626,7 +615,7 @@ func TestSubscriptionService_CountSumWithFilter(t *testing.T) {
 				CounterMonths: 5,
 			},
 			setupMocks: func(r *RepoMock) {
-				r.On("CountSum", mock.Anything, mock.Anything).Return(0.0, errors.New("database error")).Once()
+				r.On("CountSumEntrys", mock.Anything, mock.Anything).Return(0.0, errors.New("database error")).Once()
 			},
 			wantSum: 0,
 			wantErr: true,
@@ -641,7 +630,7 @@ func TestSubscriptionService_CountSumWithFilter(t *testing.T) {
 				CounterMonths: 0,
 			},
 			setupMocks: func(r *RepoMock) {
-				r.On("CountSum", mock.Anything, mock.MatchedBy(func(f models.FilterSum) bool {
+				r.On("CountSumEntrys", mock.Anything, mock.MatchedBy(func(f models.FilterSum) bool {
 					return f.CounterMonths == 0
 				})).Return(0.0, nil).Once()
 			},
