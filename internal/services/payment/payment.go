@@ -1,3 +1,4 @@
+// Package payment предоставляет сервис для работы с платежами.
 package payment
 
 import (
@@ -9,6 +10,7 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
+// SubscriptionRepository определяет интерфейс для работы с подписками в репозитории.
 type SubscriptionRepository interface {
 	FindPaymentToken(ctx context.Context, userUID string, token string) (int, bool, error)
 	CreatePaymentToken(ctx context.Context, userUID string, token string) (int, error)
@@ -19,19 +21,22 @@ type SubscriptionRepository interface {
 	UpdateStatusCancelForSubscription(ctx context.Context, userUID, status string) error
 }
 
-type PaymentService struct {
+// Service предоставляет сервис для работы с платежами.
+type Service struct {
 	repo SubscriptionRepository
 	log  *slog.Logger
 }
 
-func New(repo SubscriptionRepository, log *slog.Logger) *PaymentService {
-	return &PaymentService{
+// New создает новый экземпляр Service.
+func New(repo SubscriptionRepository, log *slog.Logger) *Service {
+	return &Service{
 		repo: repo,
 		log:  log,
 	}
 }
 
-func (s *PaymentService) GetOrCreatePaymentToken(ctx context.Context, userUID string, token string) (int, error) {
+// GetOrCreatePaymentToken получает или создает токен платежного метода.
+func (s *Service) GetOrCreatePaymentToken(ctx context.Context, userUID string, token string) (int, error) {
 	res, found, err := s.repo.FindPaymentToken(ctx, userUID, token)
 	if err != nil {
 		return 0, fmt.Errorf("failed to find token: %w", err)
@@ -46,23 +51,33 @@ func (s *PaymentService) GetOrCreatePaymentToken(ctx context.Context, userUID st
 	return res, nil
 }
 
-func (s *PaymentService) ListPaymentTokens(ctx context.Context, userUID string) ([]*models.PaymentToken, error) {
+// ListPaymentTokens возвращает список токенов платежных методов пользователя.
+func (s *Service) ListPaymentTokens(ctx context.Context, userUID string) ([]*models.PaymentToken, error) {
 	return s.repo.ListPaymentTokens(ctx, userUID)
 }
 
-func (s *PaymentService) GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID string) (string, error) {
+// GetActiveSubscriptionIDByUserUID возвращает ID активной подписки пользователя.
+func (s *Service) GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID string) (string, error) {
 	serviceName := "Subscription-Aggregator"
 	return s.repo.GetActiveSubscriptionIDByUserUID(ctx, userUID, serviceName)
 }
 
-func (s *PaymentService) SavePayment(ctx context.Context, payload *paymentwebhook.Payload) (int, error) {
+// SavePayment сохраняет информацию о платеже.
+func (s *Service) SavePayment(ctx context.Context, payload *paymentwebhook.Payload) (int, error) {
 	return s.repo.SavePayment(ctx, payload)
 }
 
-func (s *PaymentService) UpdateStatusActiveForSubscription(ctx context.Context, userUID string) error {
+// UpdateStatusActiveForSubscription обновляет статус подписки на активный.
+func (s *Service) UpdateStatusActiveForSubscription(ctx context.Context, userUID string) error {
 	return s.repo.UpdateStatusActiveForSubscription(ctx, userUID, "active")
 }
 
-func (s *PaymentService) UpdateStatusExpireForSubscription(ctx context.Context, userUID string) error {
+// UpdateStatusExpireForSubscription обновляет статус подписки на истекший.
+func (s *Service) UpdateStatusExpireForSubscription(ctx context.Context, userUID string) error {
 	return s.repo.UpdateStatusCancelForSubscription(ctx, userUID, "expire")
+}
+
+// UpdateStatusCancelForSubscription обновляет статус подписки на отмененный.
+func (s *Service) UpdateStatusCancelForSubscription(ctx context.Context, userUID string) error {
+	return s.repo.UpdateStatusCancelForSubscription(ctx, userUID, "cancel")
 }
