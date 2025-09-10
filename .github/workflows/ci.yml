@@ -7,13 +7,30 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-test:
-    name: Build and Test
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: [1.23]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Install golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.61.0
+
+      - name: Run golangci-lint
+        run: |
+          $(go env GOPATH)/bin/golangci-lint run --timeout=5m
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
     services:
       postgres:
         image: postgres:15-alpine
@@ -29,80 +46,120 @@ jobs:
         ports:
           - 5432:5432
 
-    steps: 
-    - name: Checkout code
-      uses: actions/checkout@v4
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
 
-    - name: Set up Go ${{ matrix.go-version }}
-      uses: actions/setup-go@v4
-      with:
-        go-version: ${{ matrix.go-version }}
-        cache: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libpq-dev pkg-config
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23'
+          cache: true
 
-    - name: Cache Go modules
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-${{ matrix.go-version }}-
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpq-dev pkg-config
 
-    - name: Install dependencies
-      run: go mod download
+      - name: Install dependencies
+        run: go mod download
 
-    - name: Verify dependencies and build
-      run: |
-        go mod verify
-        go build -v ./...
+      - name: Verify dependencies
+        run: go mod verify
 
-    - name: Install PostgreSQL client
-      run: sudo apt-get install -y postgresql-client
+      - name: Build
+        run: go build -v ./...
 
-    - name: Wait for PostgreSQL
-      run: |
-        for i in {1..30}; do
-          if pg_isready -h localhost -p 5432 -U testuser -d testdb; then
-            echo "PostgreSQL is ready and accepting connections"
-            exit 0
-          fi
-          echo "Waiting for PostgreSQL... (attempt $i/30)"
-          sleep 2
-        done
-        echo "PostgreSQL failed to start within timeout"
-        exit 1
+      - name: Wait for PostgreSQL
+        run: |
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432 -U testuser -d testdb; then
+              echo "PostgreSQL is ready"
+              break
+            fi
+            echo "Waiting for PostgreSQL... (attempt $i/30)"
+            sleep 2
+          done
 
-    - name: Run tests with ready DB
-      env:
-        TEST_DB_URL: "postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable"
-      run: |
-        PGPASSWORD=testpass psql -h localhost -U testuser -d testdb -c "
-        CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-        CREATE TABLE users (
-            uid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            username TEXT NOT NULL UNIQUE,
-            email TEXT NOT NULL UNIQUE,
-            password_hash TEXT NOT NULL,
-            role TEXT NOT NULL DEFAULT 'user'
-        );
+      - name: Wait for Redis
+        run: |
+          for i in {1..30}; do
+            if redis-cli -h localhost -p 6379 ping | grep -q PONG; then
+              echo "Redis is ready"
+              break
+            fi
+            echo "Waiting for Redis... (attempt $i/30)"
+            sleep 2
+          done
 
-        CREATE TABLE subscriptions (
-            id SERIAL PRIMARY KEY,
-            service_name TEXT NOT NULL,
-            price INT NOT NULL,
-            username TEXT NOT NULL,
-            start_date DATE NOT NULL,
-            counter_months INT NOT NULL
-        );
-        "
-        go test ./... -timeout 300s -coverprofile=coverage.out -v
+      - name: Setup test database
+        env:
+          PGPASSWORD: testpass
+        run: |
+          psql -h localhost -U testuser -d testdb -c "
+          CREATE EXTENSION IF NOT EXISTS \"pgcrypto\";
+          CREATE TABLE users (
+              uid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              username TEXT NOT NULL UNIQUE,
+              email TEXT NOT NULL UNIQUE,
+              password_hash TEXT NOT NULL,
+              role TEXT NOT NULL DEFAULT 'user'
+          );
 
-    - name: Show coverage
-      if: success() && runner.os == 'Linux'
-      run: go tool cover -func=coverage.out
+          CREATE TABLE subscriptions (
+              id SERIAL PRIMARY KEY,
+              service_name TEXT NOT NULL,
+              price INT NOT NULL,
+              username TEXT NOT NULL,
+              start_date DATE NOT NULL,
+              counter_months INT NOT NULL
+          );
+
+          CREATE TABLE yookassa_payment_tokens (
+              id SERIAL PRIMARY KEY,
+              user_id UUID NOT NULL,
+              token TEXT NOT NULL,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+
+          CREATE TABLE yookassa_payments (
+              id SERIAL PRIMARY KEY,
+              payment_id TEXT NOT NULL UNIQUE,
+              user_id UUID NOT NULL,
+              amount INT NOT NULL,
+              currency TEXT NOT NULL DEFAULT 'RUB',
+              status TEXT NOT NULL,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+          "
+
+      - name: Run unit tests
+        env:
+          TEST_DB_URL: "postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable"
+          TEST_REDIS_URL: "redis://localhost:6379"
+        run: go test -race -coverprofile=coverage.out -v ./...
+
+      - name: Run integration tests
+        env:
+          TEST_DB_URL: "postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable"
+          TEST_REDIS_URL: "redis://localhost:6379"
+        run: go test -tags=integration -race -coverprofile=coverage-integration.out -v ./...
+
+      - name: Show coverage
+        run: |
+          echo "Unit tests coverage:"
+          go tool cover -func=coverage.out
+          echo ""
+          echo "Integration tests coverage:"
+          go tool cover -func=coverage-integration.out
