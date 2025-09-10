@@ -1,3 +1,4 @@
+// Package paymentwebhook обрабатывает webhook-запросы от платежных провайдеров.
 package paymentwebhook
 
 import (
@@ -14,25 +15,29 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
 
-type PaymentService interface {
+// Service определяет интерфейс для операций с платежами.
+type Service interface {
 	SavePayment(ctx context.Context, payload *Payload) (int, error)
 	UpdateStatusActiveForSubscription(ctx context.Context, userUID string) error
 	UpdateStatusCancelForSubscription(ctx context.Context, userUID string) error
 }
 
+// SenderService определяет интерфейс для отправки уведомлений.
 type SenderService interface {
 	SendInfoFailurePayment(payload *Payload) error
 	SendInfoSuccessPayment(payload *Payload) error
 }
 
+// Handler обрабатывает webhook-запросы от платежных провайдеров.
 type Handler struct {
 	log            *slog.Logger // Логгер для записи информации и ошибок
-	paymentService PaymentService
+	paymentService Service
 	senderService  SenderService
 	webhookSecret  string // Секрет для проверки подписи
 }
 
-func New(log *slog.Logger, paymentService PaymentService, senderService SenderService, secret string) *Handler {
+// New создает новый экземпляр Handler.
+func New(log *slog.Logger, paymentService Service, senderService SenderService, secret string) *Handler {
 	return &Handler{
 		log:            log,
 		paymentService: paymentService,
@@ -42,13 +47,13 @@ func New(log *slog.Logger, paymentService PaymentService, senderService SenderSe
 }
 
 const (
+	// PaymentSucceeded статус успешного платежа.
 	PaymentSucceeded = "payment.succeeded"
-	// PaymentWaitingForCapture = "payment.waiting_for_capture"
+	// PaymentCanceled статус успешного платежа.
 	PaymentCanceled = "payment.canceled"
-	// PaymentRefunded          = "payment.refunded"
-	// PaymentWaitingForAction  = "payment.waiting_for_action"
 )
 
+// Payload представляет структуру данных webhook-запроса от платежного провайдера.
 type Payload struct {
 	Event  string `json:"event"`
 	Object struct {
@@ -72,6 +77,19 @@ func (h *Handler) verifySignature(secret string, body []byte, signature string) 
 	return hmac.Equal([]byte(expectedSig), []byte(signature))
 }
 
+// ServeHTTP godoc
+// @Summary Webhook для обработки уведомлений от YooKassa
+// @Description Обрабатывает уведомления о статусе платежей от платежного провайдера YooKassa
+// @Tags Payments
+// @Accept  json
+// @Produce  json
+// @Param X-Api-Signature header string true "Подпись webhook для проверки подлинности"
+// @Param payload body Payload true "Данные уведомления от YooKassa"
+// @Success 200 "Webhook обработан успешно"
+// @Failure 400 "Некорректные данные webhook"
+// @Failure 401 "Неверная подпись webhook"
+// @Failure 500 "Ошибка сервера при обработке webhook"
+// @Router /payments/webhook [post]
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	const op = "handlers.payment.webhook"
 	log := h.log.With(slog.String("op", op))
@@ -82,7 +100,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
+	defer func() {
+		if err := r.Body.Close(); err != nil {
+			log.Error("failed to close request body", "error", err)
+		}
+	}()
 
 	signature := r.Header.Get("X-Api-Signature")
 	if signature == "" || !h.verifySignature(h.webhookSecret, body, signature) {
