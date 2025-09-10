@@ -8,19 +8,21 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
-	httpSwagger "github.com/swaggo/http-swagger"
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/cache"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/grpc/client"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/paymentprovider"
 
+	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/smtp"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/migrations"
-	subsaggregatorservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/subscription"
 	paymentservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/payment"
+	senderservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/sender"
+	subsaggregatorservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/subscription"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
 )
 
+// App представляет основное приложение subscription-aggregator.
 type App struct {
 	server *http.Server
 	logger *slog.Logger
@@ -28,6 +30,7 @@ type App struct {
 	cache  cache.Cache
 }
 
+// New создает новый экземпляр основного приложения.
 func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, error) {
 	db, err := storage.New(cfg.StorageConnectionString)
 	if err != nil {
@@ -51,11 +54,13 @@ func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, er
 	paymentService := paymentservice.New(db, logger)
 	subscriptionService := subsaggregatorservice.NewSubscriptionService(db, cacheRedis, logger)
 
+	// Создаем SMTP transport и sender service
+	smtpTransport := smtp.NewTransport(cfg, logger)
+	senderService := senderservice.NewSenderService(db, logger, smtpTransport)
+
 	router := chi.NewRouter()
 
-	RegisterRoutes(router, logger, subscriptionService, authClient, providerService, paymentService)
-
-	router.Get("/docs/*", httpSwagger.WrapHandler)
+	RegisterRoutes(router, logger, subscriptionService, authClient, providerService, paymentService, senderService)
 
 	srv := &http.Server{
 		Addr:         cfg.AddressHTTP,
@@ -73,6 +78,7 @@ func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, er
 	}, nil
 }
 
+// Run запускает основное приложение.
 func (a *App) Run(ctx context.Context) error {
 	errCh := make(chan error, 1)
 	go func() {
@@ -93,7 +99,9 @@ func (a *App) Run(ctx context.Context) error {
 		defer cancel()
 		a.logger.Info("shutting down HTTP server gracefully")
 		err := a.server.Shutdown(timeoutCtx)
-		a.db.Db.Close()
+		if closeErr := a.db.Db.Close(); closeErr != nil {
+			a.logger.Error("failed to close database connection", "error", closeErr)
+		}
 		return err
 	}
 }
