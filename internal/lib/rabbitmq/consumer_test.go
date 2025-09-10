@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -16,12 +17,23 @@ func TestConsumerMessage_HandleMessages(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Подняли контейнер
-	rmqContainer, cleanup := SetupRabbitMQContainer(ctx, t)
-	defer cleanup()
+	var amqpURI string
+	var cleanup func()
 
-	amqpURI, err := GetAmqpURI(ctx, rmqContainer)
-	require.NoError(t, err)
+	// Check if we're in CI environment with external RabbitMQ
+	if testRabbitMQURL := os.Getenv("TEST_RABBITMQ_URL"); testRabbitMQURL != "" {
+		amqpURI = testRabbitMQURL
+		cleanup = func() {} // No cleanup needed for external service
+	} else {
+		// Use testcontainers for local development
+		rmqContainer, containerCleanup := SetupRabbitMQContainer(ctx, t)
+		cleanup = containerCleanup
+
+		var err error
+		amqpURI, err = GetAmqpURI(ctx, rmqContainer)
+		require.NoError(t, err)
+	}
+	defer cleanup()
 
 	// Подключаемся
 	conn, err := Connect(amqpURI, 3, time.Second)
@@ -100,12 +112,23 @@ func TestConsumerMessage_HandlerErrorTriggersNack(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Поднимаем контейнер
-	rmqContainer, cleanup := SetupRabbitMQContainer(ctx, t)
-	defer cleanup()
+	var amqpURI string
+	var cleanup func()
 
-	amqpURI, err := GetAmqpURI(ctx, rmqContainer)
-	require.NoError(t, err)
+	// Check if we're in CI environment with external RabbitMQ
+	if testRabbitMQURL := os.Getenv("TEST_RABBITMQ_URL"); testRabbitMQURL != "" {
+		amqpURI = testRabbitMQURL
+		cleanup = func() {} // No cleanup needed for external service
+	} else {
+		// Use testcontainers for local development
+		rmqContainer, containerCleanup := SetupRabbitMQContainer(ctx, t)
+		cleanup = containerCleanup
+
+		var err error
+		amqpURI, err = GetAmqpURI(ctx, rmqContainer)
+		require.NoError(t, err)
+	}
+	defer cleanup()
 
 	conn, err := Connect(amqpURI, 3, time.Second)
 	require.NoError(t, err)

@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -57,11 +58,24 @@ func GetAmqpURI(ctx context.Context, container testcontainers.Container) (string
 
 func TestConnectAndSetupChannel(t *testing.T) {
 	ctx := context.Background()
-	rmqContainer, cleanup := SetupRabbitMQContainer(ctx, t)
-	defer cleanup()
 
-	amqpURI, err := GetAmqpURI(ctx, rmqContainer)
-	require.NoError(t, err)
+	var amqpURI string
+	var cleanup func()
+
+	// Check if we're in CI environment with external RabbitMQ
+	if testRabbitMQURL := os.Getenv("TEST_RABBITMQ_URL"); testRabbitMQURL != "" {
+		amqpURI = testRabbitMQURL
+		cleanup = func() {} // No cleanup needed for external service
+	} else {
+		// Use testcontainers for local development
+		rmqContainer, containerCleanup := SetupRabbitMQContainer(ctx, t)
+		cleanup = containerCleanup
+
+		var err error
+		amqpURI, err = GetAmqpURI(ctx, rmqContainer)
+		require.NoError(t, err)
+	}
+	defer cleanup()
 
 	tests := []struct {
 		name       string
