@@ -21,12 +21,14 @@ type Config struct {
 	RabbitMQ                `yaml:"rabbitmq"`
 }
 
+// RabbitMQ cхранит в себе подключение к RabbitMQ
 type RabbitMQ struct {
 	RabbitMQURL        string        `yaml:"rabbitmq_url"`
 	RabbitMQMaxRetries int           `yaml:"rabbitmq_maxretries"`
 	RabbitMQRetryDelay time.Duration `yaml:"rabbitmq_retry_delay"`
 }
 
+// SMTP хранит в себе подключение к SMTP
 type SMTP struct {
 	SMTPHost string `yaml:"smtp_host"`
 	SMTPPort string `yaml:"smtp_port"`
