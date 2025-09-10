@@ -46,7 +46,7 @@ func (s *AuthService) Register(ctx context.Context, email, username, rawPassword
 		Username:           username,
 		PasswordHash:       hashed,
 		Role:               "user", // дефолтная роль при регистрации
-		TrialEndDate:       trialEndDate,
+		TrialEndDate:       &trialEndDate,
 		SubscriptionStatus: "trial",
 	}
 	return s.users.RegisterUser(ctx, *user)
