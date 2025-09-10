@@ -1,3 +1,4 @@
+// Package services содержит бизнес-логику приложения.
 package services
 
 import (
@@ -12,6 +13,7 @@ import (
 	"github.com/streadway/amqp"
 )
 
+// SubscriptionRepository определяет интерфейс для работы с подписками.
 type SubscriptionRepository interface {
 	FindSubscriptionExpiringTomorrow(ctx context.Context) ([]*models.EntryInfo, error)
 	FindSubscriptionExpiringToday(ctx context.Context) ([]*models.User, error)
@@ -19,11 +21,13 @@ type SubscriptionRepository interface {
 	UpdateNextPaymentDate(ctx context.Context, entry *models.Entry) (int, error)
 }
 
+// Cache определяет интерфейс для работы с кэшем.
 type Cache interface {
 	// Set сохраняет значение в кеш с временем жизни.
 	Set(key string, value any, expiration time.Duration) error
 }
 
+// SchedulerService предоставляет сервис для планирования задач.
 type SchedulerService struct {
 	repo  SubscriptionRepository
 	cache Cache
@@ -39,6 +43,7 @@ func NewSchedulerService(repo SubscriptionRepository, cache Cache, log *slog.Log
 	}
 }
 
+// FindExpiringSubscriptionsDueTomorrow находит подписки, истекающие завтра.
 func (s *SchedulerService) FindExpiringSubscriptionsDueTomorrow(ctx context.Context, channel *amqp.Channel) {
 	s.runFindExpiringSubscriptionsDueTomorrow(ctx, channel)
 
@@ -62,15 +67,20 @@ func (s *SchedulerService) runFindExpiringSubscriptionsDueTomorrow(ctx context.C
 		return
 	}
 	s.log.Info("found expiring subscriptions", "count", len(entriesInfo))
-	for _, entryInfo := range entriesInfo {
-		err = rabbitmq.PublishMessage(channel, "notifications", "subscription.expiring.tomorrow", entryInfo)
-		if err != nil {
-			s.log.Error("failed to publish message", sl.Err(err))
+	if channel != nil {
+		for _, entryInfo := range entriesInfo {
+			err = rabbitmq.PublishMessage(channel, "notifications", "subscription.expiring.tomorrow", entryInfo)
+			if err != nil {
+				s.log.Error("failed to publish message", sl.Err(err))
+			}
 		}
+		s.log.Info("success to publish all messages")
+	} else {
+		s.log.Info("channel is nil, skipping message publishing")
 	}
-	s.log.Info("success to publish all messages")
 }
 
+// FindExpiringSubscriptionsDueToday находит подписки, истекающие сегодня.
 func (s *SchedulerService) FindExpiringSubscriptionsDueToday(ctx context.Context, channel *amqp.Channel) {
 	s.runFindExpiringTrialPeriod(ctx, channel)
 
@@ -94,15 +104,20 @@ func (s *SchedulerService) runFindExpiringTrialPeriod(ctx context.Context, chann
 		return
 	}
 	s.log.Info("found expiring subscriptions", "count", len(entriesInfo))
-	for _, entryInfo := range entriesInfo {
-		err = rabbitmq.PublishMessage(channel, "notifications", "subscription.trial.expiring", entryInfo)
-		if err != nil {
-			s.log.Error("failed to publish message", sl.Err(err))
+	if channel != nil {
+		for _, entryInfo := range entriesInfo {
+			err = rabbitmq.PublishMessage(channel, "notifications", "subscription.trial.expiring", entryInfo)
+			if err != nil {
+				s.log.Error("failed to publish message", sl.Err(err))
+			}
 		}
+		s.log.Info("success to publish all messages")
+	} else {
+		s.log.Info("channel is nil, skipping message publishing")
 	}
-	s.log.Info("success to publish all messages")
 }
 
+// FindOldNextPaymentDate находит записи со старыми датами следующего платежа.
 func (s *SchedulerService) FindOldNextPaymentDate(ctx context.Context) {
 	s.runFindOldNextPaymentDate(ctx)
 
@@ -132,9 +147,9 @@ func (s *SchedulerService) runFindOldNextPaymentDate(ctx context.Context) {
 		id, err := s.repo.UpdateNextPaymentDate(ctx, entryInfo)
 		if err != nil {
 			s.log.Error("failed to update next payment date",
-			 slog.Int("id", id),
-			 sl.Err(err))
-			 continue
+				slog.Int("id", id),
+				sl.Err(err))
+			continue
 		}
 		cacheKey := fmt.Sprintf("subscription:%d", id)
 		if err := s.cache.Set(cacheKey, entryInfo, time.Hour); err != nil {
