@@ -1,3 +1,4 @@
+// Package paymentprovider предоставляет клиент для работы с платежными провайдерами.
 package paymentprovider
 
 import (
@@ -9,6 +10,7 @@ import (
 	"time"
 )
 
+// Client представляет клиент для работы с платежным провайдером.
 type Client struct {
 	shopID     string
 	secretKey  string
@@ -55,7 +57,11 @@ func (c *Client) CreatePayment(reqParams CreatePaymentRequest) (*CreatePaymentRe
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			_ = err
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		return nil, errors.New("unexpected status: " + resp.Status)
