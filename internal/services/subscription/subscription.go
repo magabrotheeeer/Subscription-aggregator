@@ -20,7 +20,7 @@ type SubscriptionRepository interface {
 	// Read возвращает подписку по ID.
 	ReadEntry(ctx context.Context, id int) (*models.Entry, error)
 	// Update обновляет данные подписки по ID.
-	UpdateEntry(ctx context.Context, entry models.Entry) (int, error)
+	UpdateEntry(ctx context.Context, req models.Entry, id int, username string) (int, error)
 	// List возвращает список подписок для пользователя с пагинацией.
 	ListEntrys(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error)
 	// CountSum подсчитывает сумму по фильтру.
@@ -56,7 +56,7 @@ func NewSubscriptionService(repo SubscriptionRepository, cache Cache, log *slog.
 	}
 }
 
-// Create создает новую подписку для пользователя, кеширует её и возвращает ID.
+// CreateEntry создает новую подписку для пользователя, кеширует её и возвращает ID.
 func (s *SubscriptionService) CreateEntry(ctx context.Context, userName string, userUID string, req models.DummyEntry) (int, error) {
 	startDate, err := time.Parse("02-01-2006", req.StartDate)
 	if err != nil {
@@ -96,7 +96,7 @@ func (s *SubscriptionService) CreateEntry(ctx context.Context, userName string, 
 	return id, nil
 }
 
-// Remove удаляет подписку по ID и инвалидирует кеш.
+// RemoveEntry удаляет подписку по ID и инвалидирует кеш.
 func (s *SubscriptionService) RemoveEntry(ctx context.Context, id int) (int, error) {
 	cacheKey := fmt.Sprintf("subscription:%d", id)
 	if err := s.cache.Invalidate(cacheKey); err != nil {
@@ -111,7 +111,7 @@ func (s *SubscriptionService) RemoveEntry(ctx context.Context, id int) (int, err
 	return count, nil
 }
 
-// Read возвращает подписку по ID, используя кеш или репозиторий.
+// ReadEntry возвращает подписку по ID, используя кеш или репозиторий.
 func (s *SubscriptionService) ReadEntry(ctx context.Context, id int) (*models.Entry, error) {
 	var result *models.Entry
 	cacheKey := fmt.Sprintf("subscription:%d", id)
@@ -135,28 +135,34 @@ func (s *SubscriptionService) ReadEntry(ctx context.Context, id int) (*models.En
 	return result, nil
 }
 
-// Update обновляет подписку и обновляет кеш.
+// UpdateEntry обновляет подписку и обновляет кеш.
 func (s *SubscriptionService) UpdateEntry(ctx context.Context, req models.DummyEntry, id int, username string) (int, error) {
+	// Конвертируем DummyEntry в Entry
 	startDate, err := time.Parse("02-01-2006", req.StartDate)
 	if err != nil {
-		return 0, fmt.Errorf("invalid start date: %w", err)
-	}
-	endDate := startDate.AddDate(0, req.CounterMonths, 0)
-	today := time.Now().Truncate(24 * time.Hour)
-	if endDate.Before(today) {
-		return 0, fmt.Errorf("subscription end date must not be earlier than today")
+		return 0, fmt.Errorf("invalid start date format: %w", err)
 	}
 
 	entry := models.Entry{
 		ServiceName:   req.ServiceName,
-		Username:      username,
 		Price:         req.Price,
 		StartDate:     startDate,
 		CounterMonths: req.CounterMonths,
 		IsActive:      req.IsActive,
+		Username:      username,
 		ID:            id,
 	}
-	res, err := s.repo.UpdateEntry(ctx, entry)
+
+	// Валидация даты должна быть до вызова репозитория
+	endDate := entry.StartDate.AddDate(0, entry.CounterMonths, 0)
+	today := time.Now().Truncate(24 * time.Hour)
+	endDateTruncated := endDate.Truncate(24 * time.Hour)
+
+	if endDateTruncated.Before(today) {
+		return 0, fmt.Errorf("subscription end date must not be earlier than today")
+	}
+
+	res, err := s.repo.UpdateEntry(ctx, entry, id, username)
 	if err != nil {
 		return 0, err
 	}
@@ -170,7 +176,7 @@ func (s *SubscriptionService) UpdateEntry(ctx context.Context, req models.DummyE
 	return res, nil
 }
 
-// List возвращает список подписок в зависимости от роли пользователя.
+// ListEntrys возвращает список подписок в зависимости от роли пользователя.
 func (s *SubscriptionService) ListEntrys(ctx context.Context, username, role string, limit, offset int) ([]*models.Entry, error) {
 	var err error
 	var entries []*models.Entry
@@ -207,6 +213,7 @@ func (s *SubscriptionService) CountSumWithFilter(ctx context.Context, username s
 	return s.repo.CountSumEntrys(ctx, filter)
 }
 
+// CreateEntrySubscriptionAggregator создает подписку для сервиса Subscription-Aggregator.
 func (s *SubscriptionService) CreateEntrySubscriptionAggregator(ctx context.Context, username, userUID string) (int, error) {
 	entry := models.Entry{
 		ServiceName:     "Subscription-Aggregator",
@@ -233,7 +240,7 @@ func (s *SubscriptionService) CreateEntrySubscriptionAggregator(ctx context.Cont
 	return id, nil
 }
 
+// GetSubscriptionStatus возвращает статус подписки пользователя.
 func (s *SubscriptionService) GetSubscriptionStatus(ctx context.Context, userUID string) (string, error) {
 	return s.repo.GetSubscriptionStatus(ctx, userUID)
 }
-
