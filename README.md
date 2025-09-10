@@ -131,7 +131,7 @@ open http://localhost:8080/docs/
 
 ## 📊 Структура базы данных
 
-![Database Schema](./docs/db.png)
+![Database Schema](./assets/db.png)
 
 ### Основные таблицы:
 - **users** — пользователи системы
