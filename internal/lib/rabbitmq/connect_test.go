@@ -45,7 +45,7 @@ func GetAmqpURI(ctx context.Context, container testcontainers.Container) (string
 	if err != nil {
 		return "", err
 	}
-	port, err := container.MappedPort(ctx, "5672")
+	port, err := container.MappedPort(ctx, "5672/tcp")
 	if err != nil {
 		return "", err
 	}
