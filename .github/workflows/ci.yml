@@ -83,7 +83,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libpq-dev pkg-config redis-tools rabbitmq-server
+          sudo apt-get install -y libpq-dev pkg-config redis-tools netcat-openbsd
 
       - name: Install dependencies
         run: go mod download
@@ -119,7 +119,7 @@ jobs:
       - name: Wait for RabbitMQ
         run: |
           for i in {1..30}; do
-            if rabbitmq-diagnostics -q ping 2>/dev/null | grep -q "Ping succeeded"; then
+            if nc -z localhost 5672; then
               echo "RabbitMQ is ready"
               break
             fi
