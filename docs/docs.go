@@ -12,7 +12,8 @@ const docTemplate = `{
         "termsOfService": "http://swagger.io/terms/",
         "contact": {
             "name": "API Support",
-            "email": "support@example.com"
+            "url": "http://www.swagger.io/support",
+            "email": "support@swagger.io"
         },
         "license": {
             "name": "MIT",
@@ -78,6 +79,157 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/response.ErrorResponse"
                         }
+                    }
+                }
+            }
+        },
+        "/payments/create": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Создает новый платеж через YooKassa для активной подписки пользователя",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payments"
+                ],
+                "summary": "Создать платеж",
+                "parameters": [
+                    {
+                        "description": "Данные для создания платежа",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/paymentcreate.CreatePaymentMethodRequestApp"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешное создание платежа",
+                        "schema": {
+                            "$ref": "#/definitions/paymentprovider.CreatePaymentResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный JSON",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Ошибка валидации",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка сервера при создании платежа",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/payments/tokens": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список всех платежных токенов пользователя",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payments"
+                ],
+                "summary": "Получить список платежных токенов",
+                "responses": {
+                    "200": {
+                        "description": "Список платежных токенов",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка сервера при получении токенов",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/payments/webhook": {
+            "post": {
+                "description": "Обрабатывает уведомления о статусе платежей от платежного провайдера YooKassa",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payments"
+                ],
+                "summary": "Webhook для обработки уведомлений от YooKassa",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Подпись webhook для проверки подлинности",
+                        "name": "X-Api-Signature",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Данные уведомления от YooKassa",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/paymentwebhook.Payload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Webhook обработан успешно"
+                    },
+                    "400": {
+                        "description": "Некорректные данные webhook"
+                    },
+                    "401": {
+                        "description": "Неверная подпись webhook"
+                    },
+                    "500": {
+                        "description": "Ошибка сервера при обработке webhook"
                     }
                 }
             }
@@ -499,6 +651,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "counter_months",
+                "is_active",
                 "price",
                 "service_name",
                 "start_date"
@@ -507,6 +660,9 @@ const docTemplate = `{
                 "counter_months": {
                     "description": "Количество месяцев",
                     "type": "integer"
+                },
+                "is_active": {
+                    "type": "boolean"
                 },
                 "price": {
                     "description": "Цена (\u003e0)",
@@ -540,6 +696,93 @@ const docTemplate = `{
                 "start_date": {
                     "description": "Дата начала периода",
                     "type": "string"
+                }
+            }
+        },
+        "paymentcreate.CreatePaymentMethodRequestApp": {
+            "type": "object",
+            "properties": {
+                "payment_method_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "paymentprovider.CreatePaymentResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "object",
+                    "properties": {
+                        "currency": {
+                            "description": "валюта",
+                            "type": "string"
+                        },
+                        "value": {
+                            "description": "сумма",
+                            "type": "string"
+                        }
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "description": "ID платежа в ЮKassa",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "статус платежа, например \"succeeded\"",
+                    "type": "string"
+                }
+            }
+        },
+        "paymentwebhook.Payload": {
+            "type": "object",
+            "properties": {
+                "event": {
+                    "type": "string"
+                },
+                "object": {
+                    "type": "object",
+                    "properties": {
+                        "amount": {
+                            "type": "object",
+                            "properties": {
+                                "currency": {
+                                    "description": "валюта",
+                                    "type": "string"
+                                },
+                                "value": {
+                                    "description": "сумма в строке, например \"100.00\"",
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "id": {
+                            "description": "payment ID",
+                            "type": "string"
+                        },
+                        "metadata": {
+                            "description": "для user_uid, subscription_id и др.",
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        },
+                        "payment_method": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "description": "платёжный метод (card_id)",
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "status": {
+                            "description": "статус платежа",
+                            "type": "string"
+                        }
+                    }
                 }
             }
         },
@@ -578,6 +821,14 @@ const docTemplate = `{
                 }
             }
         }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Type \"Bearer\" followed by a space and JWT token.",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
     }
 }`
 
@@ -588,7 +839,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "Subscription Aggregator API",
-	Description:      "REST API сервис для работы с подписками (создание, удаление, обновление, получение, суммарный расчёт).",
+	Description:      "API для управления подписками пользователей",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 }

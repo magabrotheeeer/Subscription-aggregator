@@ -18,6 +18,8 @@ definitions:
       counter_months:
         description: Количество месяцев
         type: integer
+      is_active:
+        type: boolean
       price:
         description: Цена (>0)
         type: integer
@@ -29,6 +31,7 @@ definitions:
         type: string
     required:
     - counter_months
+    - is_active
     - price
     - service_name
     - start_date
@@ -47,6 +50,65 @@ definitions:
     required:
     - counter_months
     - start_date
+    type: object
+  paymentcreate.CreatePaymentMethodRequestApp:
+    properties:
+      payment_method_token:
+        type: string
+    type: object
+  paymentprovider.CreatePaymentResponse:
+    properties:
+      amount:
+        properties:
+          currency:
+            description: валюта
+            type: string
+          value:
+            description: сумма
+            type: string
+        type: object
+      created_at:
+        type: string
+      id:
+        description: ID платежа в ЮKassa
+        type: string
+      status:
+        description: статус платежа, например "succeeded"
+        type: string
+    type: object
+  paymentwebhook.Payload:
+    properties:
+      event:
+        type: string
+      object:
+        properties:
+          amount:
+            properties:
+              currency:
+                description: валюта
+                type: string
+              value:
+                description: сумма в строке, например "100.00"
+                type: string
+            type: object
+          id:
+            description: payment ID
+            type: string
+          metadata:
+            additionalProperties:
+              type: string
+            description: для user_uid, subscription_id и др.
+            type: object
+          payment_method:
+            properties:
+              id:
+                description: платёжный метод (card_id)
+                type: string
+            type: object
+          status:
+            description: статус платежа
+            type: string
+        type: object
     type: object
   register.Request:
     properties:
@@ -76,10 +138,10 @@ definitions:
 host: localhost:8080
 info:
   contact:
-    email: support@example.com
+    email: support@swagger.io
     name: API Support
-  description: REST API сервис для работы с подписками (создание, удаление, обновление,
-    получение, суммарный расчёт).
+    url: http://www.swagger.io/support
+  description: API для управления подписками пользователей
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -127,6 +189,104 @@ paths:
       summary: Авторизация пользователя
       tags:
       - Auth
+  /payments/create:
+    post:
+      consumes:
+      - application/json
+      description: Создает новый платеж через YooKassa для активной подписки пользователя
+      parameters:
+      - description: Данные для создания платежа
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/paymentcreate.CreatePaymentMethodRequestApp'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешное создание платежа
+          schema:
+            $ref: '#/definitions/paymentprovider.CreatePaymentResponse'
+        "400":
+          description: Некорректный JSON
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "422":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Ошибка сервера при создании платежа
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Создать платеж
+      tags:
+      - Payments
+  /payments/tokens:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список всех платежных токенов пользователя
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список платежных токенов
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Ошибка сервера при получении токенов
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить список платежных токенов
+      tags:
+      - Payments
+  /payments/webhook:
+    post:
+      consumes:
+      - application/json
+      description: Обрабатывает уведомления о статусе платежей от платежного провайдера
+        YooKassa
+      parameters:
+      - description: Подпись webhook для проверки подлинности
+        in: header
+        name: X-Api-Signature
+        required: true
+        type: string
+      - description: Данные уведомления от YooKassa
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/paymentwebhook.Payload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Webhook обработан успешно
+        "400":
+          description: Некорректные данные webhook
+        "401":
+          description: Неверная подпись webhook
+        "500":
+          description: Ошибка сервера при обработке webhook
+      summary: Webhook для обработки уведомлений от YooKassa
+      tags:
+      - Payments
   /register:
     post:
       consumes:
@@ -393,4 +553,10 @@ paths:
       summary: Подсчёт суммы подписок
       tags:
       - Subscriptions
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"
