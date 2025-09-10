@@ -15,7 +15,7 @@ import (
 
 func TestConsumerMessage_HandleMessages(t *testing.T) {
 	// Skip RabbitMQ tests in CI due to networking issues
-	if os.Getenv("SKIP_RABBITMQ_TESTS") == "true" {
+	if os.Getenv("SKIP_RABBITMQ_TESTS") == SkipRabbitMQTestsEnv {
 		t.Skip("Skipping RabbitMQ tests in CI")
 	}
 
@@ -117,7 +117,7 @@ func TestConsumerMessage_HandleMessages(t *testing.T) {
 
 func TestConsumerMessage_HandlerErrorTriggersNack(t *testing.T) {
 	// Skip RabbitMQ tests in CI due to networking issues
-	if os.Getenv("SKIP_RABBITMQ_TESTS") == "true" {
+	if os.Getenv("SKIP_RABBITMQ_TESTS") == SkipRabbitMQTestsEnv {
 		t.Skip("Skipping RabbitMQ tests in CI")
 	}
 

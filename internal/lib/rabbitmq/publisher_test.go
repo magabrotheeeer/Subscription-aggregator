@@ -11,9 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+
 func TestPublishMessage(t *testing.T) {
 	// Skip RabbitMQ tests in CI due to networking issues
-	if os.Getenv("SKIP_RABBITMQ_TESTS") == "true" {
+	if os.Getenv("SKIP_RABBITMQ_TESTS") == SkipRabbitMQTestsEnv {
 		t.Skip("Skipping RabbitMQ tests in CI")
 	}
 
@@ -103,7 +104,7 @@ func TestPublishMessage(t *testing.T) {
 
 func TestPublishMessage_ToExchangeWithRoutingKey(t *testing.T) {
 	// Skip RabbitMQ tests in CI due to networking issues
-	if os.Getenv("SKIP_RABBITMQ_TESTS") == "true" {
+	if os.Getenv("SKIP_RABBITMQ_TESTS") == SkipRabbitMQTestsEnv {
 		t.Skip("Skipping RabbitMQ tests in CI")
 	}
 
