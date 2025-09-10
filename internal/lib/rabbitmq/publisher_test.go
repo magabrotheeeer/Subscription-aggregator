@@ -12,6 +12,11 @@ import (
 )
 
 func TestPublishMessage(t *testing.T) {
+	// Skip RabbitMQ tests in CI due to networking issues
+	if os.Getenv("SKIP_RABBITMQ_TESTS") == "true" {
+		t.Skip("Skipping RabbitMQ tests in CI")
+	}
+
 	ctx := context.Background()
 
 	var amqpURI string
@@ -97,6 +102,11 @@ func TestPublishMessage(t *testing.T) {
 }
 
 func TestPublishMessage_ToExchangeWithRoutingKey(t *testing.T) {
+	// Skip RabbitMQ tests in CI due to networking issues
+	if os.Getenv("SKIP_RABBITMQ_TESTS") == "true" {
+		t.Skip("Skipping RabbitMQ tests in CI")
+	}
+
 	ctx := context.Background()
 
 	var amqpURI string
