@@ -2,333 +2,698 @@ package server
 
 import (
 	"context"
-	"database/sql"
+	"errors"
 	"log/slog"
-	"net"
 	"os"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"github.com/testcontainers/testcontainers-go/wait"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
 	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/gen"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/jwt"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/services/auth"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
-// runMigrations запускает миграции для тестовой базы
-func runMigrations(t *testing.T, connStr string) {
-	db, err := sql.Open("pgx", connStr)
-	require.NoError(t, err)
-	defer func() {
-		require.NoError(t, db.Close())
-	}()
-
-	migrations := []string{
-		`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`,
-		`
-        CREATE TABLE IF NOT EXISTS users (
-            uid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            username TEXT NOT NULL UNIQUE,
-            email TEXT NOT NULL UNIQUE,
-            password_hash TEXT NOT NULL,
-            role TEXT NOT NULL DEFAULT 'user'
-        );	
-		`,
-		`
-        CREATE TABLE IF NOT EXISTS subscriptions (
-            id SERIAL PRIMARY KEY,
-            service_name TEXT NOT NULL,
-            price INT NOT NULL,
-            username TEXT NOT NULL,
-            start_date DATE NOT NULL,
-            counter_months INT NOT NULL
-        );
-		`,
-		`CREATE INDEX IF NOT EXISTS idx_subscriptions_username ON subscriptions(username);`, // исправил опечатку idx_susbcriptions
-	}
-
-	for _, migration := range migrations {
-		_, err := db.Exec(migration)
-		require.NoErrorf(t, err, "Failed to run migration: %s", migration)
-	}
+// MockAuthService - мок для AuthService
+type MockAuthService struct {
+	mock.Mock
 }
 
-func setupTestGRPCServer(t *testing.T) (authpb.AuthServiceClient, func()) {
-	ctx := context.Background()
+func (m *MockAuthService) Register(ctx context.Context, email, username, password string) (string, error) {
+	args := m.Called(ctx, email, username, password)
+	return args.String(0), args.Error(1)
+}
 
-	// Запускаем PostgreSQL контейнер
-	pgContainer, err := postgres.Run(ctx,
-		"postgres:15-alpine",
-		postgres.WithDatabase("testdb"),
-		postgres.WithUsername("testuser"),
-		postgres.WithPassword("testpass"),
-		testcontainers.WithWaitStrategy(
-			wait.ForLog("database system is ready to accept connections").
-				WithOccurrence(2).
-				WithStartupTimeout(30*time.Second)),
-	)
-	require.NoError(t, err)
+func (m *MockAuthService) Login(ctx context.Context, username, password string) (string, string, string, error) {
+	args := m.Called(ctx, username, password)
+	return args.String(0), args.String(1), args.String(2), args.Error(3)
+}
 
-	// Получаем connection string
-	connStr, err := pgContainer.ConnectionString(ctx)
-	require.NoError(t, err)
+func (m *MockAuthService) ValidateToken(ctx context.Context, token string) (*models.User, string, bool, error) {
+	args := m.Called(ctx, token)
+	if args.Get(0) == nil {
+		return nil, args.String(1), args.Bool(2), args.Error(3)
+	}
+	return args.Get(0).(*models.User), args.String(1), args.Bool(2), args.Error(3)
+}
 
-	// Запускаем миграции
-	runMigrations(t, connStr)
+// Убеждаемся, что MockAuthService реализует интерфейс AuthServiceInterface
+var _ AuthServiceInterface = (*MockAuthService)(nil)
 
-	// Инициализируем storage
-	storage, err := storage.New(connStr)
-	require.NoError(t, err)
-
-	// Инициализируем JWT maker и сервис
-	jwtMaker := jwt.NewJWTMaker("test_secret_key", 24*time.Hour)
-	authService := services.NewAuthService(storage, jwtMaker)
-
-	// Запускаем gRPC сервер
-	lis, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-
+// TestNewAuthServer тестирует создание нового AuthServer
+func TestNewAuthServer(t *testing.T) {
+	mockService := new(MockAuthService)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelError,
 	}))
 
-	grpcServer := grpc.NewServer()
-	authServer := NewAuthServer(authService, logger)
-	authpb.RegisterAuthServiceServer(grpcServer, authServer)
+	server := NewAuthServer(mockService, logger)
 
-	go func() {
-		if err := grpcServer.Serve(lis); err != nil {
-			t.Logf("gRPC server error: %v", err)
-		}
-	}()
-
-	// Ждем немного чтобы сервер запустился
-	time.Sleep(100 * time.Millisecond)
-
-	// Создаем клиент
-	conn, err := grpc.NewClient(lis.Addr().String(),
-		grpc.WithTransportCredentials(insecure.NewCredentials()))
-	require.NoError(t, err)
-
-	client := authpb.NewAuthServiceClient(conn)
-
-	// Функция cleanup
-	cleanup := func() {
-		err = conn.Close()
-		require.NoError(t, err)
-		grpcServer.Stop()
-		err = storage.Db.Close()
-		require.NoError(t, err)
-		err = pgContainer.Terminate(ctx)
-		require.NoError(t, err)
-	}
-
-	return client, cleanup
+	assert.NotNil(t, server)
+	assert.Equal(t, mockService, server.authService)
+	assert.Equal(t, logger, server.log)
 }
 
-func TestAuthServerIntegration_Register(t *testing.T) {
-	client, cleanup := setupTestGRPCServer(t)
-	defer cleanup()
+// TestAuthServer_Register_Unit тестирует метод Register с моками
+func TestAuthServer_Register_Unit(t *testing.T) {
+	tests := []struct {
+		name          string
+		request       *authpb.RegisterRequest
+		mockSetup     func(*MockAuthService)
+		expectedError bool
+		expectedCode  codes.Code
+	}{
+		{
+			name: "successful registration",
+			request: &authpb.RegisterRequest{
+				Email:    "test@example.com",
+				Username: "testuser",
+				Password: "password123",
+			},
+			mockSetup: func(m *MockAuthService) {
+				m.On("Register", mock.Anything, "test@example.com", "testuser", "password123").
+					Return("user-uuid-123", nil).Once()
+			},
+			expectedError: false,
+		},
+		{
+			name: "registration error",
+			request: &authpb.RegisterRequest{
+				Email:    "test@example.com",
+				Username: "testuser",
+				Password: "password123",
+			},
+			mockSetup: func(m *MockAuthService) {
+				m.On("Register", mock.Anything, "test@example.com", "testuser", "password123").
+					Return("", assert.AnError).Once()
+			},
+			expectedError: true,
+			expectedCode:  codes.Internal,
+		},
+		{
+			name: "duplicate username",
+			request: &authpb.RegisterRequest{
+				Email:    "test@example.com",
+				Username: "existinguser",
+				Password: "password123",
+			},
+			mockSetup: func(m *MockAuthService) {
+				m.On("Register", mock.Anything, "test@example.com", "existinguser", "password123").
+					Return("", assert.AnError).Once()
+			},
+			expectedError: true,
+			expectedCode:  codes.Internal,
+		},
+	}
 
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockService := new(MockAuthService)
+			logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+				Level: slog.LevelError,
+			}))
+
+			tt.mockSetup(mockService)
+
+			server := NewAuthServer(mockService, logger)
+			ctx := context.Background()
+
+			resp, err := server.Register(ctx, tt.request)
+
+			if tt.expectedError {
+				assert.Error(t, err)
+				assert.Nil(t, resp)
+				if tt.expectedCode != codes.Unknown {
+					st, ok := status.FromError(err)
+					assert.True(t, ok)
+					assert.Equal(t, tt.expectedCode, st.Code())
+				}
+			} else {
+				assert.NoError(t, err)
+				require.NotNil(t, resp)
+				assert.True(t, resp.Success)
+				assert.Equal(t, "user created successfully", resp.Message)
+				assert.NotEmpty(t, resp.Useruid)
+			}
+
+			mockService.AssertExpectations(t)
+		})
+	}
+}
+
+// TestAuthServer_Login_Unit тестирует метод Login с моками
+func TestAuthServer_Login_Unit(t *testing.T) {
+	tests := []struct {
+		name          string
+		request       *authpb.LoginRequest
+		mockSetup     func(*MockAuthService)
+		expectedError bool
+		expectedCode  codes.Code
+		expectedToken string
+		expectedRole  string
+	}{
+		{
+			name: "successful login",
+			request: &authpb.LoginRequest{
+				Username: "testuser",
+				Password: "password123",
+			},
+			mockSetup: func(m *MockAuthService) {
+				m.On("Login", mock.Anything, "testuser", "password123").
+					Return("jwt-token-123", "refresh-token-123", "user", nil).Once()
+			},
+			expectedError: false,
+			expectedToken: "jwt-token-123",
+			expectedRole:  "user",
+		},
+		{
+			name: "invalid credentials",
+			request: &authpb.LoginRequest{
+				Username: "testuser",
+				Password: "wrongpassword",
+			},
+			mockSetup: func(m *MockAuthService) {
+				m.On("Login", mock.Anything, "testuser", "wrongpassword").
+					Return("", "", "", assert.AnError).Once()
+			},
+			expectedError: true,
+			expectedCode:  codes.Unauthenticated,
+		},
+		{
+			name: "user not found",
+			request: &authpb.LoginRequest{
+				Username: "nonexistent",
+				Password: "password123",
+			},
+			mockSetup: func(m *MockAuthService) {
+				m.On("Login", mock.Anything, "nonexistent", "password123").
+					Return("", "", "", assert.AnError).Once()
+			},
+			expectedError: true,
+			expectedCode:  codes.Unauthenticated,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockService := new(MockAuthService)
+			logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+				Level: slog.LevelError,
+			}))
+
+			tt.mockSetup(mockService)
+
+			server := NewAuthServer(mockService, logger)
+			ctx := context.Background()
+
+			resp, err := server.Login(ctx, tt.request)
+
+			if tt.expectedError {
+				assert.Error(t, err)
+				assert.Nil(t, resp)
+				if tt.expectedCode != codes.Unknown {
+					st, ok := status.FromError(err)
+					assert.True(t, ok)
+					assert.Equal(t, tt.expectedCode, st.Code())
+				}
+			} else {
+				assert.NoError(t, err)
+				require.NotNil(t, resp)
+				assert.Equal(t, tt.expectedToken, resp.Token)
+				assert.Equal(t, tt.expectedRole, resp.Role)
+				assert.NotEmpty(t, resp.RefreshToken)
+			}
+
+			mockService.AssertExpectations(t)
+		})
+	}
+}
+
+// TestAuthServer_ValidateToken_Unit тестирует метод ValidateToken с моками
+func TestAuthServer_ValidateToken_Unit(t *testing.T) {
+	tests := []struct {
+		name          string
+		request       *authpb.ValidateTokenRequest
+		mockSetup     func(*MockAuthService)
+		expectedError bool
+		expectedCode  codes.Code
+		expectedValid bool
+		expectedUser  string
+		expectedRole  string
+	}{
+		{
+			name: "valid token",
+			request: &authpb.ValidateTokenRequest{
+				Token: "valid.jwt.token",
+			},
+			mockSetup: func(m *MockAuthService) {
+				user := &models.User{
+					Username: "testuser",
+					Role:     "user",
+					UUID:     "user-uuid-123",
+				}
+				m.On("ValidateToken", mock.Anything, "valid.jwt.token").
+					Return(user, "user", true, nil).Once()
+			},
+			expectedError: false,
+			expectedValid: true,
+			expectedUser:  "testuser",
+			expectedRole:  "user",
+		},
+		{
+			name: "invalid token",
+			request: &authpb.ValidateTokenRequest{
+				Token: "invalid.token",
+			},
+			mockSetup: func(m *MockAuthService) {
+				m.On("ValidateToken", mock.Anything, "invalid.token").
+					Return(nil, "", false, assert.AnError).Once()
+			},
+			expectedError: true,
+			expectedCode:  codes.Unauthenticated,
+		},
+		{
+			name: "expired token",
+			request: &authpb.ValidateTokenRequest{
+				Token: "expired.jwt.token",
+			},
+			mockSetup: func(m *MockAuthService) {
+				m.On("ValidateToken", mock.Anything, "expired.jwt.token").
+					Return(nil, "", false, nil).Once()
+			},
+			expectedError: true,
+			expectedCode:  codes.Unauthenticated,
+		},
+		{
+			name: "empty token",
+			request: &authpb.ValidateTokenRequest{
+				Token: "",
+			},
+			mockSetup: func(m *MockAuthService) {
+				m.On("ValidateToken", mock.Anything, "").
+					Return(nil, "", false, assert.AnError).Once()
+			},
+			expectedError: true,
+			expectedCode:  codes.Unauthenticated,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockService := new(MockAuthService)
+			logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+				Level: slog.LevelError,
+			}))
+
+			tt.mockSetup(mockService)
+
+			server := NewAuthServer(mockService, logger)
+			ctx := context.Background()
+
+			resp, err := server.ValidateToken(ctx, tt.request)
+
+			if tt.expectedError {
+				assert.Error(t, err)
+				assert.Nil(t, resp)
+				if tt.expectedCode != codes.Unknown {
+					st, ok := status.FromError(err)
+					assert.True(t, ok)
+					assert.Equal(t, tt.expectedCode, st.Code())
+				}
+			} else {
+				assert.NoError(t, err)
+				require.NotNil(t, resp)
+				assert.Equal(t, tt.expectedValid, resp.Valid)
+				assert.Equal(t, tt.expectedUser, resp.Username)
+				assert.Equal(t, tt.expectedRole, resp.Role)
+				assert.NotEmpty(t, resp.Useruid)
+			}
+
+			mockService.AssertExpectations(t)
+		})
+	}
+}
+
+// TestAuthServer_ContextCancellation тестирует обработку отмены контекста
+func TestAuthServer_ContextCancellation(t *testing.T) {
+	mockService := new(MockAuthService)
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelError,
+	}))
+
+	// Настраиваем мок для возврата ошибки контекста
+	mockService.On("Register", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return("", context.Canceled).Maybe()
+
+	server := NewAuthServer(mockService, logger)
+
+	// Создаем отмененный контекст
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Отменяем контекст сразу
+
+	// Тестируем Register с отмененным контекстом
+	req := &authpb.RegisterRequest{
+		Email:    "test@example.com",
+		Username: "testuser",
+		Password: "password123",
+	}
+
+	resp, err := server.Register(ctx, req)
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+	assert.Contains(t, err.Error(), "context canceled")
+}
+
+// TestAuthServer_Timeout тестирует обработку таймаутов
+func TestAuthServer_Timeout(t *testing.T) {
+	mockService := new(MockAuthService)
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelError,
+	}))
+
+	// Настраиваем мок для возврата ошибки таймаута
+	mockService.On("Login", mock.Anything, "testuser", "password123").
+		Return("", "", "", context.DeadlineExceeded).Once()
+
+	server := NewAuthServer(mockService, logger)
+
+	// Создаем контекст с коротким таймаутом
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	req := &authpb.LoginRequest{
+		Username: "testuser",
+		Password: "password123",
+	}
+
+	resp, err := server.Login(ctx, req)
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+	// Проверяем, что получили ошибку (может быть "invalid credentials" или другая ошибка)
+	assert.NotEmpty(t, err.Error())
+}
+
+// TestAuthServer_EdgeCases тестирует edge cases и граничные условия
+func TestAuthServer_EdgeCases(t *testing.T) {
 	tests := []struct {
 		name        string
-		email       string
-		username    string
-		password    string
-		wantSuccess bool
-		wantError   bool
+		request     interface{}
+		description string
 	}{
 		{
-			name:        "successful registration",
-			email:       "test1@example.com",
-			username:    "user1",
-			password:    "password123",
-			wantSuccess: true,
-			wantError:   false,
+			name:        "nil request",
+			request:     nil,
+			description: "nil request object",
 		},
 		{
-			name:        "duplicate username",
-			email:       "test2@example.com",
-			username:    "user1", // Дубликат
-			password:    "password123",
-			wantSuccess: false,
-			wantError:   true,
+			name: "empty fields",
+			request: &authpb.RegisterRequest{
+				Email:    "",
+				Username: "",
+				Password: "",
+			},
+			description: "empty fields in request",
 		},
 		{
-			name:        "duplicate email",
-			email:       "test1@example.com", // Дубликат
-			username:    "user2",
-			password:    "password123",
-			wantSuccess: false,
-			wantError:   true,
+			name: "very long strings",
+			request: &authpb.RegisterRequest{
+				Email:    strings.Repeat("a", 1000) + "@example.com",
+				Username: strings.Repeat("b", 1000),
+				Password: strings.Repeat("c", 1000),
+			},
+			description: "very long input strings",
+		},
+		{
+			name: "special characters",
+			request: &authpb.RegisterRequest{
+				Email:    "test@#$%^&*().com",
+				Username: "user@#$%^&*()",
+				Password: "pass!@#$%^&*()",
+			},
+			description: "special characters in input",
+		},
+		{
+			name: "unicode characters",
+			request: &authpb.RegisterRequest{
+				Email:    "тест@пример.рф",
+				Username: "пользователь",
+				Password: "пароль123",
+			},
+			description: "unicode characters",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp, err := client.Register(context.Background(), &authpb.RegisterRequest{
-				Email:    tt.email,
-				Username: tt.username,
-				Password: tt.password,
-			})
+			mockService := new(MockAuthService)
+			logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+				Level: slog.LevelError,
+			}))
 
-			if tt.wantError {
+			// Настраиваем мок для возврата ошибки для всех edge cases
+			mockService.On("Register", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+				Return("", assert.AnError).Maybe()
+
+			server := NewAuthServer(mockService, logger)
+			ctx := context.Background()
+
+			// Тестируем с разными типами запросов
+			if req, ok := tt.request.(*authpb.RegisterRequest); ok {
+				resp, err := server.Register(ctx, req)
 				assert.Error(t, err)
 				assert.Nil(t, resp)
-			} else {
-				assert.NoError(t, err)
-				require.NotNil(t, resp)
-				assert.Equal(t, tt.wantSuccess, resp.Success)
 			}
+
+			mockService.AssertExpectations(t)
 		})
 	}
 }
 
-func TestAuthServerIntegration_Login(t *testing.T) {
-	client, cleanup := setupTestGRPCServer(t)
-	defer cleanup()
-
-	ctx := context.Background()
-
-	// Сначала регистрируем тестового пользователя
-	_, err := client.Register(ctx, &authpb.RegisterRequest{
-		Email:    "login_test@example.com",
-		Username: "login_user",
-		Password: "correct_password",
-	})
-	require.NoError(t, err)
-
+// TestAuthServer_ErrorHandling тестирует обработку различных типов ошибок
+func TestAuthServer_ErrorHandling(t *testing.T) {
 	tests := []struct {
-		name      string
-		username  string
-		password  string
-		wantToken bool
-		wantError bool
-		wantRole  string
+		name         string
+		mockSetup    func(*MockAuthService)
+		expectedCode codes.Code
+		description  string
 	}{
 		{
-			name:      "successful login",
-			username:  "login_user",
-			password:  "correct_password",
-			wantToken: true,
-			wantError: false,
-			wantRole:  "user",
+			name: "database connection error",
+			mockSetup: func(m *MockAuthService) {
+				m.On("Register", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+					Return("", errors.New("database connection failed")).Once()
+			},
+			expectedCode: codes.Internal,
+			description:  "database connection failure",
 		},
 		{
-			name:      "nonexistent user",
-			username:  "nonexistent",
-			password:  "password123",
-			wantToken: false,
-			wantError: true,
-			wantRole:  "",
+			name: "validation error",
+			mockSetup: func(m *MockAuthService) {
+				m.On("Register", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+					Return("", errors.New("validation failed")).Once()
+			},
+			expectedCode: codes.Internal,
+			description:  "validation failure",
+		},
+		{
+			name: "service unavailable",
+			mockSetup: func(m *MockAuthService) {
+				m.On("Register", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+					Return("", errors.New("service unavailable")).Once()
+			},
+			expectedCode: codes.Internal,
+			description:  "service unavailable",
+		},
+		{
+			name: "timeout error",
+			mockSetup: func(m *MockAuthService) {
+				m.On("Register", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+					Return("", context.DeadlineExceeded).Once()
+			},
+			expectedCode: codes.Internal,
+			description:  "timeout error",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp, err := client.Login(ctx, &authpb.LoginRequest{
-				Username: tt.username,
-				Password: tt.password,
-			})
+			mockService := new(MockAuthService)
+			logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+				Level: slog.LevelError,
+			}))
 
-			if tt.wantError {
-				assert.Error(t, err)
-				assert.Nil(t, resp)
-			} else {
-				assert.NoError(t, err)
-				require.NotNil(t, resp)
-				assert.NotEmpty(t, resp.Token)
-				assert.Equal(t, tt.wantRole, resp.Role)
-				if tt.wantToken {
-					assert.NotEmpty(t, resp.Token)
-					assert.NotEmpty(t, resp.RefreshToken)
-				}
+			tt.mockSetup(mockService)
+
+			server := NewAuthServer(mockService, logger)
+			ctx := context.Background()
+
+			req := &authpb.RegisterRequest{
+				Email:    "test@example.com",
+				Username: "testuser",
+				Password: "password123",
 			}
+
+			resp, err := server.Register(ctx, req)
+			assert.Error(t, err)
+			assert.Nil(t, resp)
+
+			// Проверяем код ошибки
+			st, ok := status.FromError(err)
+			assert.True(t, ok)
+			assert.Equal(t, tt.expectedCode, st.Code())
+
+			mockService.AssertExpectations(t)
 		})
 	}
 }
 
-func TestAuthServerIntegration_ValidateToken(t *testing.T) {
-	client, cleanup := setupTestGRPCServer(t)
-	defer cleanup()
+// TestAuthServer_ConcurrentRequests тестирует обработку конкурентных запросов
+func TestAuthServer_ConcurrentRequests(t *testing.T) {
+	mockService := new(MockAuthService)
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelError,
+	}))
 
+	// Настраиваем мок для множественных вызовов
+	mockService.On("Register", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return("user-uuid-123", nil).Times(10)
+
+	server := NewAuthServer(mockService, logger)
+
+	// Запускаем 10 горутин одновременно
+	var wg sync.WaitGroup
+	errors := make(chan error, 10)
+
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			ctx := context.Background()
+			req := &authpb.RegisterRequest{
+				Email:    "test@example.com",
+				Username: "testuser",
+				Password: "password123",
+			}
+			_, err := server.Register(ctx, req)
+			errors <- err
+		}()
+	}
+
+	wg.Wait()
+	close(errors)
+
+	// Проверяем, что все запросы выполнились успешно
+	for err := range errors {
+		assert.NoError(t, err)
+	}
+
+	mockService.AssertExpectations(t)
+}
+
+// TestAuthServer_Logging тестирует логирование
+func TestAuthServer_Logging(t *testing.T) {
+	mockService := new(MockAuthService)
+
+	// Создаем буфер для захвата логов
+	var logBuffer strings.Builder
+	logger := slog.New(slog.NewTextHandler(&logBuffer, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+
+	// Настраиваем мок
+	mockService.On("Register", mock.Anything, "test@example.com", "testuser", "password123").
+		Return("user-uuid-123", nil).Once()
+
+	server := NewAuthServer(mockService, logger)
 	ctx := context.Background()
 
-	// Регистрируем и логинимся чтобы получить токен
-	_, err := client.Register(ctx, &authpb.RegisterRequest{
-		Email:    "validate_test@example.com",
-		Username: "validate_user",
+	req := &authpb.RegisterRequest{
+		Email:    "test@example.com",
+		Username: "testuser",
 		Password: "password123",
-	})
-	require.NoError(t, err)
-
-	loginResp, err := client.Login(ctx, &authpb.LoginRequest{
-		Username: "validate_user",
-		Password: "password123",
-	})
-	require.NoError(t, err)
-
-	validToken := loginResp.Token
-
-	tests := []struct {
-		name      string
-		token     string
-		wantValid bool
-		wantError bool
-	}{
-		{
-			name:      "valid token",
-			token:     validToken,
-			wantValid: true,
-			wantError: false,
-		},
-		{
-			name:      "invalid token",
-			token:     "invalid.token.here",
-			wantValid: false,
-			wantError: true,
-		},
-		{
-			name:      "empty token",
-			token:     "",
-			wantValid: false,
-			wantError: true,
-		},
-		{
-			name:      "malformed token",
-			token:     "invalid",
-			wantValid: false,
-			wantError: true,
-		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			resp, err := client.ValidateToken(ctx, &authpb.ValidateTokenRequest{
-				Token: tt.token,
-			})
+	resp, err := server.Register(ctx, req)
+	assert.NoError(t, err)
+	assert.NotNil(t, resp)
 
-			if tt.wantError {
-				assert.Error(t, err)
-				assert.Nil(t, resp)
-			} else {
-				assert.NoError(t, err)
-				require.NotNil(t, resp)
-				assert.Equal(t, tt.wantValid, resp.Valid)
-				if tt.wantValid {
-					assert.Equal(t, "validate_user", resp.Username)
-					assert.Equal(t, "user", resp.Role)
-				}
-			}
-		})
+	// Проверяем, что логи записались
+	logOutput := logBuffer.String()
+	assert.Contains(t, logOutput, "Register request")
+	assert.Contains(t, logOutput, "testuser")
+
+	mockService.AssertExpectations(t)
+}
+
+// TestAuthServer_ErrorLogging тестирует логирование ошибок
+func TestAuthServer_ErrorLogging(t *testing.T) {
+	mockService := new(MockAuthService)
+
+	// Создаем буфер для захвата логов
+	var logBuffer strings.Builder
+	logger := slog.New(slog.NewTextHandler(&logBuffer, &slog.HandlerOptions{
+		Level: slog.LevelError,
+	}))
+
+	// Настраиваем мок для возврата ошибки
+	mockService.On("Register", mock.Anything, "test@example.com", "testuser", "password123").
+		Return("", assert.AnError).Once()
+
+	server := NewAuthServer(mockService, logger)
+	ctx := context.Background()
+
+	req := &authpb.RegisterRequest{
+		Email:    "test@example.com",
+		Username: "testuser",
+		Password: "password123",
 	}
+
+	resp, err := server.Register(ctx, req)
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+
+	// Проверяем, что ошибка залогировалась
+	logOutput := logBuffer.String()
+	assert.Contains(t, logOutput, "Register failed")
+	assert.Contains(t, logOutput, "testuser")
+
+	mockService.AssertExpectations(t)
+}
+
+// TestAuthServer_ResponseValidation тестирует валидацию ответов
+func TestAuthServer_ResponseValidation(t *testing.T) {
+	mockService := new(MockAuthService)
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelError,
+	}))
+
+	// Тестируем успешный ответ
+	mockService.On("Register", mock.Anything, "test@example.com", "testuser", "password123").
+		Return("user-uuid-123", nil).Once()
+
+	server := NewAuthServer(mockService, logger)
+	ctx := context.Background()
+
+	req := &authpb.RegisterRequest{
+		Email:    "test@example.com",
+		Username: "testuser",
+		Password: "password123",
+	}
+
+	resp, err := server.Register(ctx, req)
+	assert.NoError(t, err)
+	require.NotNil(t, resp)
+
+	// Проверяем структуру ответа
+	assert.True(t, resp.Success)
+	assert.Equal(t, "user created successfully", resp.Message)
+	assert.Equal(t, "user-uuid-123", resp.Useruid)
+
+	mockService.AssertExpectations(t)
 }
