@@ -19,6 +19,7 @@ func SetupRabbitMQContainer(ctx context.Context, t *testing.T) (testcontainers.C
 		Env: map[string]string{
 			"RABBITMQ_DEFAULT_USER":   "guest",
 			"RABBITMQ_DEFAULT_PASS":   "guest",
+			"RABBITMQ_DEFAULT_VHOST":  "/",
 			"RABBITMQ_LOOPBACK_USERS": "",
 		},
 		WaitingFor: wait.ForListeningPort("5672/tcp").
