@@ -146,7 +146,7 @@ jobs:
           go tool cover -func=coverage-integration.out
 
   lint:
-    name: test
+    name: lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -167,10 +167,25 @@ jobs:
           $(go env GOPATH)/bin/golangci-lint run --timeout=5m
 
   deploy:
-    needs: lint
-    name: Push Docker image to Docker Hub
+    needs: [test]
+    name: Build and Push Docker Images
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags')
+    strategy:
+      matrix:
+        service:
+          - name: subscription-aggregator
+            dockerfile: cmd/subscription-aggregator/Dockerfile
+            port: 8080
+          - name: auth
+            dockerfile: cmd/auth/Dockerfile
+            port: 50051
+          - name: scheduler
+            dockerfile: cmd/scheduler/Dockerfile
+            port: 0
+          - name: sender
+            dockerfile: cmd/sender/Dockerfile
+            port: 0
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -188,12 +203,16 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5.5.1
         with:
-          images: akhilgovmb/subscription-aggregator
+          images: akhilgovmb/${{ matrix.service.name }}
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest
       
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ${{ matrix.service.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
