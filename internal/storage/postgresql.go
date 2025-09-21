@@ -65,12 +65,12 @@ func (s *Storage) CreateEntry(ctx context.Context, entry models.Entry) (int, err
 	default:
 	}
 
+	query := `INSERT INTO subscriptions (service_name, price, username, start_date,
+			      counter_months, user_uid, next_payment_date, is_active) 
+			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			  RETURNING id`
 	var newID int
-	err := s.Db.QueryRowContext(ctx, `
-			INSERT INTO subscriptions (service_name, price, username, start_date,
-				counter_months, user_uid, next_payment_date, is_active) 
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-			RETURNING id`,
+	err := s.Db.QueryRowContext(ctx, query,
 		entry.ServiceName, entry.Price, entry.Username, entry.StartDate, entry.CounterMonths,
 		entry.UserUID, entry.NextPaymentDate, entry.IsActive).Scan(&newID)
 	if err != nil {
@@ -88,7 +88,8 @@ func (s *Storage) RemoveEntry(ctx context.Context, id int) (int, error) {
 	default:
 	}
 
-	result, err := s.Db.ExecContext(ctx, `DELETE FROM subscriptions WHERE id = $1`, id)
+	query := `DELETE FROM subscriptions WHERE id = $1`
+	result, err := s.Db.ExecContext(ctx, query, id)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
@@ -108,10 +109,10 @@ func (s *Storage) ReadEntry(ctx context.Context, id int) (*models.Entry, error) 
 	default:
 	}
 
-	row := s.Db.QueryRowContext(ctx, `
-		SELECT service_name, price, username, start_date, counter_months,
-			user_uid, next_payment_date, is_active
-		FROM subscriptions WHERE id = $1`, id)
+	query := `SELECT service_name, price, username, start_date, counter_months,
+				user_uid, next_payment_date, is_active
+			  FROM subscriptions WHERE id = $1`
+	row := s.Db.QueryRowContext(ctx, query, id)
 
 	var result models.Entry
 	if err := row.Scan(&result.ServiceName, &result.Price, &result.Username, &result.StartDate,
@@ -130,14 +131,11 @@ func (s *Storage) UpdateEntry(ctx context.Context, req models.Entry, id int, use
 	default:
 	}
 
-	result, err := s.Db.ExecContext(ctx, `
-		UPDATE subscriptions
-		SET service_name = $1,
-			start_date = $2,
-			counter_months = $3,
-			price = $4,
-			is_active = $5
-		WHERE id = $6 AND username = $7`,
+	query := `INSERT INTO subscriptions (service_name, price, username, start_date,
+			      counter_months, user_uid, next_payment_date, is_active) 
+			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			  RETURNING id`
+	result, err := s.Db.ExecContext(ctx, query,
 		req.ServiceName, req.StartDate, req.CounterMonths, req.Price, req.IsActive, id, username)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
@@ -159,13 +157,11 @@ func (s *Storage) ListEntrys(ctx context.Context, username string, limit, offset
 	default:
 	}
 
-	rows, err := s.Db.QueryContext(ctx, `
-		SELECT service_name, price, username, start_date, counter_months, user_uid,
-			next_payment_date, is_active
-		FROM subscriptions
-		WHERE username = $3
-		LIMIT $1 OFFSET $2`,
-		limit, offset, username)
+	query := `INSERT INTO subscriptions (service_name, price, username, start_date,
+			      counter_months, user_uid, next_payment_date, is_active) 
+			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			  RETURNING id`
+	rows, err := s.Db.QueryContext(ctx, query, limit, offset, username)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -197,15 +193,14 @@ func (s *Storage) CountSumEntrys(ctx context.Context, entry models.FilterSum) (f
 
 	filterEnd := entry.StartDate.AddDate(0, entry.CounterMonths, 0)
 
-	rows, err := s.Db.QueryContext(ctx, `
-        SELECT service_name, price, start_date, counter_months
-        FROM subscriptions
-        WHERE username = $1
-		  AND is_active = true	
-          AND ($2::text IS NULL OR service_name = $2)
-          AND start_date < $3
-          AND (start_date + (counter_months || ' months')::interval) > $4
-    `, entry.Username, entry.ServiceName, filterEnd, entry.StartDate)
+	query := `SELECT service_name, price, start_date, counter_months
+              FROM subscriptions
+              WHERE username = $1
+		      	AND is_active = true	
+          		AND ($2::text IS NULL OR service_name = $2)
+          		AND start_date < $3
+          		AND (start_date + (counter_months || ' months')::interval) > $4`
+	rows, err := s.Db.QueryContext(ctx, query, entry.Username, entry.ServiceName, filterEnd, entry.StartDate)
 
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
@@ -246,12 +241,11 @@ func (s *Storage) ListAllEntrys(ctx context.Context, limit, offset int) ([]*mode
 	default:
 	}
 
-	rows, err := s.Db.QueryContext(ctx, `
-		SELECT service_name, price, username, start_date, counter_months, user_uid,
-			next_payment_date, is_active
-		FROM subscriptions
-		LIMIT $1 OFFSET $2`,
-		limit, offset)
+	query := `SELECT service_name, price, username, start_date, counter_months, user_uid,
+			      next_payment_date, is_active
+			  FROM subscriptions
+		      LIMIT $1 OFFSET $2`
+	rows, err := s.Db.QueryContext(ctx, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -286,17 +280,16 @@ func (s *Storage) FindSubscriptionExpiringTomorrow(ctx context.Context) ([]*mode
 	default:
 	}
 
-	rows, err := s.Db.QueryContext(ctx, `
-		SELECT
-			u.email,
-			s.username,
-			s.service_name,
-			(s.start_date + (s.counter_months || ' months')::INTERVAL)::DATE AS end_date,
-			s.price
-		FROM subscriptions s
-		JOIN users u ON s.username = u.username
-		WHERE (s.start_date + (s.counter_months || ' months')::INTERVAL)::DATE = CURRENT_DATE + INTERVAL '1 day';
-	`)
+	query := `SELECT
+		          u.email,
+			      s.username,
+			      s.service_name,
+			      (s.start_date + (s.counter_months || ' months')::INTERVAL)::DATE AS end_date,
+			      s.price
+			  FROM subscriptions s
+		      JOIN users u ON s.username = u.username
+		      WHERE (s.start_date + (s.counter_months || ' months')::INTERVAL)::DATE = CURRENT_DATE + INTERVAL '1 day';`
+	rows, err := s.Db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -328,13 +321,11 @@ func (s *Storage) FindOldNextPaymentDate(ctx context.Context) ([]*models.Entry, 
 	default:
 	}
 
-	rows, err := s.Db.QueryContext(ctx, `
-		SELECT id, service_name, price, username, start_date, counter_months,
-			user_uid, next_payment_date, is_active
-		FROM subscriptions
-		WHERE next_payment_date = CURRENT_DATE
-		AND counter_months > 1;
-	`)
+	query := `INSERT INTO subscriptions (service_name, price, username, start_date,
+			      counter_months, user_uid, next_payment_date, is_active) 
+			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			  RETURNING id`
+	rows, err := s.Db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -366,10 +357,10 @@ func (s *Storage) UpdateNextPaymentDate(ctx context.Context, entry *models.Entry
 	default:
 	}
 
-	res, err := s.Db.ExecContext(ctx, `
-		UPDATE subscriptions
-		SET next_payment_date = $1
-		WHERE id = $2`, entry.NextPaymentDate, entry.ID)
+	query := `UPDATE subscriptions
+		      SET next_payment_date = $1
+		      WHERE id = $2`
+	res, err := s.Db.ExecContext(ctx, query, entry.NextPaymentDate, entry.ID)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
@@ -389,12 +380,12 @@ func (s *Storage) GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID 
 	default:
 	}
 
+	query := `SELECT id
+		      FROM subscriptions
+			  WHERE user_uid = $1
+		  	    AND service_name = $2`
 	var res string
-	row := s.Db.QueryRowContext(ctx, `
-		SELECT id
-		FROM subscriptions
-		WHERE user_uid = $1
-		  AND service_name = $2`, userUID, serviceName)
+	row := s.Db.QueryRowContext(ctx, query, userUID, serviceName)
 	if err := row.Scan(&res); err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
@@ -413,11 +404,11 @@ func (s *Storage) RegisterUser(ctx context.Context, user models.User) (string, e
 	}
 
 	var newID string
-	if err := s.Db.QueryRowContext(ctx, `
-			INSERT INTO users (email, username, password_hash, role, trial_end_date,
-				subscription_status) 
-			VALUES ($1, $2, $3, $4, $5, $6)
-			RETURNING uid;`,
+	query := `INSERT INTO users (email, username, password_hash, role, trial_end_date,
+			      subscription_status) 
+			  VALUES ($1, $2, $3, $4, $5, $6)
+			  RETURNING uid;`
+	if err := s.Db.QueryRowContext(ctx, query,
 		user.Email, user.Username, user.PasswordHash, user.Role, user.TrialEndDate,
 		user.SubscriptionStatus).Scan(&newID); err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)
@@ -434,12 +425,12 @@ func (s *Storage) GetUserByUsername(ctx context.Context, username string) (*mode
 	default:
 	}
 
+	query := `SELECT uid, email, username, password_hash, role, trial_end_date,
+			      subscription_status, subscription_expiry
+			  FROM users
+			  WHERE username = $1`
 	u := &models.User{}
-	row := s.Db.QueryRowContext(ctx, `
-		SELECT uid, email, username, password_hash, role, trial_end_date,
-			subscription_status, subscription_expiry
-		FROM users
-		WHERE username = $1`, username)
+	row := s.Db.QueryRowContext(ctx, query, username)
 
 	var trialEndDate, subscriptionExpiry sql.NullTime
 	if err := row.Scan(&u.UUID, &u.Email, &u.Username, &u.PasswordHash,
@@ -465,12 +456,12 @@ func (s *Storage) GetUser(ctx context.Context, userUID string) (*models.User, er
 	default:
 	}
 
+	query := `SELECT uid, email, username, password_hash, role, trial_end_date,
+			      subscription_status, subscription_expiry
+			  FROM users
+			  WHERE uid = $1`
 	u := &models.User{}
-	row := s.Db.QueryRowContext(ctx, `
-		SELECT uid, email, username, password_hash, role, trial_end_date,
-			subscription_status, subscription_expiry
-		FROM users
-		WHERE uid = $1`, userUID)
+	row := s.Db.QueryRowContext(ctx, query, userUID)
 
 	var trialEndDate, subscriptionExpiry sql.NullTime
 	if err := row.Scan(&u.UUID, &u.Email, &u.Username, &u.PasswordHash,
@@ -496,13 +487,12 @@ func (s *Storage) FindSubscriptionExpiringToday(ctx context.Context) ([]*models.
 	default:
 	}
 
-	rows, err := s.Db.QueryContext(ctx, `
-	SELECT
-		uid, email, username, password_hash, role, trial_end_date,
-			subscription_status, subscription_expiry
-	FROM users
-	WHERE trial_end_date::DATE = CURRENT_DATE;
-	`)
+	query := `SELECT
+			      uid, email, username, password_hash, role, trial_end_date,
+			      subscription_status, subscription_expiry
+			  FROM users
+		      WHERE trial_end_date::DATE = CURRENT_DATE;`
+	rows, err := s.Db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -542,12 +532,11 @@ func (s *Storage) UpdateStatusActiveForSubscription(ctx context.Context, userUID
 	default:
 	}
 
-	_, err := s.Db.ExecContext(ctx, `
-		UPDATE users
-		SET subscription_status = $1,
-			subscription_expiry = subscription_expiry + INTERVAL '1 month'
-		WHERE uid = $2`,
-		status, userUID)
+	query := `UPDATE users
+		      SET subscription_status = $1,
+			      subscription_expiry = subscription_expiry + INTERVAL '1 month'
+			  WHERE uid = $2`
+	_, err := s.Db.ExecContext(ctx, query, status, userUID)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -563,11 +552,10 @@ func (s *Storage) UpdateStatusCancelForSubscription(ctx context.Context, userUID
 	default:
 	}
 
-	_, err := s.Db.ExecContext(ctx, `
-		UPDATE users
-		SET subscription_status = $1
-		WHERE uid = $2`,
-		status, userUID)
+	query := `UPDATE users
+			  SET subscription_status = $1
+		      WHERE uid = $2`
+	_, err := s.Db.ExecContext(ctx, query, status, userUID)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -583,12 +571,12 @@ func (s *Storage) GetSubscriptionStatus(ctx context.Context, userUID string) (st
 	default:
 	}
 
+	query := `INSERT INTO subscriptions (service_name, price, username, start_date,
+			      counter_months, user_uid, next_payment_date, is_active) 
+			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			  RETURNING id`
 	var res string
-	err := s.Db.QueryRowContext(ctx, `
-		SELECT subscription_status
-		FROM users
-		WHERE uid = $1
-	`, userUID).Scan(&res)
+	err := s.Db.QueryRowContext(ctx, query, userUID).Scan(&res)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
@@ -606,10 +594,10 @@ func (s *Storage) FindPaymentToken(ctx context.Context, userUID string, token st
 	default:
 	}
 
+	query := `SELECT id FROM yookassa_payment_tokens 
+			  WHERE user_uid = $1 AND token = $2`
 	var id int
-	err := s.Db.QueryRowContext(ctx, `
-		SELECT id FROM yookassa_payment_tokens 
-		WHERE user_uid = $1 AND token = $2`, userUID, token).Scan(&id)
+	err := s.Db.QueryRowContext(ctx, query, userUID, token).Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return 0, false, nil
@@ -628,10 +616,10 @@ func (s *Storage) CreatePaymentToken(ctx context.Context, userUID string, token 
 	default:
 	}
 
+	query := `INSERT INTO yookassa_payment_tokens (user_uid, token) 
+			  VALUES ($1, $2) RETURNING id`
 	var newID int
-	err := s.Db.QueryRowContext(ctx, `
-		INSERT INTO yookassa_payment_tokens (user_uid, token) 
-		VALUES ($1, $2) RETURNING id`, userUID, token).Scan(&newID)
+	err := s.Db.QueryRowContext(ctx, query, userUID, token).Scan(&newID)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
@@ -647,10 +635,10 @@ func (s *Storage) ListPaymentTokens(ctx context.Context, userUID string) ([]*mod
 	default:
 	}
 
-	rows, err := s.Db.QueryContext(ctx, `
-		SELECT id, user_uid, token, created_at 
-		FROM yookassa_payment_tokens 
-		WHERE user_uid = $1`, userUID)
+	query := `SELECT id, user_uid, token, created_at 
+			  FROM yookassa_payment_tokens 
+		      WHERE user_uid = $1`
+	rows, err := s.Db.QueryContext(ctx, query, userUID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -691,10 +679,10 @@ func (s *Storage) SavePayment(ctx context.Context, payload *paymentwebhook.Paylo
 	}
 	amountInKopecks := int64(amount * 100) // конвертируем в копейки
 
+	query := `INSERT INTO yookassa_payments (user_uid, payment_id, status, amount, currency, created_at) 
+			  VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id`
 	var newID int
-	err = s.Db.QueryRowContext(ctx, `
-		INSERT INTO yookassa_payments (user_uid, payment_id, status, amount, currency, created_at) 
-		VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id`,
+	err = s.Db.QueryRowContext(ctx, query,
 		userUID, payload.Object.ID, payload.Object.Status, amountInKopecks,
 		payload.Object.Amount.Currency).Scan(&newID)
 	if err != nil {
