@@ -59,6 +59,12 @@ func CheckDatabaseReady(storage *Storage) error {
 // CreateEntry вставляет новую запись подписки и возвращает её ID.
 func (s *Storage) CreateEntry(ctx context.Context, entry models.Entry) (int, error) {
 	const op = "storage.CreateEntry"
+	select {
+	case <-ctx.Done():
+		return 0, fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
+
 	var newID int
 	err := s.Db.QueryRowContext(ctx, `
 			INSERT INTO subscriptions (service_name, price, username, start_date,
@@ -76,6 +82,12 @@ func (s *Storage) CreateEntry(ctx context.Context, entry models.Entry) (int, err
 // RemoveEntry удаляет подписку по ID и возвращает количество удалённых строк.
 func (s *Storage) RemoveEntry(ctx context.Context, id int) (int, error) {
 	const op = "storage.RemoveEntry"
+	select {
+	case <-ctx.Done():
+		return 0, fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
+
 	result, err := s.Db.ExecContext(ctx, `DELETE FROM subscriptions WHERE id = $1`, id)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
@@ -90,6 +102,12 @@ func (s *Storage) RemoveEntry(ctx context.Context, id int) (int, error) {
 // ReadEntry возвращает данные подписки по её ID.
 func (s *Storage) ReadEntry(ctx context.Context, id int) (*models.Entry, error) {
 	const op = "storage.ReadEntry"
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
+
 	row := s.Db.QueryRowContext(ctx, `
 		SELECT service_name, price, username, start_date, counter_months,
 			user_uid, next_payment_date, is_active
@@ -106,6 +124,11 @@ func (s *Storage) ReadEntry(ctx context.Context, id int) (*models.Entry, error) 
 // UpdateEntry обновляет данные подписки по её ID и возвращает количество изменённых строк.
 func (s *Storage) UpdateEntry(ctx context.Context, req models.Entry, id int, username string) (int, error) {
 	const op = "storage.UpdateEntry"
+	select {
+	case <-ctx.Done():
+		return 0, fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
 
 	result, err := s.Db.ExecContext(ctx, `
 		UPDATE subscriptions
@@ -130,6 +153,12 @@ func (s *Storage) UpdateEntry(ctx context.Context, req models.Entry, id int, use
 // ListEntrys возвращает список всех подписок пользователя с пагинацией.
 func (s *Storage) ListEntrys(ctx context.Context, username string, limit, offset int) ([]*models.Entry, error) {
 	const op = "storage.ListEntrys"
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
+
 	rows, err := s.Db.QueryContext(ctx, `
 		SELECT service_name, price, username, start_date, counter_months, user_uid,
 			next_payment_date, is_active
@@ -160,6 +189,12 @@ func (s *Storage) ListEntrys(ctx context.Context, username string, limit, offset
 // CountSumEntrys подсчитывает суммарную стоимость подписок пользователя за выбранный период с учётом фильтров.
 func (s *Storage) CountSumEntrys(ctx context.Context, entry models.FilterSum) (float64, error) {
 	const op = "storage.CountSumEntrys"
+	select {
+	case <-ctx.Done():
+		return 0.0, fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
+
 	filterEnd := entry.StartDate.AddDate(0, entry.CounterMonths, 0)
 
 	rows, err := s.Db.QueryContext(ctx, `
@@ -205,6 +240,12 @@ func (s *Storage) CountSumEntrys(ctx context.Context, entry models.FilterSum) (f
 // ListAllEntrys возвращает список всех подписок с пагинацией.
 func (s *Storage) ListAllEntrys(ctx context.Context, limit, offset int) ([]*models.Entry, error) {
 	const op = "storage.ListAllEntrys"
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
+
 	rows, err := s.Db.QueryContext(ctx, `
 		SELECT service_name, price, username, start_date, counter_months, user_uid,
 			next_payment_date, is_active
@@ -239,6 +280,12 @@ func (s *Storage) ListAllEntrys(ctx context.Context, limit, offset int) ([]*mode
 // FindSubscriptionExpiringTomorrow находит подписки, истекающие завтра
 func (s *Storage) FindSubscriptionExpiringTomorrow(ctx context.Context) ([]*models.EntryInfo, error) {
 	const op = "storage.FindSubscriptionExpiringTomorrow"
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
+
 	rows, err := s.Db.QueryContext(ctx, `
 		SELECT
 			u.email,
@@ -275,6 +322,12 @@ func (s *Storage) FindSubscriptionExpiringTomorrow(ctx context.Context) ([]*mode
 // FindOldNextPaymentDate находит подписки со старыми датами платежей
 func (s *Storage) FindOldNextPaymentDate(ctx context.Context) ([]*models.Entry, error) {
 	const op = "storage.FindOldNextPaymentDate"
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
+
 	rows, err := s.Db.QueryContext(ctx, `
 		SELECT id, service_name, price, username, start_date, counter_months,
 			user_uid, next_payment_date, is_active
@@ -307,6 +360,11 @@ func (s *Storage) FindOldNextPaymentDate(ctx context.Context) ([]*models.Entry, 
 // UpdateNextPaymentDate обновляет дату следующего платежа
 func (s *Storage) UpdateNextPaymentDate(ctx context.Context, entry *models.Entry) (int, error) {
 	const op = "storage.UpdateNextPaymentDate"
+	select {
+	case <-ctx.Done():
+		return 0, fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
 
 	res, err := s.Db.ExecContext(ctx, `
 		UPDATE subscriptions
@@ -325,6 +383,12 @@ func (s *Storage) UpdateNextPaymentDate(ctx context.Context, entry *models.Entry
 // GetActiveSubscriptionIDByUserUID получает ID активной подписки пользователя
 func (s *Storage) GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID string, serviceName string) (string, error) {
 	const op = "storage.GetActiveSubscriptionIDByUserUID"
+	select {
+	case <-ctx.Done():
+		return "", fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
+
 	var res string
 	row := s.Db.QueryRowContext(ctx, `
 		SELECT id
@@ -342,6 +406,12 @@ func (s *Storage) GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID 
 // RegisterUser сохраняет нового пользователя в базу данных и возвращает его ID.
 func (s *Storage) RegisterUser(ctx context.Context, user models.User) (string, error) {
 	const op = "storage.RegisterUser"
+	select {
+	case <-ctx.Done():
+		return "", fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
+
 	var newID string
 	if err := s.Db.QueryRowContext(ctx, `
 			INSERT INTO users (email, username, password_hash, role, trial_end_date,
@@ -358,6 +428,12 @@ func (s *Storage) RegisterUser(ctx context.Context, user models.User) (string, e
 // GetUserByUsername возвращает пользователя по его username.
 func (s *Storage) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
 	const op = "storage.GetUserByUsername"
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
+
 	u := &models.User{}
 	row := s.Db.QueryRowContext(ctx, `
 		SELECT uid, email, username, password_hash, role, trial_end_date,
@@ -383,6 +459,12 @@ func (s *Storage) GetUserByUsername(ctx context.Context, username string) (*mode
 // GetUser возвращает пользователя по его UID.
 func (s *Storage) GetUser(ctx context.Context, userUID string) (*models.User, error) {
 	const op = "storage.GetUser"
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
+
 	u := &models.User{}
 	row := s.Db.QueryRowContext(ctx, `
 		SELECT uid, email, username, password_hash, role, trial_end_date,
@@ -408,6 +490,12 @@ func (s *Storage) GetUser(ctx context.Context, userUID string) (*models.User, er
 // FindSubscriptionExpiringToday находит пользователей с истекающим сегодня пробным периодом
 func (s *Storage) FindSubscriptionExpiringToday(ctx context.Context) ([]*models.User, error) {
 	const op = "storage.FindSubscriptionExpiringToday"
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
+
 	rows, err := s.Db.QueryContext(ctx, `
 	SELECT
 		uid, email, username, password_hash, role, trial_end_date,
@@ -448,6 +536,12 @@ func (s *Storage) FindSubscriptionExpiringToday(ctx context.Context) ([]*models.
 // UpdateStatusActiveForSubscription обновляет статус подписки на активный
 func (s *Storage) UpdateStatusActiveForSubscription(ctx context.Context, userUID, status string) error {
 	const op = "storage.UpdateStatusActiveForSubscription"
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
+
 	_, err := s.Db.ExecContext(ctx, `
 		UPDATE users
 		SET subscription_status = $1,
@@ -463,6 +557,12 @@ func (s *Storage) UpdateStatusActiveForSubscription(ctx context.Context, userUID
 // UpdateStatusCancelForSubscription обновляет статус подписки на отмененный
 func (s *Storage) UpdateStatusCancelForSubscription(ctx context.Context, userUID, status string) error {
 	const op = "storage.UpdateStatusCancelForSubscription"
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
+
 	_, err := s.Db.ExecContext(ctx, `
 		UPDATE users
 		SET subscription_status = $1
@@ -477,6 +577,12 @@ func (s *Storage) UpdateStatusCancelForSubscription(ctx context.Context, userUID
 // GetSubscriptionStatus получает статус подписки пользователя
 func (s *Storage) GetSubscriptionStatus(ctx context.Context, userUID string) (string, error) {
 	const op = "storage.GetSubscriptionStatus"
+	select {
+	case <-ctx.Done():
+		return "", fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
+
 	var res string
 	err := s.Db.QueryRowContext(ctx, `
 		SELECT subscription_status
@@ -494,6 +600,12 @@ func (s *Storage) GetSubscriptionStatus(ctx context.Context, userUID string) (st
 // FindPaymentToken находит токен платежа
 func (s *Storage) FindPaymentToken(ctx context.Context, userUID string, token string) (int, bool, error) {
 	const op = "storage.FindPaymentToken"
+	select {
+	case <-ctx.Done():
+		return 0, false, fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
+
 	var id int
 	err := s.Db.QueryRowContext(ctx, `
 		SELECT id FROM yookassa_payment_tokens 
@@ -510,6 +622,12 @@ func (s *Storage) FindPaymentToken(ctx context.Context, userUID string, token st
 // CreatePaymentToken создает новый токен платежа
 func (s *Storage) CreatePaymentToken(ctx context.Context, userUID string, token string) (int, error) {
 	const op = "storage.CreatePaymentToken"
+	select {
+	case <-ctx.Done():
+		return 0, fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
+
 	var newID int
 	err := s.Db.QueryRowContext(ctx, `
 		INSERT INTO yookassa_payment_tokens (user_uid, token) 
@@ -523,6 +641,12 @@ func (s *Storage) CreatePaymentToken(ctx context.Context, userUID string, token 
 // ListPaymentTokens возвращает список токенов платежей пользователя
 func (s *Storage) ListPaymentTokens(ctx context.Context, userUID string) ([]*models.PaymentToken, error) {
 	const op = "storage.ListPaymentTokens"
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
+
 	rows, err := s.Db.QueryContext(ctx, `
 		SELECT id, user_uid, token, created_at 
 		FROM yookassa_payment_tokens 
@@ -548,6 +672,11 @@ func (s *Storage) ListPaymentTokens(ctx context.Context, userUID string) ([]*mod
 // SavePayment сохраняет информацию о платеже
 func (s *Storage) SavePayment(ctx context.Context, payload *paymentwebhook.Payload) (int, error) {
 	const op = "storage.SavePayment"
+	select {
+	case <-ctx.Done():
+		return 0, fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
 
 	// Извлекаем user_uid из метаданных
 	userUID, exists := payload.Object.Metadata["user_uid"]
