@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/rabbitmq"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/rabbitmq"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 	"github.com/streadway/amqp"

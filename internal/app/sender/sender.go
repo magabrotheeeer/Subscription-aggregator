@@ -6,7 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/rabbitmq"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/rabbitmq"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/smtp"
 	senderservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/sender"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"

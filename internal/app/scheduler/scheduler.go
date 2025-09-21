@@ -9,7 +9,7 @@ import (
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/cache"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/rabbitmq"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/rabbitmq"
 	schedulerservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/scheduler"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
 	"github.com/streadway/amqp"
