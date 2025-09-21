@@ -88,7 +88,7 @@ func TestCache_Get(t *testing.T) {
 
 	data := &dummy{Field: "test"}
 	testdata, _ := json.Marshal(data)
-	require.NoError(t, c.Db.Set(ctx, "key1", testdata, time.Minute).Err())
+	require.NoError(t, c.DB.Set(ctx, "key1", testdata, time.Minute).Err())
 
 	tests := []struct {
 		name      string
@@ -122,7 +122,7 @@ func TestCache_Invalidate(t *testing.T) {
 
 	data := &dummy{Field: "test"}
 	testdata, _ := json.Marshal(data)
-	require.NoError(t, c.Db.Set(ctx, "key1", testdata, time.Minute).Err())
+	require.NoError(t, c.DB.Set(ctx, "key1", testdata, time.Minute).Err())
 
 	tests := []struct {
 		name    string

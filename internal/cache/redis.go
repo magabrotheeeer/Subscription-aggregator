@@ -14,7 +14,7 @@ import (
 // Cache представляет собой обёртку над клиентом Redis.
 // Содержит подключение к базе данных Redis.
 type Cache struct {
-	Db *redis.Client
+	DB *redis.Client
 }
 
 // InitServer инициализирует подключение к Redis и возвращает структуру Cache.
@@ -38,7 +38,7 @@ func InitServer(ctx context.Context, cfg config.RedisConnection) (*Cache, error)
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return &Cache{Db: db}, nil
+	return &Cache{DB: db}, nil
 }
 
 // Get получает значение из Redis по ключу key и записывает его в result.
@@ -47,7 +47,7 @@ func InitServer(ctx context.Context, cfg config.RedisConnection) (*Cache, error)
 func (c *Cache) Get(key string, result any) (bool, error) {
 	const op = "cache.Get"
 
-	val, err := c.Db.Get(context.Background(), key).Result()
+	val, err := c.DB.Get(context.Background(), key).Result()
 	if err == redis.Nil {
 		return false, nil
 	}
@@ -70,13 +70,13 @@ func (c *Cache) Set(key string, value any, expiration time.Duration) error {
 	if err != nil {
 		return err
 	}
-	return c.Db.Set(context.Background(), key, jsonData, expiration).Err()
+	return c.DB.Set(context.Background(), key, jsonData, expiration).Err()
 }
 
 // Invalidate удаляет значение из Redis по указанному ключу key.
 // Возвращает ошибку, если операция удаления не удалась.
 func (c *Cache) Invalidate(key string) error {
-	res, err := c.Db.Del(context.Background(), key).Result()
+	res, err := c.DB.Del(context.Background(), key).Result()
 	if err != nil {
 		return err
 	}

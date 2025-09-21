@@ -584,7 +584,7 @@ func TestStorage_GetSubscriptionStatus(t *testing.T) {
 			setup: func(t *testing.T, factory *TestDataFactory) string {
 				userUID := uuid.New().String()
 				// Создаем пользователя с активной подпиской
-				_, err := factory.storage.Db.Exec(`INSERT INTO users (uid, username, email, password_hash, role, subscription_status) 
+				_, err := factory.storage.DB.Exec(`INSERT INTO users (uid, username, email, password_hash, role, subscription_status) 
 					VALUES ($1, $2, $3, $4, $5, $6)`,
 					userUID, "testuser", "test@example.com", "hashedpassword", "user", "active")
 				require.NoError(t, err)
@@ -648,7 +648,7 @@ func TestStorage_UpdateStatusActiveForSubscription(t *testing.T) {
 			setup: func(t *testing.T, factory *TestDataFactory) string {
 				userUID := uuid.New().String()
 				// Создаем пользователя с trial статусом
-				_, err := factory.storage.Db.Exec(`INSERT INTO users (uid, username, email, password_hash, role, subscription_status, subscription_expiry) 
+				_, err := factory.storage.DB.Exec(`INSERT INTO users (uid, username, email, password_hash, role, subscription_status, subscription_expiry) 
 					VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 					userUID, "testuser", "test@example.com", "hashedpassword", "user", "trial", time.Now().AddDate(0, 1, 0))
 				require.NoError(t, err)
@@ -705,7 +705,7 @@ func TestStorage_UpdateStatusCancelForSubscription(t *testing.T) {
 			setup: func(t *testing.T, factory *TestDataFactory) string {
 				userUID := uuid.New().String()
 				// Создаем пользователя с активной подпиской
-				_, err := factory.storage.Db.Exec(`INSERT INTO users (uid, username, email, password_hash, role, subscription_status) 
+				_, err := factory.storage.DB.Exec(`INSERT INTO users (uid, username, email, password_hash, role, subscription_status) 
 					VALUES ($1, $2, $3, $4, $5, $6)`,
 					userUID, "testuser", "test@example.com", "hashedpassword", "user", "active")
 				require.NoError(t, err)
@@ -751,7 +751,7 @@ func TestStorage_FindSubscriptionExpiringToday(t *testing.T) {
 			wantErr:   false,
 			setup: func(_ *testing.T, factory *TestDataFactory) error {
 				userUID := uuid.New().String()
-				_, err := factory.storage.Db.Exec(`INSERT INTO users 
+				_, err := factory.storage.DB.Exec(`INSERT INTO users 
 					(uid, username, email, password_hash, role, trial_end_date, subscription_status) 
 					VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 					userUID, "testuser", "test@example.com", "hashedpassword", "user",
@@ -765,7 +765,7 @@ func TestStorage_FindSubscriptionExpiringToday(t *testing.T) {
 			wantErr:   false,
 			setup: func(_ *testing.T, factory *TestDataFactory) error {
 				userUID := uuid.New().String()
-				_, err := factory.storage.Db.Exec(`INSERT INTO users 
+				_, err := factory.storage.DB.Exec(`INSERT INTO users 
 					(uid, username, email, password_hash, role, trial_end_date, subscription_status) 
 					VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 					userUID, "testuser", "test@example.com", "hashedpassword", "user",
@@ -813,7 +813,7 @@ func TestStorage_FindOldNextPaymentDate(t *testing.T) {
 				factory.CreateUser(t, userUID, "testuser", "test@example.com", "hashedpassword", "user")
 
 				// Создаем подписку с next_payment_date = сегодня
-				_, err := factory.storage.Db.Exec(`INSERT INTO subscriptions 
+				_, err := factory.storage.DB.Exec(`INSERT INTO subscriptions 
 					(service_name, price, username, start_date, counter_months, user_uid, next_payment_date, is_active)
 					VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 					"Netflix", 1000.0, "testuser", time.Now().AddDate(0, -1, 0), 12, userUID, time.Now(), true)
@@ -830,7 +830,7 @@ func TestStorage_FindOldNextPaymentDate(t *testing.T) {
 				factory.CreateUser(t, userUID, "testuser", "test@example.com", "hashedpassword", "user")
 
 				// Создаем подписку с next_payment_date = завтра
-				_, err := factory.storage.Db.Exec(`INSERT INTO subscriptions 
+				_, err := factory.storage.DB.Exec(`INSERT INTO subscriptions 
 					(service_name, price, username, start_date, counter_months, user_uid, next_payment_date, is_active)
 					VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 					"Netflix", 1000.0, "testuser", time.Now().AddDate(0, -1, 0), 12, userUID, time.Now().AddDate(0, 0, 1), true)
@@ -927,7 +927,7 @@ func TestStorage_UpdateNextPaymentDate(t *testing.T) {
 
 			// Проверяем, что дата обновилась
 			var nextPaymentDate time.Time
-			err = storage.Db.QueryRow("SELECT next_payment_date FROM subscriptions WHERE id = $1", subscriptionID).
+			err = storage.DB.QueryRow("SELECT next_payment_date FROM subscriptions WHERE id = $1", subscriptionID).
 				Scan(&nextPaymentDate)
 			require.NoError(t, err)
 			// Сравниваем даты с точностью до дня

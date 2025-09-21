@@ -335,7 +335,7 @@ func TestStorage_RegisterUser(t *testing.T) {
 			tt.setup(t, factory)
 
 			var uid string
-			err := storage.Db.QueryRowContext(tt.args.ctx,
+			err := storage.DB.QueryRowContext(tt.args.ctx,
 				`INSERT INTO users (email, username, password_hash, role) 
 				 VALUES ($1, $2, $3, $4) RETURNING uid`,
 				tt.args.user.Email,
@@ -470,14 +470,14 @@ func TestStorage_UpdateEntry_DISABLED(t *testing.T) {
 			wantErr:          false,
 			setup: func(s *Storage) int {
 				// Создаем пользователя
-				_, err := s.Db.Exec(`INSERT INTO users (uid, username, email, password_hash, role) 
+				_, err := s.DB.Exec(`INSERT INTO users (uid, username, email, password_hash, role) 
 					VALUES ($1, $2, $3, $4, $5)`,
 					userUID, "testuser", "test@example.com", "hashedpassword", "user")
 				require.NoError(t, err)
 
 				// Создаем подписку
 				var id int
-				err = s.Db.QueryRow(`INSERT INTO subscriptions 
+				err = s.DB.QueryRow(`INSERT INTO subscriptions 
 					(service_name, price, username, start_date, counter_months, user_uid, next_payment_date, is_active)
 					VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
 					"Netflix", 1000, "testuser", startDate, 12, userUID, startDate, true).Scan(&id)
@@ -488,7 +488,7 @@ func TestStorage_UpdateEntry_DISABLED(t *testing.T) {
 				var serviceName string
 				var price float64
 				var counterMonths int
-				err := s.Db.QueryRow("SELECT service_name, price, counter_months FROM subscriptions WHERE id = $1", id).
+				err := s.DB.QueryRow("SELECT service_name, price, counter_months FROM subscriptions WHERE id = $1", id).
 					Scan(&serviceName, &price, &counterMonths)
 				require.NoError(t, err)
 				assert.Equal(t, "Netflix Updated", serviceName)
@@ -560,13 +560,13 @@ func TestCheckDatabaseReady(t *testing.T) {
 			name: "table missing",
 			setup: func(t *testing.T, storage *Storage) {
 				// Удаляем таблицы в правильном порядке, учитывая foreign key constraints
-				_, err := storage.Db.Exec(`DROP TABLE IF EXISTS yookassa_payments CASCADE`)
+				_, err := storage.DB.Exec(`DROP TABLE IF EXISTS yookassa_payments CASCADE`)
 				require.NoError(t, err)
-				_, err = storage.Db.Exec(`DROP TABLE IF EXISTS yookassa_payment_tokens CASCADE`)
+				_, err = storage.DB.Exec(`DROP TABLE IF EXISTS yookassa_payment_tokens CASCADE`)
 				require.NoError(t, err)
-				_, err = storage.Db.Exec(`DROP TABLE IF EXISTS subscriptions CASCADE`)
+				_, err = storage.DB.Exec(`DROP TABLE IF EXISTS subscriptions CASCADE`)
 				require.NoError(t, err)
-				_, err = storage.Db.Exec(`DROP TABLE IF EXISTS users CASCADE`)
+				_, err = storage.DB.Exec(`DROP TABLE IF EXISTS users CASCADE`)
 				require.NoError(t, err)
 			},
 			wantError:    true,
@@ -607,7 +607,7 @@ func TestStorage_FindSubscriptionExpiringTomorrow(t *testing.T) {
 				factory.CreateUser(t, userUID, "testuser", "test@example.com", "somehash", "user")
 
 				// Создаем подписку, которая истекает завтра
-				_, err := factory.storage.Db.Exec(`
+				_, err := factory.storage.DB.Exec(`
 					INSERT INTO subscriptions 
 						(service_name, price, username, start_date, counter_months, user_uid, next_payment_date, is_active) 
 					VALUES 

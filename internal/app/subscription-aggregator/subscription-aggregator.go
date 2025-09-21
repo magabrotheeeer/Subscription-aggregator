@@ -36,7 +36,7 @@ func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, er
 	if err != nil {
 		return nil, err
 	}
-	if err = migrations.Run(db.Db, "./migrations"); err != nil {
+	if err = migrations.Run(db.DB, "./migrations"); err != nil {
 		return nil, err
 	}
 
@@ -99,7 +99,7 @@ func (a *App) Run(ctx context.Context) error {
 		defer cancel()
 		a.logger.Info("shutting down HTTP server gracefully")
 		err := a.server.Shutdown(timeoutCtx)
-		if closeErr := a.db.Db.Close(); closeErr != nil {
+		if closeErr := a.db.DB.Close(); closeErr != nil {
 			a.logger.Error("failed to close database connection", "error", closeErr)
 		}
 		return err

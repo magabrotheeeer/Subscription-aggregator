@@ -24,7 +24,7 @@ func NewTestDataFactory(storage *Storage) *TestDataFactory {
 
 // CreateUser создает тестового пользователя
 func (f *TestDataFactory) CreateUser(t *testing.T, userUID, username, email, passwordHash, role string) {
-	_, err := f.storage.Db.Exec(`INSERT INTO users (uid, username, email, password_hash, role) 
+	_, err := f.storage.DB.Exec(`INSERT INTO users (uid, username, email, password_hash, role) 
 		VALUES ($1, $2, $3, $4, $5)`,
 		userUID, username, email, passwordHash, role)
 	require.NoError(t, err)
@@ -33,7 +33,7 @@ func (f *TestDataFactory) CreateUser(t *testing.T, userUID, username, email, pas
 // CreateUserWithSubscription создает пользователя с полными данными подписки
 func (f *TestDataFactory) CreateUserWithSubscription(t *testing.T, userUID, username, email, passwordHash, role string,
 	trialEndDate, subscriptionExpiry time.Time, subscriptionStatus string) {
-	_, err := f.storage.Db.Exec(`INSERT INTO users 
+	_, err := f.storage.DB.Exec(`INSERT INTO users 
 		(uid, username, email, password_hash, role, trial_end_date, subscription_status, subscription_expiry)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 		userUID, username, email, passwordHash, role, trialEndDate, subscriptionStatus, subscriptionExpiry)
@@ -44,7 +44,7 @@ func (f *TestDataFactory) CreateUserWithSubscription(t *testing.T, userUID, user
 func (f *TestDataFactory) CreateSubscription(t *testing.T, serviceName string, price float64, username string,
 	startDate time.Time, counterMonths int, userUID string, nextPaymentDate time.Time, isActive bool) int {
 	var id int
-	err := f.storage.Db.QueryRow(`INSERT INTO subscriptions 
+	err := f.storage.DB.QueryRow(`INSERT INTO subscriptions 
 		(service_name, price, username, start_date, counter_months, user_uid, next_payment_date, is_active)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
 		serviceName, price, username, startDate, counterMonths, userUID, nextPaymentDate, isActive).Scan(&id)
@@ -54,7 +54,7 @@ func (f *TestDataFactory) CreateSubscription(t *testing.T, serviceName string, p
 
 // CreatePaymentToken создает тестовый токен платежа
 func (f *TestDataFactory) CreatePaymentToken(t *testing.T, userUID, token string) {
-	_, err := f.storage.Db.Exec(`INSERT INTO yookassa_payment_tokens (user_uid, token) 
+	_, err := f.storage.DB.Exec(`INSERT INTO yookassa_payment_tokens (user_uid, token) 
 		VALUES ($1, $2)`,
 		userUID, token)
 	require.NoError(t, err)
@@ -131,7 +131,7 @@ func NewTestVerification(storage *Storage) *TestVerification {
 // VerifyUserExists проверяет существование пользователя в БД
 func (v *TestVerification) VerifyUserExists(t *testing.T, userUID string) {
 	var count int
-	err := v.storage.Db.QueryRow("SELECT COUNT(*) FROM users WHERE uid = $1", userUID).Scan(&count)
+	err := v.storage.DB.QueryRow("SELECT COUNT(*) FROM users WHERE uid = $1", userUID).Scan(&count)
 	require.NoError(t, err)
 	require.Equal(t, 1, count)
 }
@@ -139,7 +139,7 @@ func (v *TestVerification) VerifyUserExists(t *testing.T, userUID string) {
 // VerifySubscriptionExists проверяет существование подписки в БД
 func (v *TestVerification) VerifySubscriptionExists(t *testing.T, subscriptionID int) {
 	var count int
-	err := v.storage.Db.QueryRow("SELECT COUNT(*) FROM subscriptions WHERE id = $1", subscriptionID).Scan(&count)
+	err := v.storage.DB.QueryRow("SELECT COUNT(*) FROM subscriptions WHERE id = $1", subscriptionID).Scan(&count)
 	require.NoError(t, err)
 	require.Equal(t, 1, count)
 }
@@ -147,7 +147,7 @@ func (v *TestVerification) VerifySubscriptionExists(t *testing.T, subscriptionID
 // VerifySubscriptionDeleted проверяет удаление подписки из БД
 func (v *TestVerification) VerifySubscriptionDeleted(t *testing.T, subscriptionID int) {
 	var count int
-	err := v.storage.Db.QueryRow("SELECT COUNT(*) FROM subscriptions WHERE id = $1", subscriptionID).Scan(&count)
+	err := v.storage.DB.QueryRow("SELECT COUNT(*) FROM subscriptions WHERE id = $1", subscriptionID).Scan(&count)
 	require.NoError(t, err)
 	require.Equal(t, 0, count)
 }
@@ -158,7 +158,7 @@ func (v *TestVerification) VerifySubscriptionData(t *testing.T, subscriptionID i
 	var serviceName string
 	var price float64
 	var counterMonths int
-	err := v.storage.Db.QueryRow("SELECT service_name, price, counter_months FROM subscriptions WHERE id = $1", subscriptionID).
+	err := v.storage.DB.QueryRow("SELECT service_name, price, counter_months FROM subscriptions WHERE id = $1", subscriptionID).
 		Scan(&serviceName, &price, &counterMonths)
 	require.NoError(t, err)
 	require.Equal(t, expectedServiceName, serviceName)
@@ -169,7 +169,7 @@ func (v *TestVerification) VerifySubscriptionData(t *testing.T, subscriptionID i
 // VerifyUserSubscriptionStatus проверяет статус подписки пользователя
 func (v *TestVerification) VerifyUserSubscriptionStatus(t *testing.T, userUID, expectedStatus string) {
 	var status string
-	err := v.storage.Db.QueryRow("SELECT subscription_status FROM users WHERE uid = $1", userUID).
+	err := v.storage.DB.QueryRow("SELECT subscription_status FROM users WHERE uid = $1", userUID).
 		Scan(&status)
 	require.NoError(t, err)
 	require.Equal(t, expectedStatus, status)
@@ -213,7 +213,7 @@ func setupTestDatabase(t *testing.T) (*Storage, func()) {
 		storage, err = New(connStr)
 		if err == nil {
 			// Проверяем, что подключение действительно работает
-			err = storage.Db.Ping()
+			err = storage.DB.Ping()
 			if err == nil {
 				break
 			}
@@ -223,7 +223,7 @@ func setupTestDatabase(t *testing.T) (*Storage, func()) {
 	require.NoError(t, err, "Failed to create storage after retries")
 
 	// Создаем таблицы
-	_, err = storage.Db.Exec(`
+	_, err = storage.DB.Exec(`
         DROP TABLE IF EXISTS yookassa_payments CASCADE;
         DROP TABLE IF EXISTS yookassa_payment_tokens CASCADE;
         DROP TABLE IF EXISTS subscriptions CASCADE;
@@ -282,8 +282,8 @@ func setupTestDatabase(t *testing.T) (*Storage, func()) {
 	require.NoError(t, err, "Failed to create tables")
 
 	cleanup := func() {
-		if storage != nil && storage.Db != nil {
-			_ = storage.Db.Close()
+		if storage != nil && storage.DB != nil {
+			_ = storage.DB.Close()
 		}
 		if postgresContainer != nil {
 			_ = postgresContainer.Terminate(ctx)
