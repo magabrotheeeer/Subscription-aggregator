@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strconv"
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/payment/paymentwebhook"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
@@ -16,7 +17,7 @@ type SubscriptionRepository interface {
 	CreatePaymentToken(ctx context.Context, userUID string, token string) (int, error)
 	ListPaymentTokens(ctx context.Context, userUID string) ([]*models.PaymentToken, error)
 	GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID, serviceName string) (string, error)
-	SavePayment(ctx context.Context, payload *paymentwebhook.Payload) (int, error)
+	SavePayment(ctx context.Context, payload *paymentwebhook.Payload, amount int64, userUID string) (int, error)
 	UpdateStatusActiveForSubscription(ctx context.Context, userUID, status string) error
 	UpdateStatusCancelForSubscription(ctx context.Context, userUID, status string) error
 }
@@ -64,7 +65,17 @@ func (s *Service) GetActiveSubscriptionIDByUserUID(ctx context.Context, userUID 
 
 // SavePayment сохраняет информацию о платеже.
 func (s *Service) SavePayment(ctx context.Context, payload *paymentwebhook.Payload) (int, error) {
-	return s.repo.SavePayment(ctx, payload)
+	userUID, exists := payload.Object.Metadata["user_uid"]
+	if !exists || userUID == "" {
+		return 0, fmt.Errorf("user_uid not found in metadata")
+	}
+
+	amount, err := strconv.ParseFloat(payload.Object.Amount.Value, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid amount format: %w", err)
+	}
+	amountInKopecks := int64(amount * 100)
+	return s.repo.SavePayment(ctx, payload, amountInKopecks, userUID)
 }
 
 // UpdateStatusActiveForSubscription обновляет статус подписки на активный.
