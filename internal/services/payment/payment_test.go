@@ -40,9 +40,9 @@ func (m *MockRepository) GetActiveSubscriptionIDByUserUID(ctx context.Context, u
 	return args.String(0), args.Error(1)
 }
 
-func (m *MockRepository) SavePayment(ctx context.Context, payload *paymentwebhook.Payload) (int, error) {
-	args := m.Called(ctx, payload)
-	return args.Int(0), args.Error(1)
+func (m *MockRepository) SavePayment(ctx context.Context, payload *paymentwebhook.Payload, amount int64, userUID string) (int, error) {
+	args := m.Called(ctx, payload, amount, userUID)
+	return args.Int(0), args.Error(1) 
 }
 
 func (m *MockRepository) UpdateStatusActiveForSubscription(ctx context.Context, userUID, status string) error {

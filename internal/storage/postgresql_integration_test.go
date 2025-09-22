@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
 
@@ -483,8 +484,9 @@ func TestStorage_SavePayment(t *testing.T) {
 			factory := NewTestDataFactory(storage)
 			userUID := tt.setup(t, factory)
 			tt.args.payload.Object.Metadata["user_uid"] = userUID
+			amount, _ := strconv.ParseFloat(tt.args.payload.Object.Amount.Value, 64)
 
-			gotID, err := storage.SavePayment(tt.args.ctx, tt.args.payload)
+			gotID, err := storage.SavePayment(tt.args.ctx, tt.args.payload, int64(amount), userUID)
 
 			if tt.wantErr {
 				require.Error(t, err)
