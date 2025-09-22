@@ -1,6 +1,8 @@
 module github.com/magabrotheeeer/subscription-aggregator
 
-go 1.23.1
+go 1.24.0
+
+toolchain go1.24.7
 
 require (
 	github.com/docker/go-connections v0.5.0
@@ -20,6 +22,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.38.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.38.0
 	golang.org/x/crypto v0.41.0
+	golang.org/x/time v0.13.0
 	google.golang.org/grpc v1.74.2
 	google.golang.org/protobuf v1.36.6
 )
