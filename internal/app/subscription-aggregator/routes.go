@@ -4,6 +4,7 @@ package subscriptionaggregator
 import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	httpSwagger "github.com/swaggo/http-swagger"
 
@@ -63,6 +64,7 @@ func RegisterRoutes(r chi.Router, logger *slog.Logger, subscriptionService *subs
 		r.Post("/payments/webhook", paymentwebhook.New(logger, paymentService, senderService, "webhook_secret").ServeHTTP)
 	})
 
+	r.Handle("/metrics", promhttp.Handler())
 	// Swagger docs endpoint
 	r.Get("/docs/*", httpSwagger.WrapHandler)
 }
