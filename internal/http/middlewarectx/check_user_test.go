@@ -60,14 +60,14 @@ func TestSubscriptionStatusMiddleware(t *testing.T) {
 				ss.On("GetSubscriptionStatus", mock.Anything, "user789").Return("expired", nil).Once()
 			},
 			expectedStatus: http.StatusForbidden,
-			expectedBody:   "Subscription expired, access denied\n",
+			expectedBody:   `{"status":"Error","error":"subscription expired, access denied"}` + "\n",
 		},
 		{
 			name:           "unauthorized - missing user UID",
 			userUID:        "",
 			setupMocks:     func(*MockSubscriptionService) {},
 			expectedStatus: http.StatusUnauthorized,
-			expectedBody:   "User identification missing\n",
+			expectedBody:   `{"status":"Error","error":"user identification missing"}` + "\n",
 		},
 		{
 			name:    "internal server error - service error",
@@ -76,7 +76,7 @@ func TestSubscriptionStatusMiddleware(t *testing.T) {
 				ss.On("GetSubscriptionStatus", mock.Anything, "user999").Return("", errors.New("service error")).Once()
 			},
 			expectedStatus: http.StatusInternalServerError,
-			expectedBody:   "Internal server error\n",
+			expectedBody:   `{"status":"Error","error":"internal service error"}` + "\n",
 		},
 	}
 
@@ -135,19 +135,19 @@ func TestSubscriptionStatusMiddleware_ContextHandling(t *testing.T) {
 			name:           "nil context value",
 			contextValue:   nil,
 			expectedStatus: http.StatusUnauthorized,
-			expectedBody:   "User identification missing\n",
+			expectedBody:   `{"status":"Error","error":"user identification missing"}` + "\n",
 		},
 		{
 			name:           "non-string context value",
 			contextValue:   123,
 			expectedStatus: http.StatusUnauthorized,
-			expectedBody:   "User identification missing\n",
+			expectedBody:   `{"status":"Error","error":"user identification missing"}` + "\n",
 		},
 		{
 			name:           "empty string user UID",
 			contextValue:   "",
 			expectedStatus: http.StatusUnauthorized,
-			expectedBody:   "User identification missing\n",
+			expectedBody:   `{"status":"Error","error":"user identification missing"}` + "\n",
 		},
 	}
 
@@ -204,7 +204,7 @@ func TestSubscriptionStatusMiddleware_SubscriptionStatuses(t *testing.T) {
 		{"active", http.StatusOK, "success"},
 		{"trial", http.StatusOK, "success"},
 		{"pending", http.StatusOK, "success"},
-		{"expired", http.StatusForbidden, "Subscription expired, access denied\n"},
+		{"expired", http.StatusForbidden, `{"status":"Error","error":"subscription expired, access denied"}` + "\n"},
 		{"cancelled", http.StatusOK, "success"}, // не expired, поэтому OK
 	}
 
