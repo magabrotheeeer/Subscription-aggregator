@@ -8,7 +8,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strconv"
 	"time"
 
 	// Регистрация драйвера pgx для использования с database/sql.
@@ -658,7 +657,7 @@ func (s *Storage) ListPaymentTokens(ctx context.Context, userUID string) ([]*mod
 }
 
 // SavePayment сохраняет информацию о платеже
-func (s *Storage) SavePayment(ctx context.Context, payload *paymentwebhook.Payload) (int, error) {
+func (s *Storage) SavePayment(ctx context.Context, payload *paymentwebhook.Payload, amount int64, userUID string) (int, error) {
 	const op = "storage.SavePayment"
 	select {
 	case <-ctx.Done():
@@ -666,24 +665,11 @@ func (s *Storage) SavePayment(ctx context.Context, payload *paymentwebhook.Paylo
 	default:
 	}
 
-	// Извлекаем user_uid из метаданных
-	userUID, exists := payload.Object.Metadata["user_uid"]
-	if !exists || userUID == "" {
-		return 0, fmt.Errorf("%s: user_uid not found in metadata", op)
-	}
-
-	// Конвертируем сумму в копейки (BIGINT)
-	amount, err := strconv.ParseFloat(payload.Object.Amount.Value, 64)
-	if err != nil {
-		return 0, fmt.Errorf("%s: invalid amount format: %w", op, err)
-	}
-	amountInKopecks := int64(amount * 100) // конвертируем в копейки
-
 	query := `INSERT INTO yookassa_payments (user_uid, payment_id, status, amount, currency, created_at) 
 			  VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id`
 	var newID int
-	err = s.DB.QueryRowContext(ctx, query,
-		userUID, payload.Object.ID, payload.Object.Status, amountInKopecks,
+	err := s.DB.QueryRowContext(ctx, query,
+		userUID, payload.Object.ID, payload.Object.Status, amount,
 		payload.Object.Amount.Currency).Scan(&newID)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
