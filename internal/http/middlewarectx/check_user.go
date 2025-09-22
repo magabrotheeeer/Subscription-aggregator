@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/go-chi/render"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
 
@@ -19,19 +21,24 @@ func SubscriptionStatusMiddleware(log *slog.Logger, subService SubscriptionServi
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			userUID, ok := r.Context().Value(UserUID).(string)
 			if !ok || userUID == "" {
-				http.Error(w, "User identification missing", http.StatusUnauthorized)
+				log.Error("user identification missing")
+				w.WriteHeader(http.StatusUnauthorized)
+				render.JSON(w, r, response.Error("user identification missing"))
 				return
 			}
 
 			status, err := subService.GetSubscriptionStatus(r.Context(), userUID)
 			if err != nil {
 				log.Error("failed to get subscription status", sl.Err(err))
-				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				w.WriteHeader(http.StatusInternalServerError)
+				render.JSON(w, r, response.Error("internal service error"))
 				return
 			}
 
 			if status == "expired" {
-				http.Error(w, "Subscription expired, access denied", http.StatusForbidden)
+				log.Error("subscription expired, access denied", sl.Err(err))
+				w.WriteHeader(http.StatusForbidden)
+				render.JSON(w, r, response.Error("subscription expired, access denied"))
 				return
 			}
 
