@@ -14,6 +14,7 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/payment/paymentlist"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/payment/paymentwebhook"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/create"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/health"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/list"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/read"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/remove"
@@ -63,6 +64,7 @@ func RegisterRoutes(r chi.Router, logger *slog.Logger, subscriptionService *subs
 		// Webhook endpoint (без аутентификации)
 		r.Post("/payments/webhook", paymentwebhook.New(logger, paymentService, senderService, "webhook_secret").ServeHTTP)
 	})
+	r.Get("/health", health.New(logger).ServeHTTP)
 
 	r.Handle("/metrics", promhttp.Handler())
 	// Swagger docs endpoint
