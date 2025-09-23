@@ -24,7 +24,7 @@ type App struct {
 }
 
 func waitForDB(db *storage.Storage) error {
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		err := storage.CheckDatabaseReady(db)
 		if err == nil {
 			return nil
