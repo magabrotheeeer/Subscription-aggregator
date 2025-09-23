@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/middlewarectx"
@@ -65,7 +66,11 @@ func New(log *slog.Logger, providerClient ProviderClient, ps Service) *Handler {
 // @Security BearerAuth
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	const op = "handlers.payment.create"
-	log := h.log.With(slog.String("op", op))
+
+	log := h.log.With(
+		slog.String("op", op),
+		slog.String("request_id", middleware.GetReqID(r.Context())),
+	)
 
 	var req CreatePaymentMethodRequestApp
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

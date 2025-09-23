@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/go-chi/chi/middleware"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
 
@@ -92,7 +93,11 @@ func (h *Handler) verifySignature(secret string, body []byte, signature string) 
 // @Router /payments/webhook [post]
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	const op = "handlers.payment.webhook"
-	log := h.log.With(slog.String("op", op))
+
+	log := h.log.With(
+		slog.String("op", op),
+		slog.String("request_id", middleware.GetReqID(r.Context())),
+	)
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
