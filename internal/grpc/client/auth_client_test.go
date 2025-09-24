@@ -519,7 +519,7 @@ func TestAuthClient_ConcurrentAccess(t *testing.T) {
 	var wg sync.WaitGroup
 	errors := make(chan error, 10)
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

@@ -209,7 +209,7 @@ func setupTestDatabase(t *testing.T) (*Storage, func()) {
 
 	// Пробуем подключиться несколько раз с ретраями
 	var storage *Storage
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		storage, err = New(connStr)
 		if err == nil {
 			// Проверяем, что подключение действительно работает
