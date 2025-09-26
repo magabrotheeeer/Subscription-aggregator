@@ -313,41 +313,42 @@ func (s *Storage) FindSubscriptionExpiringTomorrow(ctx context.Context) ([]*mode
 	return result, nil
 }
 
-// // FindOldNextPaymentDate находит подписки со старыми датами платежей
-// func (s *Storage) FindOldNextPaymentDate(ctx context.Context) ([]*models.Entry, error) {
-// 	const op = "storage.FindOldNextPaymentDate"
-// 	select {
-// 	case <-ctx.Done():
-// 		return nil, fmt.Errorf("%s: %w", op, ctx.Err())
-// 	default:
-// 	}
+// FindOldNextPaymentDate находит подписки со старыми датами платежей
+func (s *Storage) FindOldNextPaymentDate(ctx context.Context) ([]*models.Entry, error) {
+	const op = "storage.FindOldNextPaymentDate"
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("%s: %w", op, ctx.Err())
+	default:
+	}
+	query := `SELECT id, service_name, price, username, 
+			    start_date, counter_months, user_uid, next_payment_date, is_active
+			  FROM subscriptions
+			  WHERE next_payment_date < CURRENT_DATE
+			  AND is_active = true`
 
-// 	query := `INSERT INTO subscriptions (service_name, price, username, start_date,
-// 			      counter_months, user_uid, next_payment_date, is_active)
-// 			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-// 			  RETURNING id`
-// 	rows, err := s.DB.QueryContext(ctx, query)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("%s: %w", op, err)
-// 	}
+	rows, err := s.DB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 
-// 	defer func() {
-// 		_ = rows.Close()
-// 	}()
-// 	var result []*models.Entry
-// 	for rows.Next() {
-// 		var item models.Entry
-// 		if err := rows.Scan(&item.ID, &item.ServiceName, &item.Price, &item.Username, &item.StartDate,
-// 			&item.CounterMonths, &item.UserUID, &item.NextPaymentDate, &item.IsActive); err != nil {
-// 			return nil, fmt.Errorf("%s: %w", op, err)
-// 		}
-// 		result = append(result, &item)
-// 	}
-// 	if err = rows.Err(); err != nil {
-// 		return nil, fmt.Errorf("%s: %w", op, err)
-// 	}
-// 	return result, nil
-// }
+	defer func() {
+		_ = rows.Close()
+	}()
+	var result []*models.Entry
+	for rows.Next() {
+		var item models.Entry
+		if err := rows.Scan(&item.ID, &item.ServiceName, &item.Price, &item.Username, &item.StartDate,
+			&item.CounterMonths, &item.UserUID, &item.NextPaymentDate, &item.IsActive); err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		result = append(result, &item)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return result, nil
+}
 
 // UpdateNextPaymentDate обновляет дату следующего платежа
 func (s *Storage) UpdateNextPaymentDate(ctx context.Context, entry *models.Entry) (int, error) {
