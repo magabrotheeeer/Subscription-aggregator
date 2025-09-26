@@ -798,69 +798,69 @@ func TestStorage_FindSubscriptionExpiringToday(t *testing.T) {
 	}
 }
 
-// func TestStorage_FindOldNextPaymentDate(t *testing.T) {
-// 	tests := []struct {
-// 		name      string
-// 		wantCount int
-// 		wantErr   bool
-// 		setup     func(t *testing.T, factory *TestDataFactory) error
-// 	}{
-// 		{
-// 			name:      "find subscriptions with old next payment date",
-// 			wantCount: 1,
-// 			wantErr:   false,
-// 			setup: func(t *testing.T, factory *TestDataFactory) error {
-// 				userUID := uuid.New().String()
-// 				// Создаем пользователя
-// 				factory.CreateUser(t, userUID, "testuser", "test@example.com", "hashedpassword", "user")
+func TestStorage_FindOldNextPaymentDate(t *testing.T) {
+	tests := []struct {
+		name      string
+		wantCount int
+		wantErr   bool
+		setup     func(t *testing.T, factory *TestDataFactory) error
+	}{
+		{
+			name:      "find subscriptions with old next payment date",
+			wantCount: 1,
+			wantErr:   false,
+			setup: func(t *testing.T, factory *TestDataFactory) error {
+				userUID := uuid.New().String()
+				// Создаем пользователя
+				factory.CreateUser(t, userUID, "testuser", "test@example.com", "hashedpassword", "user")
 
-// 				// Создаем подписку с next_payment_date = сегодня
-// 				_, err := factory.storage.DB.Exec(`INSERT INTO subscriptions 
-// 					(service_name, price, username, start_date, counter_months, user_uid, next_payment_date, is_active)
-// 					VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-// 					"Netflix", 1000.0, "testuser", time.Now().AddDate(0, -1, 0), 12, userUID, time.Now(), true)
-// 				return err
-// 			},
-// 		},
-// 		{
-// 			name:      "no subscriptions with old next payment date",
-// 			wantCount: 0,
-// 			wantErr:   false,
-// 			setup: func(t *testing.T, factory *TestDataFactory) error {
-// 				userUID := uuid.New().String()
-// 				// Создаем пользователя
-// 				factory.CreateUser(t, userUID, "testuser", "test@example.com", "hashedpassword", "user")
+				// Создаем подписку с next_payment_date = сегодня
+				_, err := factory.storage.DB.Exec(`INSERT INTO subscriptions 
+					(service_name, price, username, start_date, counter_months, user_uid, next_payment_date, is_active)
+					VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+					"Netflix", 1000.0, "testuser", time.Now().AddDate(0, -1, 0), 12, userUID, time.Now().AddDate(0, 0, -1), true)
+				return err
+			},
+		},
+		{
+			name:      "no subscriptions with old next payment date",
+			wantCount: 0,
+			wantErr:   false,
+			setup: func(t *testing.T, factory *TestDataFactory) error {
+				userUID := uuid.New().String()
+				// Создаем пользователя
+				factory.CreateUser(t, userUID, "testuser", "test@example.com", "hashedpassword", "user")
 
-// 				// Создаем подписку с next_payment_date = завтра
-// 				_, err := factory.storage.DB.Exec(`INSERT INTO subscriptions 
-// 					(service_name, price, username, start_date, counter_months, user_uid, next_payment_date, is_active)
-// 					VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-// 					"Netflix", 1000.0, "testuser", time.Now().AddDate(0, -1, 0), 12, userUID, time.Now().AddDate(0, 0, 1), true)
-// 				return err
-// 			},
-// 		},
-// 	}
+				// Создаем подписку с next_payment_date = завтра
+				_, err := factory.storage.DB.Exec(`INSERT INTO subscriptions 
+					(service_name, price, username, start_date, counter_months, user_uid, next_payment_date, is_active)
+					VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+					"Netflix", 1000.0, "testuser", time.Now().AddDate(0, -1, 0), 12, userUID, time.Now().AddDate(0, 0, 1), true)
+				return err
+			},
+		},
+	}
 
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			storage, cleanup := setupTestDatabase(t)
-// 			defer cleanup()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			storage, cleanup := setupTestDatabase(t)
+			defer cleanup()
 
-// 			factory := NewTestDataFactory(storage)
-// 			err := tt.setup(t, factory)
-// 			require.NoError(t, err)
+			factory := NewTestDataFactory(storage)
+			err := tt.setup(t, factory)
+			require.NoError(t, err)
 
-// 			got, err := storage.FindOldNextPaymentDate(context.Background())
+			got, err := storage.FindOldNextPaymentDate(context.Background())
 
-// 			if tt.wantErr {
-// 				require.Error(t, err)
-// 			} else {
-// 				require.NoError(t, err)
-// 				assert.Len(t, got, tt.wantCount)
-// 			}
-// 		})
-// 	}
-// }
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.Len(t, got, tt.wantCount)
+			}
+		})
+	}
+}
 
 func TestStorage_UpdateNextPaymentDate(t *testing.T) {
 	type args struct {
