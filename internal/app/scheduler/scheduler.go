@@ -44,41 +44,24 @@ func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, er
 	queues := rabbitmq.GetNotificationQueues()
 	ch, err := rabbitmq.SetupChannel(conn, queues)
 	if err != nil {
-		if closeErr := conn.Close(); closeErr != nil {
-			logger.Error("failed to close connection", "error", closeErr)
-		}
+		closeResources(nil, conn, logger)
 		return nil, fmt.Errorf("failed to setup RabbitMQ channel: %w", err)
 	}
 
 	db, err := storage.New(cfg.StorageConnectionString)
 	if err != nil {
-		if closeErr := ch.Close(); closeErr != nil {
-			logger.Error("failed to close channel", "error", closeErr)
-		}
-		if closeErr := conn.Close(); closeErr != nil {
-			logger.Error("failed to close connection", "error", closeErr)
-		}
+		closeResources(ch, conn, logger)
 		return nil, fmt.Errorf("failed to connect storage: %w", err)
 	}
 
 	if err := waitForDB(db); err != nil {
-		if closeErr := ch.Close(); closeErr != nil {
-			logger.Error("failed to close channel", "error", closeErr)
-		}
-		if closeErr := conn.Close(); closeErr != nil {
-			logger.Error("failed to close connection", "error", closeErr)
-		}
+		closeResources(ch, conn, logger)
 		return nil, err
 	}
 
 	cacheRedis, err := cache.InitServer(ctx, cfg.RedisConnection)
 	if err != nil {
-		if closeErr := ch.Close(); closeErr != nil {
-			logger.Error("failed to close channel", "error", closeErr)
-		}
-		if closeErr := conn.Close(); closeErr != nil {
-			logger.Error("failed to close connection", "error", closeErr)
-		}
+		closeResources(ch, conn, logger)
 		return nil, fmt.Errorf("cache not initialized: %w", err)
 	}
 
@@ -90,6 +73,19 @@ func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, er
 		ch:               ch,
 		logger:           logger,
 	}, nil
+}
+
+func closeResources(ch *amqp.Channel, conn *amqp.Connection, logger *slog.Logger) {
+	if ch != nil {
+		if err := ch.Close(); err != nil {
+			logger.Error("failed to close channel", "error", err)
+		}
+	}
+	if conn != nil {
+		if err := conn.Close(); err != nil {
+			logger.Error("failed to close connection", "error", err)
+		}
+	}
 }
 
 // Run запускает планировщик.
