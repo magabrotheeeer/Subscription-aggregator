@@ -7,9 +7,9 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/magabrotheeeer/subscription-aggregator/internal/rabbitmq"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/rabbitmq"
 	"github.com/streadway/amqp"
 )
 
@@ -138,8 +138,9 @@ func (s *SchedulerService) runFindOldNextPaymentDate(ctx context.Context) {
 	}
 	if len(entriesInfo) == 0 {
 		s.log.Info("all entrys are up to date")
+	} else {
+		s.log.Info("outdated next payment dates found")
 	}
-	s.log.Info("outdated next payment dates found")
 	for _, entryInfo := range entriesInfo {
 		current := entryInfo.NextPaymentDate
 		newDate := current.AddDate(0, 1, 0)
