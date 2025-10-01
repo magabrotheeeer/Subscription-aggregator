@@ -21,7 +21,7 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/sum"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/update"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/middlewarectx"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/paymentprovider"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/yookassa"
 	paymentservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/payment"
 	senderservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/sender"
 	subservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/subscription"
@@ -32,7 +32,7 @@ import (
 )
 
 // RegisterRoutes регистрирует все маршруты приложения.
-func RegisterRoutes(r chi.Router, logger *slog.Logger, subscriptionService *subservice.SubscriptionService, authClient *client.AuthClient, providerClient *paymentprovider.Client, paymentService *paymentservice.Service, senderService *senderservice.SenderService) {
+func RegisterRoutes(r chi.Router, logger *slog.Logger, subscriptionService *subservice.SubscriptionService, authClient *client.AuthClient, providerClient *yookassa.Client, paymentService *paymentservice.Service, senderService *senderservice.SenderService) {
 	// Глобальные middleware
 	r.Use(
 		middleware.RequestID,

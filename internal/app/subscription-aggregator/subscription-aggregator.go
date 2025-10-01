@@ -12,7 +12,7 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/cache"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/grpc/client"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/paymentprovider"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/yookassa"
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/smtp"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/migrations"
@@ -50,7 +50,7 @@ func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, er
 		return nil, err
 	}
 
-	providerService := paymentprovider.NewClient("заглушка", "заглушка")
+	providerService := yookassa.NewClient("заглушка", "заглушка")
 	paymentService := paymentservice.New(db, logger)
 	subscriptionService := subsaggregatorservice.NewSubscriptionService(db, cacheRedis, logger)
 

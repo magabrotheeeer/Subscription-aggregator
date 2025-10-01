@@ -1,5 +1,5 @@
-// Package paymentprovider предоставляет клиент для работы с платежными провайдерами.
-package paymentprovider
+// Package yookassa предоставляет клиент для работы с платежными провайдерами.
+package yookassa
 
 import (
 	"bytes"

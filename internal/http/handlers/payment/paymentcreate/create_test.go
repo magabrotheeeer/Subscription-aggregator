@@ -16,19 +16,19 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/middlewarectx"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/paymentprovider"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/yookassa"
 )
 
 type MockProviderClient struct {
 	mock.Mock
 }
 
-func (m *MockProviderClient) CreatePayment(reqParams paymentprovider.CreatePaymentRequest) (*paymentprovider.CreatePaymentResponse, error) {
+func (m *MockProviderClient) CreatePayment(reqParams yookassa.CreatePaymentRequest) (*yookassa.CreatePaymentResponse, error) {
 	args := m.Called(reqParams)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*paymentprovider.CreatePaymentResponse), args.Error(1)
+	return args.Get(0).(*yookassa.CreatePaymentResponse), args.Error(1)
 }
 
 type MockService struct {
@@ -68,16 +68,16 @@ func TestPaymentCreateHandler_ServeHTTP(t *testing.T) {
 			setupMocks: func(pc *MockProviderClient, ps *MockService) {
 				ps.On("GetActiveSubscriptionIDByUserUID", mock.Anything, "user123").Return("sub123", nil).Once()
 				ps.On("GetOrCreatePaymentToken", mock.Anything, "user123", "token123").Return(42, nil).Once()
-				pc.On("CreatePayment", mock.MatchedBy(func(req paymentprovider.CreatePaymentRequest) bool {
+				pc.On("CreatePayment", mock.MatchedBy(func(req yookassa.CreatePaymentRequest) bool {
 					return req.PaymentToken == "token123" &&
 						req.Amount.Value == "200.00" &&
 						req.Amount.Currency == "RUB" &&
 						req.Metadata["user_uid"] == "user123" &&
 						req.Metadata["subscription_id"] == "sub123"
-				})).Return(&paymentprovider.CreatePaymentResponse{
+				})).Return(&yookassa.CreatePaymentResponse{
 					ID:     "payment123",
 					Status: "succeeded",
-					Amount: paymentprovider.Amount{
+					Amount: yookassa.Amount{
 						Value:    "200.00",
 						Currency: "RUB",
 					},
@@ -240,7 +240,7 @@ func TestPaymentCreateHandler_Validation(t *testing.T) {
 			if tt.expectedStatus == http.StatusOK {
 				paymentService.On("GetActiveSubscriptionIDByUserUID", mock.Anything, "user123").Return("sub123", nil).Once()
 				paymentService.On("GetOrCreatePaymentToken", mock.Anything, "user123", tt.requestBody.PaymentMethodToken).Return(42, nil).Once()
-				providerClient.On("CreatePayment", mock.Anything).Return(&paymentprovider.CreatePaymentResponse{
+				providerClient.On("CreatePayment", mock.Anything).Return(&yookassa.CreatePaymentResponse{
 					ID:     "payment123",
 					Status: "succeeded",
 				}, nil).Once()

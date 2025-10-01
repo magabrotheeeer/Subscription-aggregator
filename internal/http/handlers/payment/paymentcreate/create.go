@@ -13,7 +13,7 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/middlewarectx"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/http/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/paymentprovider"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/yookassa"
 )
 
 // CreatePaymentMethodRequestApp представляет запрос на создание платежного метода.
@@ -23,7 +23,7 @@ type CreatePaymentMethodRequestApp struct {
 
 // ProviderClient определяет интерфейс для работы с платежным провайдером.
 type ProviderClient interface {
-	CreatePayment(reqParams paymentprovider.CreatePaymentRequest) (*paymentprovider.CreatePaymentResponse, error)
+	CreatePayment(reqParams yookassa.CreatePaymentRequest) (*yookassa.CreatePaymentResponse, error)
 }
 
 // Service определяет интерфейс для работы с платежами.
@@ -109,9 +109,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	paymentReq := paymentprovider.CreatePaymentRequest{
+	paymentReq := yookassa.CreatePaymentRequest{
 		PaymentToken: req.PaymentMethodToken,
-		Amount: paymentprovider.Amount{
+		Amount: yookassa.Amount{
 			Value:    "200.00",
 			Currency: "RUB",
 		},

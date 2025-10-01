@@ -1,4 +1,4 @@
-package paymentprovider
+package yookassa
 
 import "time"
 
