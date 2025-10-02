@@ -16,8 +16,8 @@ import (
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator"
 
+	"github.com/magabrotheeeer/subscription-aggregator/internal/api/response"
 	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/gen"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
 
