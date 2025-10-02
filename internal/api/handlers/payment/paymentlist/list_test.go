@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/middlewarectx"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/api/middlewarectx"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 

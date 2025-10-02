@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/docker/go-connections/nat"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/cache"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/cache"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -40,7 +40,7 @@ func setupRedisContainer(t *testing.T) (*cache.Cache, func()) {
 	port, _ := redisC.MappedPort(ctx, nat.Port("6379"))
 
 	cfg := config.RedisConnection{
-		RedisAddress: host + ":" + port.Port(),
+		RedisAddress:      host + ":" + port.Port(),
 		RedisPassword:     "",
 		RedisDB:           0,
 		RedisUser:         "",

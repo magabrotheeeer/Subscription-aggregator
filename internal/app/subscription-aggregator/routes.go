@@ -8,19 +8,20 @@ import (
 
 	httpSwagger "github.com/swaggo/http-swagger"
 
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/auth/login"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/auth/register"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/payment/paymentcreate"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/payment/paymentlist"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/payment/paymentwebhook"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/create"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/health"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/list"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/read"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/remove"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/sum"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/subscription/update"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/middlewarectx"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/api/handlers/auth/login"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/api/handlers/auth/register"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/api/handlers/payment/paymentcreate"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/api/handlers/payment/paymentlist"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/api/handlers/payment/paymentwebhook"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/api/handlers/subscription/create"
+
+	//	"github.com/magabrotheeeer/subscription-aggregator/internal/api/handlers/subscription/health"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/api/handlers/subscription/list"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/api/handlers/subscription/read"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/api/handlers/subscription/remove"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/api/handlers/subscription/sum"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/api/handlers/subscription/update"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/api/middlewarectx"
 	paymentservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/payment"
 	senderservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/sender"
 	subservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/subscription"
@@ -53,8 +54,8 @@ func RegisterRoutes(r chi.Router, logger *slog.Logger,
 
 		// Группа с JWT аутентификацией
 		r.Group(func(r chi.Router) {
-			r.Use(middlewarectx.JWTMiddleware(authClient, logger))
-			r.Use(middlewarectx.SubscriptionStatusMiddleware(logger, subscriptionService))
+			r.Use(middlewarectx.JWTMiddleware(logger, authClient))
+			r.Use(middlewarectx.SubscriptionStatusMiddleware(logger, authClient))
 			r.Use(middlewarectx.RateLimitMiddleware(logger))
 			r.Post("/subscriptions", create.New(logger, subscriptionService).ServeHTTP)
 			r.Get("/subscriptions/{id}", read.New(logger, subscriptionService).ServeHTTP)
@@ -69,7 +70,7 @@ func RegisterRoutes(r chi.Router, logger *slog.Logger,
 		// Webhook endpoint (без аутентификации)
 		r.Post("/payments/webhook", paymentwebhook.New(logger, paymentService, senderService, "webhook_secret").ServeHTTP)
 	})
-	r.Get("/health", health.New(logger).ServeHTTP)
+	//r.Get("/health", health.New(logger).ServeHTTP)
 
 	r.Handle("/metrics", promhttp.Handler())
 	// Swagger docs endpoint

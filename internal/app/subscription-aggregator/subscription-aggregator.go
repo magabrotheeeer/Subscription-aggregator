@@ -9,9 +9,9 @@ import (
 
 	"github.com/go-chi/chi"
 
-	"github.com/magabrotheeeer/subscription-aggregator/internal/cache"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/grpc/client"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/cache"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/yookassa"
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/smtp"
@@ -19,20 +19,20 @@ import (
 	paymentservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/payment"
 	senderservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/sender"
 	subsaggregatorservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/subscription"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/repository"
 )
 
 // App представляет основное приложение subscription-aggregator.
 type App struct {
 	server *http.Server
 	logger *slog.Logger
-	db     *storage.Storage
+	db     *repository.Storage
 	cache  cache.Cache
 }
 
 // New создает новый экземпляр основного приложения.
 func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, error) {
-	db, err := storage.New(cfg.StorageConnectionString)
+	db, err := repository.New(cfg.StorageConnectionString)
 	if err != nil {
 		return nil, err
 	}

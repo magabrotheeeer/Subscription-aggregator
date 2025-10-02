@@ -1,8 +1,8 @@
-// Package storage реализует хранилище данных на основе PostgreSQL
+// Package repository реализует хранилище данных на основе PostgreSQL
 // для управления подписками и пользователями. Предоставляет методы
 // создания, чтения, обновления, удаления и агрегирования записей,
 // а также работу с пользователями.
-package storage
+package repository
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 
 	// Регистрация драйвера pgx для использования с database/sql.
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/payment/paymentwebhook"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/api/handlers/payment/paymentwebhook"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/month"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )

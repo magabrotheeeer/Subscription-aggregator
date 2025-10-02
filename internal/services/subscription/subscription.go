@@ -27,7 +27,8 @@ type SubscriptionRepository interface {
 	CountSumEntrys(ctx context.Context, entry models.FilterSum) (float64, error)
 	// ListAll возвращает список всех подписок с пагинацией.
 	ListAllEntrys(ctx context.Context, limit, offset int) ([]*models.Entry, error)
-	GetSubscriptionStatus(ctx context.Context, userUID string) (string, error)
+	GetSubscriptionStatus(ctx context.Context, userUID string) (bool, error)
+	GetUser(ctx context.Context, userUID string) (*models.User, error)
 }
 
 // Cache описывает методы для кэширования данных.
@@ -241,6 +242,6 @@ func (s *SubscriptionService) CreateEntrySubscriptionAggregator(ctx context.Cont
 }
 
 // GetSubscriptionStatus возвращает статус подписки пользователя.
-func (s *SubscriptionService) GetSubscriptionStatus(ctx context.Context, userUID string) (string, error) {
+func (s *SubscriptionService) GetSubscriptionStatus(ctx context.Context, userUID string) (bool, error) {
 	return s.repo.GetSubscriptionStatus(ctx, userUID)
 }

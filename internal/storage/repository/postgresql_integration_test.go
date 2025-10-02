@@ -1,4 +1,4 @@
-package storage
+package repository
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/payment/paymentwebhook"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/api/handlers/payment/paymentwebhook"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

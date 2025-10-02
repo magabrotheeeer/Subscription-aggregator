@@ -5,25 +5,26 @@ import (
 	"net/http"
 
 	"github.com/go-chi/render"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/api/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/cache"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/response"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/repository"
 	"github.com/streadway/amqp"
+	"golang.org/x/mod/sumdb/storage"
 )
 
 type Handler struct {
 	log     *slog.Logger
-	storage *storage.Storage
+	storage *repository.Storage
 	rabbit  *amqp.Connection
 	cache   *cache.Cache
 }
 
 func New(log *slog.Logger, storage *storage.Storage, rabbit *amqp.Connection, cache *cache.Cache) *Handler {
 	return &Handler{
-		log: log,
+		log:     log,
 		storage: storage,
-		rabbit: rabbit,
-		cache: cache,
+		rabbit:  rabbit,
+		cache:   cache,
 	}
 }
 

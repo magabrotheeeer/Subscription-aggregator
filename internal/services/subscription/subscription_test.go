@@ -60,9 +60,9 @@ func (m *RepoMock) CreateEntrySubscriptionAggregator(ctx context.Context, entry 
 	return args.Int(0), args.Error(1)
 }
 
-func (m *RepoMock) GetSubscriptionStatus(ctx context.Context, userUID string) (string, error) {
+func (m *RepoMock) GetSubscriptionStatus(ctx context.Context, userUID string) (bool, error) {
 	args := m.Called(ctx, userUID)
-	return args.String(0), args.Error(1)
+	return args.Bool(0), args.Error(1)
 }
 
 type CacheMock struct{ mock.Mock }

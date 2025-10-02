@@ -11,7 +11,7 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/grpc/server"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/jwt"
 	authservices "github.com/magabrotheeeer/subscription-aggregator/internal/services/auth"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/repository"
 	"google.golang.org/grpc"
 )
 
@@ -24,7 +24,7 @@ type App struct {
 
 // New создает новый экземпляр приложения аутентификации.
 func New(_ context.Context, cfg *config.Config, logger *slog.Logger) (*App, error) {
-	db, err := storage.New(cfg.StorageConnectionString)
+	db, err := repository.New(cfg.StorageConnectionString)
 	if err != nil {
 		return nil, err
 	}

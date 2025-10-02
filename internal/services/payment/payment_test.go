@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/payment/paymentwebhook"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/api/handlers/payment/paymentwebhook"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

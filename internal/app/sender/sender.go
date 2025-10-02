@@ -6,10 +6,10 @@ import (
 	"log/slog"
 
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/rabbitmq"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/smtp"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/rabbitmq"
 	senderservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/sender"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/repository"
 	"github.com/streadway/amqp"
 )
 
@@ -23,7 +23,7 @@ type App struct {
 
 // New создает новый экземпляр приложения отправителя.
 func New(_ context.Context, cfg *config.Config, logger *slog.Logger) (*App, error) {
-	db, err := storage.New(cfg.StorageConnectionString)
+	db, err := repository.New(cfg.StorageConnectionString)
 	if err != nil {
 		return nil, err
 	}

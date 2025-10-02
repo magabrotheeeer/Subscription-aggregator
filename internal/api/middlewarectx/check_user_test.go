@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -17,12 +18,10 @@ type MockSubscriptionService struct {
 	mock.Mock
 }
 
-func (m *MockSubscriptionService) GetSubscriptionStatus(ctx context.Context, userUID string) (string, error) {
+func (m *MockSubscriptionService) GetUser(ctx context.Context, userUID string) (*models.User, error) {
 	args := m.Called(ctx, userUID)
-	return args.String(0), args.Error(1)
+	return args.Get(0).(*models.User), args.Error(1)
 }
-
-// MockSubscriptionService реализует SubscriptionServiceInterface для тестирования
 
 func newNoopLoggerCheck() *slog.Logger {
 	h := slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})

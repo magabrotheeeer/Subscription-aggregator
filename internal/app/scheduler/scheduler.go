@@ -11,8 +11,9 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/rabbitmq"
 	schedulerservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/scheduler"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/storage"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/repository"
 	"github.com/streadway/amqp"
+	"golang.org/x/mod/sumdb/storage"
 )
 
 // App представляет приложение планировщика.
@@ -25,7 +26,7 @@ type App struct {
 
 func waitForDB(db *storage.Storage) error {
 	for range 10 {
-		err := storage.CheckDatabaseReady(db)
+		err := repository.CheckDatabaseReady(db)
 		if err == nil {
 			return nil
 		}
@@ -48,7 +49,7 @@ func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, er
 		return nil, fmt.Errorf("failed to setup RabbitMQ channel: %w", err)
 	}
 
-	db, err := storage.New(cfg.StorageConnectionString)
+	db, err := repository.New(cfg.StorageConnectionString)
 	if err != nil {
 		closeResources(ch, conn, logger)
 		return nil, fmt.Errorf("failed to connect storage: %w", err)

@@ -16,7 +16,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
 
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/response"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/api/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 )
 

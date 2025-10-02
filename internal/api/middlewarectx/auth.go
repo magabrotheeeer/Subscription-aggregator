@@ -15,9 +15,10 @@ import (
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/api/response"
 	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/gen"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/response"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
 // Key тип для ключей контекста HTTP-запроса.
@@ -33,15 +34,16 @@ const (
 )
 
 // Service описывает интерфейс сервиса для валидации JWT токена.
-type Service interface {
+type AuthService interface {
 	ValidateToken(ctx context.Context, token string) (*authpb.ValidateTokenResponse, error)
+	GetUser(ctx context.Context, userUID string) (*models.User, error)
 }
 
 // JWTMiddleware возвращает HTTP middleware, который проверяет JWT в заголовке Authorization.
 //
 // Если токен валиден, добавляет имя пользователя и роль в контекст запроса,
 // иначе возвращает ошибку с HTTP статусом 401 Unauthorized.
-func JWTMiddleware(authClient Service, log *slog.Logger) func(http.Handler) http.Handler {
+func JWTMiddleware(log *slog.Logger, authClient AuthService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")

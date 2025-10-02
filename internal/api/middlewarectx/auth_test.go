@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/gen"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
 // Типизированные ключи для контекста
@@ -31,6 +32,14 @@ func (m *MockAuthClient) ValidateToken(ctx context.Context, token string) (*auth
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*authpb.ValidateTokenResponse), args.Error(1)
+}
+
+func (m *MockAuthClient) GetUser(ctx context.Context, userUID string) (*models.User, error) {
+	args := m.Called(ctx, userUID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.User), args.Error(1)
 }
 
 func newNoopLoggerAuth() *slog.Logger {
@@ -134,7 +143,7 @@ func TestJWTMiddleware(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			authClient := new(MockAuthClient)
 			logger := newNoopLoggerAuth()
-			middleware := JWTMiddleware(authClient, logger)
+			middleware := JWTMiddleware(logger, authClient)
 
 			tt.setupMocks(authClient)
 
@@ -184,7 +193,7 @@ func TestJWTMiddleware(t *testing.T) {
 func TestJWTMiddleware_ContextValues(t *testing.T) {
 	authClient := new(MockAuthClient)
 	logger := newNoopLoggerAuth()
-	middleware := JWTMiddleware(authClient, logger)
+	middleware := JWTMiddleware(logger, authClient)
 
 	authClient.On("ValidateToken", mock.Anything, "test_token").Return(&authpb.ValidateTokenResponse{
 		Valid:    true,
@@ -223,7 +232,7 @@ func TestJWTMiddleware_ContextValues(t *testing.T) {
 func TestJWTMiddleware_EmptyToken(t *testing.T) {
 	authClient := new(MockAuthClient)
 	logger := newNoopLoggerAuth()
-	middleware := JWTMiddleware(authClient, logger)
+	middleware := JWTMiddleware(logger, authClient)
 
 	testHandler := http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
 		t.Error("Handler should not be called for invalid token")

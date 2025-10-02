@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/magabrotheeeer/subscription-aggregator/internal/http/handlers/payment/paymentwebhook"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/api/handlers/payment/paymentwebhook"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/smtp"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
