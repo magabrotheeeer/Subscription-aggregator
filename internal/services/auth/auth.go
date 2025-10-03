@@ -18,7 +18,6 @@ type UserRepository interface {
 
 	// GetUserByUsername возвращает пользователя по имени или ошибку, если не найден.
 	GetUserByUsername(ctx context.Context, username string) (*models.User, error)
-	GetUser(ctx context.Context, userUID string) (*models.User, error)
 }
 
 // AuthService отвечает за регистрацию, авторизацию и валидацию JWT.
@@ -84,6 +83,3 @@ func (s *AuthService) ValidateToken(_ context.Context, token string) (*models.Us
 	return user, claims.Role, true, nil
 }
 
-func (s *AuthService) GetUser(ctx context.Context, userUID string) (*models.User, error) {
-	s.GetUser(ctx, userUID)
-}
