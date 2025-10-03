@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/magabrotheeeer/subscription-aggregator/internal/cache"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/cache"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/rabbitmq"
 	schedulerservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/scheduler"

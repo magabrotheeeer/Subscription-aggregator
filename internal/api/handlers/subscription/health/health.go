@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-chi/render"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/api/response"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/cache"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/cache"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/repository"
 	"github.com/streadway/amqp"
 	"golang.org/x/mod/sumdb/storage"
