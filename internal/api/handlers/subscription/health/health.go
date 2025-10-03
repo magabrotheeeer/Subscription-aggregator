@@ -9,7 +9,6 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/cache"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/repository"
 	"github.com/streadway/amqp"
-	"golang.org/x/mod/sumdb/storage"
 )
 
 type Handler struct {
@@ -19,7 +18,7 @@ type Handler struct {
 	cache   *cache.Cache
 }
 
-func New(log *slog.Logger, storage *storage.Storage, rabbit *amqp.Connection, cache *cache.Cache) *Handler {
+func New(log *slog.Logger, storage *repository.Storage, rabbit *amqp.Connection, cache *cache.Cache) *Handler {
 	return &Handler{
 		log:     log,
 		storage: storage,
