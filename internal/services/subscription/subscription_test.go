@@ -65,6 +65,14 @@ func (m *RepoMock) GetSubscriptionStatus(ctx context.Context, userUID string) (b
 	return args.Bool(0), args.Error(1)
 }
 
+func (m *RepoMock) GetUser(ctx context.Context, userUID string) (*models.User, error) {
+	args := m.Called(ctx, userUID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.User), args.Error(1)
+}
+
 type CacheMock struct{ mock.Mock }
 
 func (m *CacheMock) Get(key string, result any) (bool, error) {

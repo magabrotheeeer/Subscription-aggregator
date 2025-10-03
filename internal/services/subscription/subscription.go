@@ -245,3 +245,7 @@ func (s *SubscriptionService) CreateEntrySubscriptionAggregator(ctx context.Cont
 func (s *SubscriptionService) GetSubscriptionStatus(ctx context.Context, userUID string) (bool, error) {
 	return s.repo.GetSubscriptionStatus(ctx, userUID)
 }
+
+func (s *SubscriptionService) GetUser(ctx context.Context, userUID string) (*models.User, error) {
+	return s.GetUser(ctx, userUID)
+}
