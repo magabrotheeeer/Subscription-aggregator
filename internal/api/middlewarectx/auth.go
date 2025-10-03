@@ -18,7 +18,6 @@ import (
 	"github.com/magabrotheeeer/subscription-aggregator/internal/api/response"
 	authpb "github.com/magabrotheeeer/subscription-aggregator/internal/grpc/gen"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/lib/sl"
-	"github.com/magabrotheeeer/subscription-aggregator/internal/models"
 )
 
 // Key тип для ключей контекста HTTP-запроса.
@@ -36,7 +35,6 @@ const (
 // Service описывает интерфейс сервиса для валидации JWT токена.
 type AuthService interface {
 	ValidateToken(ctx context.Context, token string) (*authpb.ValidateTokenResponse, error)
-	GetUser(ctx context.Context, userUID string) (*models.User, error)
 }
 
 // JWTMiddleware возвращает HTTP middleware, который проверяет JWT в заголовке Authorization.
