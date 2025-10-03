@@ -55,7 +55,7 @@ func RegisterRoutes(r chi.Router, logger *slog.Logger,
 		// Группа с JWT аутентификацией
 		r.Group(func(r chi.Router) {
 			r.Use(middlewarectx.JWTMiddleware(logger, authClient))
-			r.Use(middlewarectx.SubscriptionStatusMiddleware(logger, authClient))
+			r.Use(middlewarectx.SubscriptionStatusMiddleware(logger, subscriptionService))
 			r.Use(middlewarectx.RateLimitMiddleware(logger))
 			r.Post("/subscriptions", create.New(logger, subscriptionService).ServeHTTP)
 			r.Get("/subscriptions/{id}", read.New(logger, subscriptionService).ServeHTTP)
