@@ -7,13 +7,12 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/cache"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/config"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/rabbitmq"
 	schedulerservice "github.com/magabrotheeeer/subscription-aggregator/internal/services/scheduler"
+	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/cache"
 	"github.com/magabrotheeeer/subscription-aggregator/internal/storage/repository"
 	"github.com/streadway/amqp"
-	"golang.org/x/mod/sumdb/storage"
 )
 
 // App представляет приложение планировщика.
@@ -24,7 +23,7 @@ type App struct {
 	logger           *slog.Logger
 }
 
-func waitForDB(db *storage.Storage) error {
+func waitForDB(db *repository.Storage) error {
 	for range 10 {
 		err := repository.CheckDatabaseReady(db)
 		if err == nil {
