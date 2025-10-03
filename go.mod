@@ -23,6 +23,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.38.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.38.0
 	golang.org/x/crypto v0.41.0
+	golang.org/x/mod v0.26.0
 	golang.org/x/time v0.13.0
 	google.golang.org/grpc v1.74.2
 	google.golang.org/protobuf v1.36.8
